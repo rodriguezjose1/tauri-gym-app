@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm, message } from "@tauri-apps/plugin-dialog";
-import { Title, DeleteConfirmationModal } from "../components/ui";
-import { PersonSearch, WeeklyCalendar, WorkoutModals } from "../components/dashboard";
+import { DeleteConfirmationModal } from "../components/ui";
+import { WeeklyCalendar, WorkoutModals } from "../components/dashboard";
 import {
   Person,
   Exercise,
@@ -18,7 +18,6 @@ export default function Dashboard() {
   const [workoutData, setWorkoutData] = useState<WorkoutEntryWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [workoutLoading, setWorkoutLoading] = useState(false);
-  const [showWeekends, setShowWeekends] = useState(false);
 
   // Workout Entry Modal State
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -101,9 +100,9 @@ export default function Dashboard() {
     }
   };
 
-  const handlePersonSelect = (person: Person) => {
+  const handlePersonSelect = (person: Person | null) => {
     setSelectedPerson(person);
-    fetchWorkoutData(person.id!);
+    fetchWorkoutData(person?.id!);
   };
 
   const handleFetchWorkoutDataForDateRange = async (startDate: string, endDate: string) => {
@@ -506,99 +505,17 @@ export default function Dashboard() {
       backgroundColor: '#f8fafc'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Compact Header with Person Search */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '20px', 
-          marginBottom: '20px',
-          padding: '16px 20px',
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          border: '1px solid #e5e7eb'
-        }}>
-          <div style={{ flex: '0 0 auto' }}>
-            <Title level={2} variant="primary" style={{ margin: 0 }}>
-              📅 Dashboard de Entrenamientos
-            </Title>
-          </div>
-          
-          <div style={{ flex: '1', maxWidth: '400px' }}>
-            <PersonSearch
-              selectedPerson={selectedPerson}
-              onPersonSelect={handlePersonSelect}
-              onClearSelection={handleClearSelection}
-            />
-          </div>
-
-          {/* Weekend Toggle */}
-          {selectedPerson && (
-            <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ 
-                fontSize: '14px', 
-                color: '#374151',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={showWeekends}
-                  onChange={(e) => setShowWeekends(e.target.checked)}
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    cursor: 'pointer'
-                  }}
-                />
-                Mostrar fines de semana
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Weekly View */}
-        {selectedPerson && (
-          <WeeklyCalendar
-            workoutData={workoutData}
-            workoutLoading={workoutLoading}
-            onDayClick={handleDayClick}
-            onDayRightClick={handleDayRightClick}
-            onAddWorkoutClick={handleAddWorkoutClick}
-            onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
-            onReorderExercises={handleReorderExercises}
-            onFetchWorkoutData={handleFetchWorkoutDataForDateRange}
-            showWeekends={showWeekends}
-          />
-        )}
-
-        {/* Empty State */}
-        {!selectedPerson && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '60px 20px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-            <Title level={3} variant="secondary" align="center">
-              Selecciona una persona para ver sus entrenamientos
-            </Title>
-            <p style={{ 
-              color: '#6b7280', 
-              fontSize: '16px', 
-              marginTop: '8px',
-              lineHeight: '1.5'
-            }}>
-              Usa el buscador de arriba para encontrar y seleccionar una persona.
-            </p>
-          </div>
-        )}
+        {/* Weekly Calendar with Embedded Person Search */}
+        <WeeklyCalendar
+          onPersonSelect={handlePersonSelect}
+          onWorkoutDataChange={setWorkoutData}
+          onSelectedDateChange={setSelectedDate}
+          onAddWorkoutClick={handleAddWorkoutClick}
+          onDayClick={handleDayClick}
+          onDayRightClick={handleDayRightClick}
+          onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
+          onReorderExercises={handleReorderExercises}
+        />
       </div>
 
       {/* Workout Modals */}

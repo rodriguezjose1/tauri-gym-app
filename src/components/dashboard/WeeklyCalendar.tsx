@@ -18,6 +18,15 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { invoke } from "@tauri-apps/api/core";
+import { Input, Button } from "../ui";
+
+interface Person {
+  id?: number;
+  name: string;
+  last_name: string;
+  phone: string;
+}
 
 interface WorkoutEntryWithDetails {
   id?: number;
@@ -38,15 +47,14 @@ interface WorkoutEntryWithDetails {
 }
 
 interface WeeklyCalendarProps {
-  workoutData: WorkoutEntryWithDetails[];
-  workoutLoading: boolean;
   onDayClick: (date: string) => void;
   onDayRightClick: (e: React.MouseEvent, date: string) => void;
   onAddWorkoutClick: (date: string) => void;
   onDeleteWorkoutEntry: (id: number) => void;
   onReorderExercises: (exerciseOrders: Array<{ id: number; order: number }>) => void;
-  onFetchWorkoutData: (startDate: string, endDate: string) => Promise<void>;
-  showWeekends?: boolean;
+  onPersonSelect?: (person: Person | null) => void;
+  onWorkoutDataChange?: (workoutData: WorkoutEntryWithDetails[]) => void;
+  onSelectedDateChange?: (date: string) => void;
 }
 
 interface SortableWorkoutItemProps {
@@ -172,17 +180,33 @@ const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
 };
 
 export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
-  workoutData,
-  workoutLoading,
   onDayClick,
   onDayRightClick,
   onAddWorkoutClick,
   onDeleteWorkoutEntry,
   onReorderExercises,
-  onFetchWorkoutData,
-  showWeekends = false
+  onPersonSelect,
+  onWorkoutDataChange,
+  onSelectedDateChange,
 }) => {
+  // Person search state
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [persons, setPersons] = useState<Person[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [personSearchLoading, setPersonSearchLoading] = useState(false);
+  const [personCurrentPage, setPersonCurrentPage] = useState(1);
+  const [personHasMore, setPersonHasMore] = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const personPageSize = 10;
+
+  // Workout data state
+  const [workoutData, setWorkoutData] = useState<WorkoutEntryWithDetails[]>([]);
+  const [workoutLoading, setWorkoutLoading] = useState(false);
+
+  // Calendar state
   const [weekOffset, setWeekOffset] = useState(0); // 0 = current 3 weeks, 3 = next 3 weeks back, etc.
+  const [showWeekends, setShowWeekends] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const savedScrollPosition = useRef<number>(0);
   const isReordering = useRef<boolean>(false);
@@ -193,6 +217,133 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Person search functions
+  const searchPersons = async (query: string, page: number = 1, reset: boolean = true) => {
+    if (query.trim().length < 2) {
+      setPersons([]);
+      setPersonHasMore(false);
+      return;
+    }
+
+    setPersonSearchLoading(true);
+    try {
+      const result = await invoke("search_persons_paginated", { 
+        query: query.trim(), 
+        page, 
+        pageSize: personPageSize 
+      });
+      const newPersons = result as Person[];
+      
+      if (reset) {
+        setPersons(newPersons);
+      } else {
+        setPersons(prev => [...prev, ...newPersons]);
+      }
+      
+      setPersonHasMore(newPersons.length === personPageSize);
+      setPersonCurrentPage(page);
+    } catch (error) {
+      console.error("Error searching persons:", error);
+      setPersons([]);
+      setPersonHasMore(false);
+    } finally {
+      setPersonSearchLoading(false);
+    }
+  };
+
+  const loadMorePersons = () => {
+    if (!personSearchLoading && personHasMore && searchTerm.length >= 2) {
+      searchPersons(searchTerm, personCurrentPage + 1, false);
+    }
+  };
+
+  const handlePersonSelect = (person: Person) => {
+    setSelectedPerson(person);
+    setSearchTerm(`${person.name} ${person.last_name}`);
+    setShowDropdown(false);
+    fetchWorkoutData(person.id!);
+    onPersonSelect?.(person);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedPerson(null);
+    setSearchTerm("");
+    setPersons([]);
+    setShowDropdown(false);
+    setWorkoutData([]);
+    onPersonSelect?.(null);
+    onWorkoutDataChange?.([]);
+  };
+
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value.length >= 2) {
+      setShowDropdown(true);
+      await searchPersons(value);
+    } else {
+      setShowDropdown(false);
+      setPersons([]);
+      setPersonHasMore(true);
+      setPersonCurrentPage(1);
+    }
+  };
+
+  // Workout data functions
+  const fetchWorkoutData = async (personId: number, startDate?: string, endDate?: string) => {
+    setWorkoutLoading(true);
+    try {
+      let actualStartDate: string;
+      let actualEndDate: string;
+
+      if (startDate && endDate) {
+        actualStartDate = startDate;
+        actualEndDate = endDate;
+      } else {
+        const today = new Date();
+        const start = new Date(today);
+        start.setDate(today.getDate() - 20); // Last 3 weeks
+        actualStartDate = start.toISOString().split('T')[0];
+        actualEndDate = today.toISOString().split('T')[0];
+      }
+      
+      const result = await invoke("get_workout_entries_by_person_and_date_range", {
+        personId,
+        startDate: actualStartDate,
+        endDate: actualEndDate
+      });
+
+      const workoutEntries = result as WorkoutEntryWithDetails[];
+      setWorkoutData(workoutEntries);
+      onWorkoutDataChange?.(workoutEntries);
+    } catch (error) {
+      console.error("Error fetching workout data:", error);
+    } finally {
+      setWorkoutLoading(false);
+    }
+  };
+
+  const fetchDataForOffset = async (offset: number) => {
+    if (!selectedPerson) return;
+    
+    const today = new Date();
+    
+    // Calculate the date range for the 3 weeks we want to show
+    const oldestWeekStart = new Date(today);
+    const totalWeeksBack = (offset * 3) + 2; // +2 because we show 3 weeks (0, 1, 2)
+    oldestWeekStart.setDate(today.getDate() - (totalWeeksBack * 7) - today.getDay());
+    
+    const newestWeekEnd = new Date(today);
+    const newestWeeksBack = offset * 3;
+    newestWeekEnd.setDate(today.getDate() - (newestWeeksBack * 7) - today.getDay() + 6);
+    
+    const startDate = oldestWeekStart.toISOString().split('T')[0];
+    const endDate = newestWeekEnd.toISOString().split('T')[0];
+    
+    await fetchWorkoutData(selectedPerson.id!, startDate, endDate);
+  };
 
   // Save scroll position before data refresh
   const saveScrollPosition = () => {
@@ -217,6 +368,20 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   useEffect(() => {
     restoreScrollPosition();
   }, [workoutData]);
+
+  // Handle clicks outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -338,24 +503,6 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     await fetchDataForOffset(0);
   };
 
-  const fetchDataForOffset = async (offset: number) => {
-    const today = new Date();
-    
-    // Calculate the date range for the 3 weeks we want to show
-    const oldestWeekStart = new Date(today);
-    const totalWeeksBack = (offset * 3) + 2; // +2 because we show 3 weeks (0, 1, 2)
-    oldestWeekStart.setDate(today.getDate() - (totalWeeksBack * 7) - today.getDay());
-    
-    const newestWeekEnd = new Date(today);
-    const newestWeeksBack = offset * 3;
-    newestWeekEnd.setDate(today.getDate() - (newestWeeksBack * 7) - today.getDay() + 6);
-    
-    const startDate = oldestWeekStart.toISOString().split('T')[0];
-    const endDate = newestWeekEnd.toISOString().split('T')[0];
-    
-    await onFetchWorkoutData(startDate, endDate);
-  };
-
   if (workoutLoading) {
     return (
       <div style={{ 
@@ -403,106 +550,276 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       border: '1px solid #e5e7eb',
       overflow: 'hidden'
     }}>
-      {/* Header with Navigation */}
+      {/* Header with Person Search and Navigation */}
       <div style={{ 
         padding: '16px 20px',
         borderBottom: '1px solid #e5e7eb',
-        backgroundColor: '#f8fafc',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        backgroundColor: '#f8fafc'
       }}>
-        <div style={{ 
-          fontWeight: '600',
-          color: '#1f2937',
-          fontSize: '16px'
-        }}>
-          {getDateRangeTitle()}
-        </div>
-        
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={goToOlderWeeks}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              color: '#374151',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#e5e7eb';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-            }}
-            title="Ver semanas anteriores"
-          >
-            ← Anteriores
-          </button>
-          
-          {weekOffset > 0 && (
-            <button
-              onClick={goToCurrentWeeks}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#2563eb',
-                border: '1px solid #2563eb',
-                borderRadius: '6px',
-                color: 'white',
-                fontSize: '14px',
+        {!selectedPerson ? (
+          // Person Search Section
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ 
+              fontWeight: '600',
+              color: '#1f2937',
+              fontSize: '16px',
+              flex: '0 0 auto'
+            }}>
+              📅 Dashboard de Entrenamientos
+            </div>
+            
+            <div ref={dropdownRef} style={{ position: 'relative', flex: '1', maxWidth: '400px' }}>
+              <Input
+                label=""
+                placeholder="🔍 Buscar persona para ver entrenamientos..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onFocus={() => setShowDropdown(true)}
+                variant="primary"
+                fullWidth
+              />
+              
+              {showDropdown && searchTerm && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  zIndex: 1000,
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}>
+                  {searchTerm.length < 2 ? (
+                    <div style={{ padding: '12px 16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>
+                      Escribe al menos 2 caracteres...
+                    </div>
+                  ) : personSearchLoading ? (
+                    <div style={{ padding: '12px 16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <div style={{ fontSize: '16px' }}>⏳</div>
+                        Buscando...
+                      </div>
+                    </div>
+                  ) : persons.length === 0 ? (
+                    <div style={{ padding: '12px 16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>
+                      No se encontraron personas
+                    </div>
+                  ) : (
+                    <>
+                      {persons.map((person) => (
+                        <div
+                          key={person.id}
+                          onClick={() => handlePersonSelect(person)}
+                          style={{
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f3f4f6',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          <div style={{ fontWeight: '500', color: '#111827', fontSize: '14px' }}>
+                            {person.name} {person.last_name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            📞 {person.phone}
+                          </div>
+                        </div>
+                      ))}
+                      {personHasMore && (
+                        <div
+                          onClick={loadMorePersons}
+                          style={{
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            color: '#3b82f6',
+                            fontWeight: '500',
+                            borderTop: '1px solid #f3f4f6',
+                            transition: 'background-color 0.2s',
+                            fontSize: '14px'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          Cargar más...
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Selected Person and Navigation Section
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Selected Person Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                padding: '8px 12px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '8px',
+                border: '1px solid #0ea5e9'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '12px'
+                }}>
+                  {selectedPerson.name.charAt(0)}{selectedPerson.last_name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '14px' }}>
+                    {selectedPerson.name} {selectedPerson.last_name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    📞 {selectedPerson.phone}
+                  </div>
+                </div>
+                <Button
+                  onClick={handleClearSelection}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Cambiar
+                </Button>
+              </div>
+
+              <div style={{ 
+                fontWeight: '600',
+                color: '#1f2937',
+                fontSize: '16px'
+              }}>
+                {getDateRangeTitle()}
+              </div>
+            </div>
+            
+            {/* Navigation and Weekend Toggle */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={goToOlderWeeks}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  color: '#374151',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                title="Ver semanas anteriores"
+              >
+                ← Anteriores
+              </button>
+              
+              {weekOffset > 0 && (
+                <button
+                  onClick={goToCurrentWeeks}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#2563eb',
+                    border: '1px solid #2563eb',
+                    borderRadius: '6px',
+                    color: 'white',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#1d4ed8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2563eb';
+                  }}
+                  title="Volver a las últimas 3 semanas"
+                >
+                  Actuales
+                </button>
+              )}
+              
+              <button
+                onClick={goToNewerWeeks}
+                disabled={weekOffset === 0}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: weekOffset === 0 ? '#f9fafb' : '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  color: weekOffset === 0 ? '#9ca3af' : '#374151',
+                  fontSize: '14px',
+                  cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onMouseEnter={(e) => {
+                  if (weekOffset > 0) {
+                    e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (weekOffset > 0) {
+                    e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  }
+                }}
+                title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}
+              >
+                Recientes →
+              </button>
+
+              {/* Weekend Toggle */}
+              <label style={{ 
+                fontSize: '14px', 
+                color: '#374151',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#1d4ed8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-              }}
-              title="Volver a las últimas 3 semanas"
-            >
-              Actuales
-            </button>
-          )}
-          
-          <button
-            onClick={goToNewerWeeks}
-            disabled={weekOffset === 0}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: weekOffset === 0 ? '#f9fafb' : '#f3f4f6',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              color: weekOffset === 0 ? '#9ca3af' : '#374151',
-              fontSize: '14px',
-              cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onMouseEnter={(e) => {
-              if (weekOffset > 0) {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (weekOffset > 0) {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }
-            }}
-            title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}
-          >
-            Recientes →
-          </button>
-        </div>
+                userSelect: 'none',
+                marginLeft: '8px'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={showWeekends}
+                  onChange={(e) => setShowWeekends(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer'
+                  }}
+                />
+                Mostrar fines de semana
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Calendar Grid */}
@@ -514,163 +831,205 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
           overflowY: 'auto'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {threeWeeks.map((week, weekIndex) => (
-            <div key={weekIndex} style={{ 
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              overflow: 'hidden'
-            }}>
-              {/* Week Header */}
-              <div style={{ 
-                padding: '12px 16px',
-                backgroundColor: '#f8fafc',
-                borderBottom: '1px solid #e5e7eb',
-                fontWeight: '600',
-                fontSize: '14px',
-                color: '#374151'
-              }}>
-                Semana {week.weekNumber}: {formatWeekRange(week.weekStart)}
-              </div>
-              
-              {/* Week Days Grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: showWeekends 
-                  ? 'repeat(7, 1fr)' 
-                  : 'repeat(5, 1fr)', 
-                gap: '1px',
-                backgroundColor: '#e5e7eb',
-                width: '100%'
-              }}>
-                {week.days.map((day, dayIndex) => {
-                  const dayDateString = formatDateForDB(day);
-                  const dayWorkouts = workoutData.filter(workout => 
-                    workout.date === dayDateString
-                  );
-                  const isToday = day.toDateString() === new Date().toDateString();
-                  const isPastDay = day < new Date(new Date().setHours(0, 0, 0, 0));
-                  
-                  console.log(`Day ${dayDateString}: found ${dayWorkouts.length} workouts`);
-                  
-                  return (
-                    <div
-                      key={dayIndex}
-                      style={{
-                        backgroundColor: isToday ? '#eff6ff' : isPastDay ? '#f9fafb' : 'white',
-                        padding: '8px',
-                        minHeight: '120px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        border: isToday ? '2px solid #3b82f6' : 'none',
-                        overflow: 'hidden'
-                      }}
-                      onContextMenu={(e) => onDayRightClick(e, dayDateString)}
-                    >
-                      {/* Day Header */}
-                      <div style={{ 
-                        textAlign: 'center', 
-                        marginBottom: '8px',
-                        paddingBottom: '6px',
-                        borderBottom: '1px solid #e5e7eb'
-                      }}>
-                        <div style={{ 
-                          fontSize: '11px', 
-                          fontWeight: '600', 
-                          color: isToday ? '#3b82f6' : '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
-                        }}>
-                          {day.toLocaleDateString('es-ES', { weekday: 'short' })}
-                        </div>
-                        <div style={{ 
-                          fontSize: '16px', 
-                          fontWeight: 'bold', 
-                          color: isToday ? '#3b82f6' : '#1f2937'
-                        }}>
-                          {day.getDate()}
-                        </div>
-                      </div>
-
-                      {/* Workouts */}
-                      <div style={{ 
-                        flex: 1, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '4px'
-                      }}>
-                        {dayWorkouts.length === 0 ? (
-                          <div style={{ 
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#9ca3af',
-                            fontSize: '11px',
-                            textAlign: 'center',
-                            minHeight: '60px'
-                          }}>
-                            Sin entrenamientos
-                          </div>
-                        ) : (
-                          <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                          >
-                            <SortableContext
-                              items={dayWorkouts.map(w => w.id!)}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              {dayWorkouts.map((workout, workoutIndex) => (
-                                <SortableWorkoutItem
-                                  key={workout.id || workoutIndex}
-                                  workout={workout}
-                                  onDayClick={onDayClick}
-                                  onDeleteWorkoutEntry={onDeleteWorkoutEntry}
-                                />
-                              ))}
-                            </SortableContext>
-                          </DndContext>
-                        )}
-                      </div>
-
-                      {/* Add Workout Button */}
-                      <div style={{ marginTop: '8px' }}>
-                        <button
-                          onClick={() => onAddWorkoutClick(dayDateString)}
-                          style={{
-                            width: '100%',
-                            padding: '4px 6px',
-                            backgroundColor: 'transparent',
-                            border: '1px dashed #9ca3af',
-                            borderRadius: '4px',
-                            color: '#6b7280',
-                            fontSize: '10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#3b82f6';
-                            e.currentTarget.style.color = '#3b82f6';
-                            e.currentTarget.style.backgroundColor = '#f0f9ff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#9ca3af';
-                            e.currentTarget.style.color = '#6b7280';
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                        >
-                          + Agregar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        {!selectedPerson ? (
+          // Empty State - No person selected
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '60px 20px',
+            color: '#6b7280'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+            <div style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
+              Selecciona una persona para ver sus entrenamientos
             </div>
-          ))}
-        </div>
+            <p style={{ 
+              fontSize: '16px', 
+              lineHeight: '1.5',
+              margin: 0
+            }}>
+              Usa el buscador de arriba para encontrar y seleccionar una persona.
+            </p>
+          </div>
+        ) : workoutLoading ? (
+          // Loading State
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '300px',
+            color: '#6b7280'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+              <div>Cargando entrenamientos...</div>
+            </div>
+          </div>
+        ) : (
+          // Calendar Content
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {threeWeeks.map((week, weekIndex) => (
+              <div key={weekIndex} style={{ 
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}>
+                {/* Week Header */}
+                <div style={{ 
+                  padding: '12px 16px',
+                  backgroundColor: '#f8fafc',
+                  borderBottom: '1px solid #e5e7eb',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}>
+                  Semana {week.weekNumber}: {formatWeekRange(week.weekStart)}
+                </div>
+                
+                {/* Week Days Grid */}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: showWeekends 
+                    ? 'repeat(7, 1fr)' 
+                    : 'repeat(5, 1fr)', 
+                  gap: '1px',
+                  backgroundColor: '#e5e7eb',
+                  width: '100%'
+                }}>
+                  {week.days.map((day, dayIndex) => {
+                    const dayDateString = formatDateForDB(day);
+                    const dayWorkouts = workoutData.filter(workout => 
+                      workout.date === dayDateString
+                    );
+                    const isToday = day.toDateString() === new Date().toDateString();
+                    const isPastDay = day < new Date(new Date().setHours(0, 0, 0, 0));
+                    
+                    console.log(`Day ${dayDateString}: found ${dayWorkouts.length} workouts`);
+                    
+                    return (
+                      <div
+                        key={dayIndex}
+                        style={{
+                          backgroundColor: isToday ? '#eff6ff' : isPastDay ? '#f9fafb' : 'white',
+                          padding: '8px',
+                          minHeight: '120px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          border: isToday ? '2px solid #3b82f6' : 'none',
+                          overflow: 'hidden'
+                        }}
+                        onContextMenu={(e) => onDayRightClick(e, dayDateString)}
+                      >
+                        {/* Day Header */}
+                        <div style={{ 
+                          textAlign: 'center', 
+                          marginBottom: '8px',
+                          paddingBottom: '6px',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          <div style={{ 
+                            fontSize: '11px', 
+                            fontWeight: '600', 
+                            color: isToday ? '#3b82f6' : '#6b7280',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {day.toLocaleDateString('es-ES', { weekday: 'short' })}
+                          </div>
+                          <div style={{ 
+                            fontSize: '16px', 
+                            fontWeight: 'bold', 
+                            color: isToday ? '#3b82f6' : '#1f2937'
+                          }}>
+                            {day.getDate()}
+                          </div>
+                        </div>
+
+                        {/* Workouts */}
+                        <div style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '4px'
+                        }}>
+                          {dayWorkouts.length === 0 ? (
+                            <div style={{ 
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#9ca3af',
+                              fontSize: '11px',
+                              textAlign: 'center',
+                              minHeight: '60px'
+                            }}>
+                              Sin entrenamientos
+                            </div>
+                          ) : (
+                            <DndContext
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={handleDragEnd}
+                            >
+                              <SortableContext
+                                items={dayWorkouts.map(w => w.id!)}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                {dayWorkouts.map((workout, workoutIndex) => (
+                                  <SortableWorkoutItem
+                                    key={workout.id || workoutIndex}
+                                    workout={workout}
+                                    onDayClick={(date) => {
+                                      onSelectedDateChange?.(date);
+                                      onDayClick(date);
+                                    }}
+                                    onDeleteWorkoutEntry={onDeleteWorkoutEntry}
+                                  />
+                                ))}
+                              </SortableContext>
+                            </DndContext>
+                          )}
+                        </div>
+
+                        {/* Add Workout Button */}
+                        <div style={{ marginTop: '8px' }}>
+                          <button
+                            onClick={() => {
+                              onSelectedDateChange?.(dayDateString);
+                              onAddWorkoutClick(dayDateString);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '4px 6px',
+                              backgroundColor: 'transparent',
+                              border: '1px dashed #9ca3af',
+                              borderRadius: '4px',
+                              color: '#6b7280',
+                              fontSize: '10px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = '#3b82f6';
+                              e.currentTarget.style.color = '#3b82f6';
+                              e.currentTarget.style.backgroundColor = '#f0f9ff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = '#9ca3af';
+                              e.currentTarget.style.color = '#6b7280';
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            + Agregar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
