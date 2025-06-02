@@ -1,0 +1,73 @@
+/* Card Component Styles */
+
+.ui-card {
+  background-color: white;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+/* Variants */
+.ui-card--default {
+  border: 1px solid #e5e7eb;
+}
+
+.ui-card--elevated {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent;
+}
+
+.ui-card--outlined {
+  border: 2px solid #e5e7eb;
+}
+
+/* Padding */
+.ui-card--padding-none {
+  padding: 0;
+}
+
+.ui-card--padding-sm {
+  padding: 12px;
+}
+
+.ui-card--padding-md {
+  padding: 20px;
+}
+
+.ui-card--padding-lg {
+  padding: 32px;
+}
+
+/* Interactive States */
+.ui-card--hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.ui-card--clickable {
+  cursor: pointer;
+}
+
+.ui-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.ui-card--clickable:active {
+  transform: translateY(0);
+}
+
+/* Responsive Padding */
+@media (max-width: 640px) {
+  .ui-card--padding-lg {
+    padding: 24px;
+  }
+  
+  .ui-card--padding-md {
+    padding: 16px;
+  }
+  
+  .ui-card--padding-sm {
+    padding: 8px;
+  }
+} 

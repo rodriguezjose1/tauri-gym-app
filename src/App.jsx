@@ -1,0 +1,72 @@
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
+import Dashboard from "./pages/Dashboard";
+import PersonCrud from "./pages/PersonCrud";
+import ExerciseCrud from "./pages/ExerciseCrud";
+import "./styles/App.css";
+
+function Navigation() {
+  const location = useLocation();
+
+  return (
+    <nav className="app-navigation">
+      <div className="nav-container">
+        <Link to="/" className="nav-brand">
+          <span className="nav-brand-icon">🏋️</span>
+          Gym Manager
+        </Link>
+        
+        <ul className="nav-links">
+          <li>
+            <Link 
+              to="/" 
+              className={`nav-link ${location.pathname === '/' ? 'active dashboard' : ''}`}
+            >
+              <span className="nav-link-icon">📊</span>
+              Dashboard
+            </Link>
+          </li>
+          <li>
+            <Link 
+              to="/personas" 
+              className={`nav-link ${location.pathname === '/personas' ? 'active persons' : ''}`}
+            >
+              <span className="nav-link-icon">👥</span>
+              Personas
+            </Link>
+          </li>
+          <li>
+            <Link 
+              to="/exercises" 
+              className={`nav-link ${location.pathname === '/exercises' ? 'active exercises' : ''}`}
+            >
+              <span className="nav-link-icon">🏋️</span>
+              Ejercicios
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  );
+}
+
+function App() {
+  return (
+    <ChakraProvider value={defaultSystem}>
+      <BrowserRouter>
+        <div className="app-container">
+          <Navigation />
+          <main className="app-content">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/personas" element={<PersonCrud />} />
+              <Route path="/exercises" element={<ExerciseCrud />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </ChakraProvider>
+  );
+}
+
+export default App;
