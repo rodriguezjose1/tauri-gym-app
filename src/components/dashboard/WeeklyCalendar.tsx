@@ -283,7 +283,8 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       });
     }
     
-    return weeks;
+    // Reverse the weeks array so the most recent weeks appear first
+    return weeks.reverse();
   };
 
   const threeWeeks = generateThreeWeeks();
