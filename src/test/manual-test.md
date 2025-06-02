@@ -1,6 +1,6 @@
-# Manual Testing Guide for localStorage Persistence
+# Manual Testing Guide for sessionStorage Persistence
 
-This guide outlines the steps to manually verify that the localStorage persistence functionality is working correctly in the Dashboard component.
+This guide outlines the steps to manually verify that the sessionStorage persistence functionality is working correctly in the Dashboard component.
 
 ## Test 1: Basic Person Selection and Persistence
 
@@ -87,54 +87,89 @@ This guide outlines the steps to manually verify that the localStorage persisten
 - [ ] Latest selected person persists after navigation
 - [ ] Correct workout data is displayed for each person
 
-## Test 5: localStorage Inspection (Developer Tools)
+## Test 5: sessionStorage Inspection (Developer Tools)
 
 ### Steps:
 1. **Open Developer Tools**
    - Press F12 or right-click → "Inspect"
    - Go to "Application" tab (Chrome) or "Storage" tab (Firefox)
-   - Navigate to "Local Storage" → your domain
+   - Navigate to "Session Storage" → your domain
 
 2. **Select a person**
    - Follow Test 1 steps to select a person
-   - **Expected Result**: Should see `dashboard-selectedPerson` key in localStorage
+   - **Expected Result**: Should see `dashboard-selectedPerson` key in sessionStorage
    - **Expected Result**: Value should be JSON with person data
 
 3. **Clear selection**
    - Click "Cambiar" to clear selection
-   - **Expected Result**: `dashboard-selectedPerson` key should be removed from localStorage
+   - **Expected Result**: `dashboard-selectedPerson` key should be removed from sessionStorage
 
 ### ✅ Pass Criteria:
-- [ ] localStorage key appears when person is selected
-- [ ] localStorage key contains correct person data
-- [ ] localStorage key is removed when selection is cleared
+- [ ] sessionStorage key appears when person is selected
+- [ ] sessionStorage key contains correct person data
+- [ ] sessionStorage key is removed when selection is cleared
 
 ## Test 6: Error Handling
 
 ### Steps:
-1. **Simulate localStorage error** (Advanced)
+1. **Simulate sessionStorage error** (Advanced)
    - Open Developer Tools → Console
-   - Run: `localStorage.clear(); Object.defineProperty(window, 'localStorage', { value: null });`
+   - Run: `sessionStorage.clear(); Object.defineProperty(window, 'sessionStorage', { value: null });`
    - Refresh the page
    - **Expected Result**: Application should still load (may show error in console)
 
-2. **Corrupt localStorage data**
-   - In Developer Tools → Application → Local Storage
+2. **Corrupt sessionStorage data**
+   - In Developer Tools → Application → Session Storage
    - Manually edit `dashboard-selectedPerson` to invalid JSON (e.g., `{invalid}`)
    - Refresh the page
    - **Expected Result**: Should fallback to no person selected
 
 ### ✅ Pass Criteria:
-- [ ] Application doesn't crash with localStorage errors
+- [ ] Application doesn't crash with sessionStorage errors
 - [ ] Gracefully handles corrupted data
+
+## Test 7: App Close Cleanup (Automatic with sessionStorage)
+
+### Steps:
+1. **Select a person and verify sessionStorage**
+   - Follow Test 1 to select a person
+   - Open Developer Tools → Application → Session Storage
+   - Verify `dashboard-selectedPerson` key exists with person data
+
+2. **Close the application**
+   - Close the browser tab/window completely
+   - **Expected Result**: sessionStorage is automatically cleaned by the browser
+
+3. **Restart the application**
+   - Open the application again in a new tab/window
+   - Navigate to Dashboard
+   - **Expected Result**: Should show person search (no person selected)
+   - **Expected Result**: sessionStorage should not contain `dashboard-selectedPerson` key
+
+4. **Verify with Developer Tools**
+   - Open Developer Tools → Application → Session Storage
+   - **Expected Result**: No `dashboard-selectedPerson` key should be present
+
+### ✅ Pass Criteria:
+- [ ] sessionStorage is automatically cleaned when app is closed
+- [ ] App starts fresh with no selected person
+- [ ] No `dashboard-selectedPerson` key in sessionStorage after restart
+- [ ] User must search and select a person again
+
+### Alternative Test (Tauri Desktop App):
+If testing the Tauri desktop application:
+1. Select a person in the Dashboard
+2. Close the Tauri application window completely
+3. Restart the Tauri application
+4. **Expected Result**: Should start with no person selected (sessionStorage is cleared automatically)
 
 ## Automated Test Results
 
 Run the automated tests to verify the underlying logic:
 
 ```bash
-# Run localStorage-specific tests
-npm run test:run src/test/localStorage.test.js
+# Run sessionStorage-specific tests
+npm run test:run src/test/sessionStorage.test.js
 
 # Run all tests
 npm test
@@ -142,22 +177,24 @@ npm test
 
 ### Expected Output:
 ```
-✓ Dashboard localStorage Persistence > Initialization > initializes with null when no saved person exists
-✓ Dashboard localStorage Persistence > Initialization > initializes with saved person when exists in localStorage
-✓ Dashboard localStorage Persistence > Person Selection > saves person to localStorage when selected
-✓ Dashboard localStorage Persistence > Person Selection > removes person from localStorage when cleared
-✓ Dashboard localStorage Persistence > Navigation Simulation > persists person across navigation
+✓ Dashboard sessionStorage Persistence > Initialization > initializes with null when no saved person exists
+✓ Dashboard sessionStorage Persistence > Initialization > initializes with saved person when exists in sessionStorage
+✓ Dashboard sessionStorage Persistence > Person Selection > saves person to sessionStorage when selected
+✓ Dashboard sessionStorage Persistence > Person Selection > removes person from sessionStorage when cleared
+✓ Dashboard sessionStorage Persistence > Navigation Simulation > persists person across navigation
 ... (all tests should pass)
 ```
 
 ## Summary
 
-If all tests pass, the localStorage persistence functionality is working correctly and users will no longer lose their selected person when navigating between pages.
+If all tests pass, the sessionStorage persistence functionality is working correctly and users will no longer lose their selected person when navigating between pages, but will start fresh each time they open the application.
 
 ### Key Features Verified:
-- ✅ Person selection persists across navigation
+- ✅ Person selection persists across navigation within the same session
 - ✅ Workout data automatically loads for restored person
 - ✅ Selection can be cleared and persists as cleared
-- ✅ Works across browser refreshes
+- ✅ Works across browser refreshes within the same session
 - ✅ Handles errors gracefully
-- ✅ localStorage is properly managed (set/remove) 
+- ✅ sessionStorage is properly managed (set/remove)
+- ✅ **NEW**: sessionStorage is automatically cleaned when app is closed
+- ✅ **NEW**: App starts fresh with no selected person after restart 

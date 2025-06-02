@@ -14,8 +14,8 @@ import {
 
 export default function Dashboard() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
-    // Initialize selectedPerson from localStorage if available
-    const savedPerson = localStorage.getItem('dashboard-selectedPerson');
+    // Use sessionStorage instead of localStorage for automatic cleanup on app close
+    const savedPerson = sessionStorage.getItem('dashboard-selectedPerson');
     return savedPerson ? JSON.parse(savedPerson) : null;
   });
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -495,12 +495,12 @@ export default function Dashboard() {
     fetchAllExercises();
   }, []);
 
-  // Save selectedPerson to localStorage whenever it changes
+  // Save selectedPerson to sessionStorage whenever it changes
   useEffect(() => {
     if (selectedPerson) {
-      localStorage.setItem('dashboard-selectedPerson', JSON.stringify(selectedPerson));
+      sessionStorage.setItem('dashboard-selectedPerson', JSON.stringify(selectedPerson));
     } else {
-      localStorage.removeItem('dashboard-selectedPerson');
+      sessionStorage.removeItem('dashboard-selectedPerson');
     }
   }, [selectedPerson]);
 

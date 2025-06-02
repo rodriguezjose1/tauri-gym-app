@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sessionStorage Cleanup Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 sessionStorage Cleanup Demo</h1>
+        <p>This demo shows how the Dashboard component uses sessionStorage which automatically cleans up when the app is closed.</p>
+        
+        <h2>Current sessionStorage Status</h2>
+        <div id="status"></div>
+        
+        <h2>Actions</h2>
+        <button onclick="selectPerson()">Select Person (Simulate Dashboard)</button>
+        <button onclick="clearPerson()">Clear Person</button>
+        <button onclick="checkStorage()">Check sessionStorage</button>
+        <button onclick="simulateClose()">Simulate App Close</button>
+        
+        <h2>Instructions</h2>
+        <ol>
+            <li><strong>Select Person:</strong> This simulates selecting a person in the Dashboard</li>
+            <li><strong>Check sessionStorage:</strong> View the current sessionStorage content</li>
+            <li><strong>Close this tab/window:</strong> sessionStorage is automatically cleared by the browser</li>
+            <li><strong>Reopen this page:</strong> sessionStorage should be empty (fresh start)</li>
+        </ol>
+        
+        <div class="status info">
+            <strong>💡 Tip:</strong> Open Developer Tools → Application → Session Storage to see the changes in real-time.
+        </div>
+        
+        <h2>How it works in the Dashboard</h2>
+        <pre><code>// Dashboard.tsx
+const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
+  // Use sessionStorage instead of localStorage for automatic cleanup on app close
+  const savedPerson = sessionStorage.getItem('dashboard-selectedPerson');
+  return savedPerson ? JSON.parse(savedPerson) : null;
+});
+
+// Save selectedPerson to sessionStorage whenever it changes
+useEffect(() => {
+  if (selectedPerson) {
+    sessionStorage.setItem('dashboard-selectedPerson', JSON.stringify(selectedPerson));
+  } else {
+    sessionStorage.removeItem('dashboard-selectedPerson');
+  }
+}, [selectedPerson]);</code></pre>
+    </div>
+
+    <script>
+        const mockPerson = {
+            id: 1,
+            name: 'John',
+            last_name: 'Doe',
+            phone: '123-456-7890'
+        };
+
+        function selectPerson() {
+            sessionStorage.setItem('dashboard-selectedPerson', JSON.stringify(mockPerson));
+            updateStatus('✅ Person selected and saved to sessionStorage', 'success');
+            checkStorage();
+        }
+
+        function clearPerson() {
+            sessionStorage.removeItem('dashboard-selectedPerson');
+            updateStatus('🗑️ Person cleared from sessionStorage', 'warning');
+            checkStorage();
+        }
+
+        function checkStorage() {
+            const saved = sessionStorage.getItem('dashboard-selectedPerson');
+            if (saved) {
+                const person = JSON.parse(saved);
+                updateStatus(`📋 sessionStorage contains: ${person.name} ${person.last_name}`, 'info');
+            } else {
+                updateStatus('📭 sessionStorage is empty (no selected person)', 'info');
+            }
+        }
+
+        function simulateClose() {
+            sessionStorage.removeItem('dashboard-selectedPerson');
+            updateStatus('🧹 Simulated app close - sessionStorage cleaned!', 'success');
+            checkStorage();
+        }
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Check initial status
+        checkStorage();
+
+        // Note: sessionStorage is automatically cleared when the tab/window is closed
+        console.log('🚪 sessionStorage will be automatically cleared when this tab is closed');
+    </script>
+</body>
+</html> 
