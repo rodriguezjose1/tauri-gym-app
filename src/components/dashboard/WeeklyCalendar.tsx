@@ -55,6 +55,8 @@ interface WeeklyCalendarProps {
   onPersonSelect?: (person: Person | null) => void;
   onWorkoutDataChange?: (workoutData: WorkoutEntryWithDetails[]) => void;
   onSelectedDateChange?: (date: string) => void;
+  workoutData?: WorkoutEntryWithDetails[];
+  selectedPerson?: Person | null;
 }
 
 interface SortableWorkoutItemProps {
@@ -188,9 +190,10 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   onPersonSelect,
   onWorkoutDataChange,
   onSelectedDateChange,
+  workoutData,
+  selectedPerson,
 }) => {
   // Person search state
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -201,7 +204,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   const personPageSize = 10;
 
   // Workout data state
-  const [workoutData, setWorkoutData] = useState<WorkoutEntryWithDetails[]>([]);
+  const [workoutDataState, setWorkoutDataState] = useState<WorkoutEntryWithDetails[]>([]);
   const [workoutLoading, setWorkoutLoading] = useState(false);
 
   // Calendar state
@@ -259,19 +262,16 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   };
 
   const handlePersonSelect = (person: Person) => {
-    setSelectedPerson(person);
     setSearchTerm(`${person.name} ${person.last_name}`);
     setShowDropdown(false);
-    fetchWorkoutData(person.id!);
     onPersonSelect?.(person);
   };
 
   const handleClearSelection = () => {
-    setSelectedPerson(null);
     setSearchTerm("");
     setPersons([]);
     setShowDropdown(false);
-    setWorkoutData([]);
+    setWorkoutDataState([]);
     onPersonSelect?.(null);
     onWorkoutDataChange?.([]);
   };
@@ -316,7 +316,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       });
 
       const workoutEntries = result as WorkoutEntryWithDetails[];
-      setWorkoutData(workoutEntries);
+      setWorkoutDataState(workoutEntries);
       onWorkoutDataChange?.(workoutEntries);
     } catch (error) {
       console.error("Error fetching workout data:", error);
@@ -367,7 +367,30 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   // Restore scroll position when workoutData changes after reordering
   useEffect(() => {
     restoreScrollPosition();
+  }, [workoutDataState]);
+
+  // Sync internal workout data state with prop data from parent
+  useEffect(() => {
+    if (workoutData) {
+      setWorkoutDataState(workoutData);
+    }
   }, [workoutData]);
+
+  // Sync search term when selectedPerson prop changes
+  useEffect(() => {
+    if (selectedPerson) {
+      setSearchTerm(`${selectedPerson.name} ${selectedPerson.last_name}`);
+      setShowDropdown(false);
+    } else {
+      setSearchTerm("");
+      setPersons([]);
+      setShowDropdown(false);
+      setWorkoutDataState([]);
+    }
+  }, [selectedPerson]);
+
+  // Use the most current workout data (prop takes precedence over internal state)
+  const currentWorkoutData = workoutData || workoutDataState;
 
   // Handle clicks outside dropdown
   useEffect(() => {
@@ -391,11 +414,11 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     }
 
     // Find the date for the dragged items
-    const activeWorkout = workoutData.find(w => w.id === active.id);
+    const activeWorkout = currentWorkoutData.find(w => w.id === active.id);
     if (!activeWorkout) return;
 
     const dayDateString = formatDateForDB(new Date(activeWorkout.date));
-    const dayWorkouts = workoutData
+    const dayWorkouts = currentWorkoutData
       .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
       .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
@@ -897,7 +920,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 }}>
                   {week.days.map((day, dayIndex) => {
                     const dayDateString = formatDateForDB(day);
-                    const dayWorkouts = workoutData.filter(workout => 
+                    const dayWorkouts = currentWorkoutData.filter(workout => 
                       workout.date === dayDateString
                     );
                     const isToday = day.toDateString() === new Date().toDateString();

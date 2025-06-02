@@ -13,11 +13,16 @@ import {
 } from "../types/dashboard";
 
 export default function Dashboard() {
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
+    // Initialize selectedPerson from localStorage if available
+    const savedPerson = localStorage.getItem('dashboard-selectedPerson');
+    return savedPerson ? JSON.parse(savedPerson) : null;
+  });
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workoutData, setWorkoutData] = useState<WorkoutEntryWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [workoutLoading, setWorkoutLoading] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Workout Entry Modal State
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -102,7 +107,11 @@ export default function Dashboard() {
 
   const handlePersonSelect = (person: Person | null) => {
     setSelectedPerson(person);
-    fetchWorkoutData(person?.id!);
+    if (person?.id) {
+      fetchWorkoutData(person.id);
+    } else {
+      setWorkoutData([]);
+    }
   };
 
   const handleFetchWorkoutDataForDateRange = async (startDate: string, endDate: string) => {
@@ -486,6 +495,23 @@ export default function Dashboard() {
     fetchAllExercises();
   }, []);
 
+  // Save selectedPerson to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedPerson) {
+      localStorage.setItem('dashboard-selectedPerson', JSON.stringify(selectedPerson));
+    } else {
+      localStorage.removeItem('dashboard-selectedPerson');
+    }
+  }, [selectedPerson]);
+
+  // Fetch workout data when component mounts if there's a saved person (only once)
+  useEffect(() => {
+    if (!initialLoadDone && selectedPerson?.id) {
+      fetchWorkoutData(selectedPerson.id);
+      setInitialLoadDone(true);
+    }
+  }, [selectedPerson?.id, initialLoadDone]);
+
   // Debug: Log exercises when they change
   useEffect(() => {
     console.log("Exercises loaded:", exercises.length, exercises);
@@ -515,6 +541,8 @@ export default function Dashboard() {
           onDayRightClick={handleDayRightClick}
           onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
           onReorderExercises={handleReorderExercises}
+          workoutData={workoutData}
+          selectedPerson={selectedPerson}
         />
       </div>
 
