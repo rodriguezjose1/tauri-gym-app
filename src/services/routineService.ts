@@ -6,13 +6,31 @@ import {
   RoutineOption 
 } from "../types/dashboard";
 
+const requestNames = {
+  createRoutine: "create_routine",
+  getRoutineById: "get_routine_by_id",
+  getRoutineWithExercises: "get_routine_with_exercises",
+  updateRoutine: "update_routine",
+  deleteRoutine: "delete_routine",
+  listRoutines: "list_routines",
+  listRoutinesPaginated: "list_routines_paginated",
+  searchRoutines: "search_routines",
+  searchRoutinesPaginated: "search_routines_paginated",
+  addExerciseToRoutine: "add_exercise_to_routine",
+  updateRoutineExercise: "update_routine_exercise",
+  removeExerciseFromRoutine: "remove_exercise_from_routine",
+  getRoutineExercises: "get_routine_exercises",
+  reorderRoutineExercises: "reorder_routine_exercises",
+  getRoutineOptions: "get_routine_options"
+};
+
 export class RoutineService {
   /**
    * Crea una nueva rutina
    */
   static async createRoutine(name: string, code: string): Promise<number> {
     try {
-      return await invoke("create_routine", { name, code }) as number;
+      return await invoke(requestNames.createRoutine, { name, code }) as number;
     } catch (error) {
       console.error("Error creating routine:", error);
       throw new Error(`Error al crear la rutina: ${error}`);
@@ -24,7 +42,7 @@ export class RoutineService {
    */
   static async getRoutineById(id: number): Promise<Routine | null> {
     try {
-      return await invoke("get_routine_by_id", { id }) as Routine | null;
+      return await invoke(requestNames.getRoutineById, { id }) as Routine | null;
     } catch (error) {
       console.error("Error getting routine by id:", error);
       throw new Error(`Error al obtener la rutina: ${error}`);
@@ -36,7 +54,7 @@ export class RoutineService {
    */
   static async getRoutineWithExercises(id: number): Promise<RoutineWithExercises | null> {
     try {
-      return await invoke("get_routine_with_exercises", { id }) as RoutineWithExercises | null;
+      return await invoke(requestNames.getRoutineWithExercises, { id }) as RoutineWithExercises | null;
     } catch (error) {
       console.error("Error getting routine with exercises:", error);
       throw new Error(`Error al obtener la rutina con ejercicios: ${error}`);
@@ -48,7 +66,7 @@ export class RoutineService {
    */
   static async updateRoutine(id: number, name: string, code: string): Promise<void> {
     try {
-      await invoke("update_routine", { id, name, code });
+      await invoke(requestNames.updateRoutine, { id, name, code });
     } catch (error) {
       console.error("Error updating routine:", error);
       throw new Error(`Error al actualizar la rutina: ${error}`);
@@ -60,7 +78,7 @@ export class RoutineService {
    */
   static async deleteRoutine(id: number): Promise<void> {
     try {
-      await invoke("delete_routine", { id });
+      await invoke(requestNames.deleteRoutine, { id });
     } catch (error) {
       console.error("Error deleting routine:", error);
       throw new Error(`Error al eliminar la rutina: ${error}`);
@@ -72,7 +90,7 @@ export class RoutineService {
    */
   static async listRoutines(): Promise<Routine[]> {
     try {
-      return await invoke("list_routines") as Routine[];
+      return await invoke(requestNames.listRoutines) as Routine[];
     } catch (error) {
       console.error("Error listing routines:", error);
       throw new Error(`Error al listar las rutinas: ${error}`);
@@ -84,7 +102,7 @@ export class RoutineService {
    */
   static async listRoutinesPaginated(page: number, pageSize: number): Promise<Routine[]> {
     try {
-      return await invoke("list_routines_paginated", { page, pageSize }) as Routine[];
+      return await invoke(requestNames.listRoutinesPaginated, { page, pageSize }) as Routine[];
     } catch (error) {
       console.error("Error listing paginated routines:", error);
       throw new Error(`Error al listar las rutinas paginadas: ${error}`);
@@ -96,7 +114,7 @@ export class RoutineService {
    */
   static async searchRoutines(query: string): Promise<Routine[]> {
     try {
-      return await invoke("search_routines", { query }) as Routine[];
+      return await invoke(requestNames.searchRoutines, { query }) as Routine[];
     } catch (error) {
       console.error("Error searching routines:", error);
       throw new Error(`Error al buscar rutinas: ${error}`);
@@ -108,7 +126,7 @@ export class RoutineService {
    */
   static async searchRoutinesPaginated(query: string, page: number, pageSize: number): Promise<Routine[]> {
     try {
-      return await invoke("search_routines_paginated", { query, page, pageSize }) as Routine[];
+      return await invoke(requestNames.searchRoutinesPaginated, { query, page, pageSize }) as Routine[];
     } catch (error) {
       console.error("Error searching paginated routines:", error);
       throw new Error(`Error al buscar rutinas paginadas: ${error}`);
@@ -128,7 +146,7 @@ export class RoutineService {
     notes?: string
   ): Promise<void> {
     try {
-      await invoke("add_exercise_to_routine", {
+      await invoke(requestNames.addExerciseToRoutine, {
         routineId,
         exerciseId,
         orderIndex,
@@ -157,7 +175,7 @@ export class RoutineService {
     notes?: string
   ): Promise<void> {
     try {
-      await invoke("update_routine_exercise", {
+      await invoke(requestNames.updateRoutineExercise, {
         id,
         routineId,
         exerciseId,
@@ -178,7 +196,7 @@ export class RoutineService {
    */
   static async removeExerciseFromRoutine(routineId: number, exerciseId: number): Promise<void> {
     try {
-      await invoke("remove_exercise_from_routine", { routineId, exerciseId });
+      await invoke(requestNames.removeExerciseFromRoutine, { routineId, exerciseId });
     } catch (error) {
       console.error("Error removing exercise from routine:", error);
       throw new Error(`Error al remover ejercicio de la rutina: ${error}`);
@@ -190,7 +208,7 @@ export class RoutineService {
    */
   static async getRoutineExercises(routineId: number): Promise<RoutineExerciseWithDetails[]> {
     try {
-      return await invoke("get_routine_exercises", { routineId }) as RoutineExerciseWithDetails[];
+      return await invoke(requestNames.getRoutineExercises, { routineId }) as RoutineExerciseWithDetails[];
     } catch (error) {
       console.error("Error getting routine exercises:", error);
       throw new Error(`Error al obtener ejercicios de la rutina: ${error}`);
@@ -205,7 +223,7 @@ export class RoutineService {
     exerciseOrders: Array<[number, number]>
   ): Promise<void> {
     try {
-      await invoke("reorder_routine_exercises", { routineId, exerciseOrders });
+      await invoke(requestNames.reorderRoutineExercises, { routineId, exerciseOrders });
     } catch (error) {
       console.error("Error reordering routine exercises:", error);
       throw new Error(`Error al reordenar ejercicios de la rutina: ${error}`);

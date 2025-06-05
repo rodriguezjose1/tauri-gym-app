@@ -1,13 +1,25 @@
 import { invoke } from "@tauri-apps/api/core";
 import { WorkoutEntry, WorkoutEntryWithDetails } from "../types/dashboard";
 
+const requestNames = {
+  createWorkoutEntry: "create_workout_entry",
+  createWorkoutSession: "create_workout_session",
+  getWorkoutEntriesByPersonAndDateRange: "get_workout_entries_by_person_and_date_range",
+  getWorkoutEntriesByPerson: "get_workout_entries_by_person",
+  getAllWorkoutEntries: "get_all_workout_entries",
+  updateWorkoutEntry: "update_workout_entry",
+  deleteWorkoutEntry: "delete_workout_entry",
+  replaceWorkoutSession: "replace_workout_session",
+  replaceWorkoutSessionGranular: "replace_workout_session_granular",
+  updateExerciseOrder: "update_exercise_order"
+};
 export class WorkoutService {
   /**
    * Crea una nueva entrada de entrenamiento
    */
   static async createWorkoutEntry(workoutEntry: WorkoutEntry): Promise<void> {
     try {
-      await invoke("create_workout_entry", { workoutEntry });
+      await invoke(requestNames.createWorkoutEntry, { workoutEntry });
     } catch (error) {
       console.error("Error creating workout entry:", error);
       throw new Error(`Error al crear la entrada de entrenamiento: ${error}`);
@@ -19,7 +31,7 @@ export class WorkoutService {
    */
   static async createWorkoutSession(workoutEntries: WorkoutEntry[]): Promise<void> {
     try {
-      await invoke("create_workout_session", { workoutEntries });
+      await invoke(requestNames.createWorkoutSession, { workoutEntries });
     } catch (error) {
       console.error("Error creating workout session:", error);
       throw new Error(`Error al crear la sesión de entrenamiento: ${error}`);
@@ -35,7 +47,7 @@ export class WorkoutService {
     endDate: string
   ): Promise<WorkoutEntryWithDetails[]> {
     try {
-      return await invoke("get_workout_entries_by_person_and_date_range", {
+      return await invoke(requestNames.getWorkoutEntriesByPersonAndDateRange, {
         personId,
         startDate,
         endDate
@@ -51,7 +63,7 @@ export class WorkoutService {
    */
   static async getWorkoutEntriesByPerson(personId: number): Promise<WorkoutEntryWithDetails[]> {
     try {
-      return await invoke("get_workout_entries_by_person", { personId }) as WorkoutEntryWithDetails[];
+      return await invoke(requestNames.getWorkoutEntriesByPerson, { personId }) as WorkoutEntryWithDetails[];
     } catch (error) {
       console.error("Error getting workout entries by person:", error);
       throw new Error(`Error al obtener las entradas de entrenamiento de la persona: ${error}`);
@@ -63,7 +75,7 @@ export class WorkoutService {
    */
   static async getAllWorkoutEntries(): Promise<WorkoutEntryWithDetails[]> {
     try {
-      return await invoke("get_all_workout_entries") as WorkoutEntryWithDetails[];
+      return await invoke(requestNames.getAllWorkoutEntries) as WorkoutEntryWithDetails[];
     } catch (error) {
       console.error("Error getting all workout entries:", error);
       throw new Error(`Error al obtener todas las entradas de entrenamiento: ${error}`);
@@ -75,7 +87,7 @@ export class WorkoutService {
    */
   static async updateWorkoutEntry(workoutEntry: WorkoutEntry): Promise<void> {
     try {
-      await invoke("update_workout_entry", { workoutEntry });
+      await invoke(requestNames.updateWorkoutEntry, { workoutEntry });
     } catch (error) {
       console.error("Error updating workout entry:", error);
       throw new Error(`Error al actualizar la entrada de entrenamiento: ${error}`);
@@ -87,7 +99,7 @@ export class WorkoutService {
    */
   static async deleteWorkoutEntry(id: number): Promise<void> {
     try {
-      await invoke("delete_workout_entry", { id });
+      await invoke(requestNames.deleteWorkoutEntry, { id });
     } catch (error) {
       console.error("Error deleting workout entry:", error);
       throw new Error(`Error al eliminar la entrada de entrenamiento: ${error}`);
@@ -103,7 +115,7 @@ export class WorkoutService {
     workoutEntries: WorkoutEntry[]
   ): Promise<void> {
     try {
-      await invoke("replace_workout_session", { personId, date, workoutEntries });
+      await invoke(requestNames.replaceWorkoutSession, { personId, date, workoutEntries });
     } catch (error) {
       console.error("Error replacing workout session:", error);
       throw new Error(`Error al reemplazar la sesión de entrenamiento: ${error}`);
@@ -118,7 +130,7 @@ export class WorkoutService {
     workoutEntriesToInsert: WorkoutEntry[]
   ): Promise<void> {
     try {
-      await invoke("replace_workout_session_granular", {
+      await invoke(requestNames.replaceWorkoutSessionGranular, {
         idsToDelete,
         workoutEntriesToInsert
       });
@@ -133,7 +145,7 @@ export class WorkoutService {
    */
   static async updateExerciseOrder(exerciseOrders: Array<[number, number]>): Promise<void> {
     try {
-      await invoke("update_exercise_order", { exerciseOrders });
+      await invoke(requestNames.updateExerciseOrder, { exerciseOrders });
     } catch (error) {
       console.error("Error updating exercise order:", error);
       throw new Error(`Error al actualizar el orden de los ejercicios: ${error}`);

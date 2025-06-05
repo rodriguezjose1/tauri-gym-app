@@ -1,13 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Exercise } from "../types/dashboard";
 
+const requestNames = {
+  createExercise: "create_exercise",
+  getExercises: "get_exercises",
+  getExercisesPaginated: "get_exercises_paginated",
+  searchExercisesPaginated: "search_exercises_paginated",
+  updateExercise: "update_exercise",
+  deleteExercise: "delete_exercise"
+};
 export class ExerciseService {
   /**
    * Crea un nuevo ejercicio
    */
   static async createExercise(exercise: Exercise): Promise<void> {
     try {
-      await invoke("create_exercise", { exercise });
+      await invoke(requestNames.createExercise, { exercise });
     } catch (error) {
       console.error("Error creating exercise:", error);
       throw new Error(`Error al crear el ejercicio: ${error}`);
@@ -19,7 +27,7 @@ export class ExerciseService {
    */
   static async getExercises(): Promise<Exercise[]> {
     try {
-      return await invoke("get_exercises") as Exercise[];
+      return await invoke(requestNames.getExercises) as Exercise[];
     } catch (error) {
       console.error("Error getting exercises:", error);
       throw new Error(`Error al obtener los ejercicios: ${error}`);
@@ -31,7 +39,7 @@ export class ExerciseService {
    */
   static async getExercisesPaginated(page: number, pageSize: number): Promise<Exercise[]> {
     try {
-      return await invoke("get_exercises_paginated", { page, pageSize }) as Exercise[];
+      return await invoke(requestNames.getExercisesPaginated, { page, pageSize }) as Exercise[];
     } catch (error) {
       console.error("Error getting paginated exercises:", error);
       throw new Error(`Error al obtener los ejercicios paginados: ${error}`);
@@ -43,7 +51,7 @@ export class ExerciseService {
    */
   static async searchExercisesPaginated(query: string, page: number, pageSize: number): Promise<Exercise[]> {
     try {
-      return await invoke("search_exercises_paginated", { query, page, pageSize }) as Exercise[];
+      return await invoke(requestNames.searchExercisesPaginated, { query, page, pageSize }) as Exercise[];
     } catch (error) {
       console.error("Error searching paginated exercises:", error);
       throw new Error(`Error al buscar ejercicios paginados: ${error}`);
@@ -55,7 +63,7 @@ export class ExerciseService {
    */
   static async updateExercise(exercise: Exercise): Promise<void> {
     try {
-      await invoke("update_exercise", { exercise });
+      await invoke(requestNames.updateExercise, { exercise });
     } catch (error) {
       console.error("Error updating exercise:", error);
       throw new Error(`Error al actualizar el ejercicio: ${error}`);
@@ -67,7 +75,7 @@ export class ExerciseService {
    */
   static async deleteExercise(id: number): Promise<void> {
     try {
-      await invoke("delete_exercise", { id });
+      await invoke(requestNames.deleteExercise, { id });
     } catch (error) {
       console.error("Error deleting exercise:", error);
       throw new Error(`Error al eliminar el ejercicio: ${error}`);
