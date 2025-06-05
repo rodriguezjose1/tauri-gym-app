@@ -19,7 +19,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input, Button } from "../ui";
+import { Input, Button, DeleteConfirmationModal } from "../ui";
 import { ExerciseAutocomplete } from "./ExerciseAutocomplete";
 import {
   Routine,
@@ -277,6 +277,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     notes: ''
   });
 
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteRoutineId, setDeleteRoutineId] = useState<number | null>(null);
+  const [deleteRoutineName, setDeleteRoutineName] = useState("");
+  const [deletingRoutine, setDeletingRoutine] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -356,21 +362,39 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   };
 
   // Delete routine
-  const handleDeleteRoutine = async (routineId: number) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta rutina?")) {
-      return;
-    }
+  const handleDeleteRoutine = async (routineId: number, routineName: string) => {
+    setDeleteRoutineId(routineId);
+    setDeleteRoutineName(routineName);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDeleteRoutine = async () => {
+    if (!deleteRoutineId) return;
+
+    setDeletingRoutine(true);
     try {
-      await invoke("delete_routine", { id: routineId });
+      await invoke("delete_routine", { id: deleteRoutineId });
       await loadRoutines();
-      if (selectedRoutine?.id === routineId) {
+      if (selectedRoutine?.id === deleteRoutineId) {
         setSelectedRoutine(null);
       }
+      
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setDeleteRoutineId(null);
+      setDeleteRoutineName("");
     } catch (error) {
       console.error("Error deleting routine:", error);
       alert("Error al eliminar la rutina: " + error);
+    } finally {
+      setDeletingRoutine(false);
     }
+  };
+
+  const cancelDeleteRoutine = () => {
+    setShowDeleteModal(false);
+    setDeleteRoutineId(null);
+    setDeleteRoutineName("");
   };
 
   // Add exercise to routine
@@ -611,7 +635,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteRoutine(routine.id!);
+                        handleDeleteRoutine(routine.id!, routine.name);
                       }}
                       style={{
                         background: '#dc2626',
@@ -842,6 +866,16 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onCancel={cancelDeleteRoutine}
+          onConfirm={confirmDeleteRoutine}
+          isDeleting={deletingRoutine}
+          title="Eliminar Rutina"
+          message={`¿Estás seguro de que deseas eliminar la rutina "${deleteRoutineName}"? Esta acción no se puede deshacer y eliminará todos los ejercicios asociados.`}
+        />
       </div>
     </div>
   );
