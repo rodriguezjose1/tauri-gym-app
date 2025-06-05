@@ -3,6 +3,7 @@ import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import Dashboard from "./pages/Dashboard";
 import PersonCrud from "./pages/PersonCrud";
 import ExerciseCrud from "./pages/ExerciseCrud";
+import RoutinePage from "./pages/RoutinePage";
 import "./styles/App.css";
 
 function Navigation() {
@@ -44,6 +45,15 @@ function Navigation() {
               Ejercicios
             </Link>
           </li>
+          <li>
+            <Link 
+              to="/routines" 
+              className={`nav-link ${location.pathname === '/routines' ? 'active routines' : ''}`}
+            >
+              <span className="nav-link-icon">📋</span>
+              Rutinas
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>
@@ -61,6 +71,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/personas" element={<PersonCrud />} />
               <Route path="/exercises" element={<ExerciseCrud />} />
+              <Route path="/routines" element={<RoutinePage />} />
             </Routes>
           </main>
         </div>

@@ -1,8 +1,15 @@
 /* App Component Styles */
 
+:root {
+  --layout-max-width: 1600px;
+  --layout-nav-height: 80px;
+  --layout-padding: 32px;
+  --layout-bg-color: #f8fafc;
+}
+
 .app-container {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--layout-bg-color);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -13,15 +20,15 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 80px;
+  height: var(--layout-nav-height);
   display: flex;
   align-items: center;
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 var(--layout-padding);
   width: 100%;
   display: flex;
   justify-content: space-between;

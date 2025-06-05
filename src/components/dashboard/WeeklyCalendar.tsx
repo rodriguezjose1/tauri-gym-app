@@ -580,8 +580,8 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
         backgroundColor: '#f8fafc'
       }}>
         {!selectedPerson ? (
-          // Person Search Section
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          // Person Search Section - Consistent Layout
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ 
               fontWeight: '600',
               color: '#1f2937',
@@ -680,10 +680,21 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
             </div>
           </div>
         ) : (
-          // Selected Person and Navigation Section
+          // Selected Person and Navigation Section - Consistent Layout
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* Selected Person Info */}
+            {/* Title - Always on the left */}
+            <div style={{ 
+              fontWeight: '600',
+              color: '#1f2937',
+              fontSize: '16px',
+              flex: '0 0 auto'
+            }}>
+              {getDateRangeTitle()}
+            </div>
+            
+            {/* Selected Person Info and Navigation - Always on the right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {/* Selected Person Info */}
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -723,123 +734,115 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                   Cambiar
                 </Button>
               </div>
-
-              <div style={{ 
-                fontWeight: '600',
-                color: '#1f2937',
-                fontSize: '16px'
-              }}>
-                {getDateRangeTitle()}
-              </div>
-            </div>
-            
-            {/* Navigation and Weekend Toggle */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                onClick={goToOlderWeeks}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#f3f4f6',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  color: '#374151',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e5e7eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                }}
-                title="Ver semanas anteriores"
-              >
-                ← Anteriores
-              </button>
               
-              {weekOffset > 0 && (
+              {/* Navigation Controls */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
-                  onClick={goToCurrentWeeks}
+                  onClick={goToOlderWeeks}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#2563eb',
-                    border: '1px solid #2563eb',
+                    backgroundColor: '#f3f4f6',
+                    border: '1px solid #d1d5db',
                     borderRadius: '6px',
-                    color: 'white',
+                    color: '#374151',
                     fontSize: '14px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1d4ed8';
+                    e.currentTarget.style.backgroundColor = '#e5e7eb';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2563eb';
+                    e.currentTarget.style.backgroundColor = '#f3f4f6';
                   }}
-                  title="Volver a las últimas 3 semanas"
+                  title="Ver semanas anteriores"
                 >
-                  Actuales
+                  ← Anteriores
                 </button>
-              )}
-              
-              <button
-                onClick={goToNewerWeeks}
-                disabled={weekOffset === 0}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: weekOffset === 0 ? '#f9fafb' : '#f3f4f6',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  color: weekOffset === 0 ? '#9ca3af' : '#374151',
-                  fontSize: '14px',
-                  cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
+                
+                {weekOffset > 0 && (
+                  <button
+                    onClick={goToCurrentWeeks}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#2563eb',
+                      border: '1px solid #2563eb',
+                      borderRadius: '6px',
+                      color: 'white',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#1d4ed8';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#2563eb';
+                    }}
+                    title="Volver a las últimas 3 semanas"
+                  >
+                    Actuales
+                  </button>
+                )}
+                
+                <button
+                  onClick={goToNewerWeeks}
+                  disabled={weekOffset === 0}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: weekOffset === 0 ? '#f9fafb' : '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    color: weekOffset === 0 ? '#9ca3af' : '#374151',
+                    fontSize: '14px',
+                    cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (weekOffset > 0) {
+                      e.currentTarget.style.backgroundColor = '#e5e7eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (weekOffset > 0) {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}
+                >
+                  Recientes →
+                </button>
+
+                {/* Weekend Toggle */}
+                <label style={{ 
+                  fontSize: '14px', 
+                  color: '#374151',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
-                }}
-                onMouseEnter={(e) => {
-                  if (weekOffset > 0) {
-                    e.currentTarget.style.backgroundColor = '#e5e7eb';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (weekOffset > 0) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  }
-                }}
-                title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}
-              >
-                Recientes →
-              </button>
-
-              {/* Weekend Toggle */}
-              <label style={{ 
-                fontSize: '14px', 
-                color: '#374151',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                userSelect: 'none',
-                marginLeft: '8px'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={showWeekends}
-                  onChange={(e) => setShowWeekends(e.target.checked)}
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    cursor: 'pointer'
-                  }}
-                />
-                Mostrar fines de semana
-              </label>
+                  gap: '8px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  marginLeft: '8px'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={showWeekends}
+                    onChange={(e) => setShowWeekends(e.target.checked)}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  Mostrar fines de semana
+                </label>
+              </div>
             </div>
           </div>
         )}

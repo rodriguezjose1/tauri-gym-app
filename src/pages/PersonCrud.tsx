@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Input, Title, Card, Modal } from "../components/ui";
+import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
 interface Person {
   id?: number;
@@ -133,8 +134,8 @@ export default function PersonCrud() {
   }, []);
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 80px)', width: '100%', padding: '32px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={getPageWrapperStyles()}>
+      <div style={getContainerStyles()}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Title level={1} variant="primary" align="center">

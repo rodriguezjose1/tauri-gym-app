@@ -8,9 +8,11 @@ use tauri::{State, Manager};
 use models::person::Person;
 use models::exercise::Exercise;
 use models::workout_entry::{WorkoutEntry, WorkoutEntryWithDetails};
+use models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
 use services::person_service::PersonService;
 use services::exercise_service::ExerciseService;
 use services::workout_entry_service::WorkoutEntryService;
+use services::routine_service::RoutineService;
 
 use config::db::setup_services;
 
@@ -137,14 +139,120 @@ fn update_exercise_order(service: State<'_, WorkoutEntryService>, exercise_order
     service.update_exercise_order(exercise_orders)
 }
 
+// Routine commands
+#[tauri::command]
+fn create_routine(service: State<'_, RoutineService>, name: String, code: String) -> Result<i32, String> {
+    service.create_routine(name, code)
+}
+
+#[tauri::command]
+fn get_routine_by_id(service: State<'_, RoutineService>, id: i32) -> Option<Routine> {
+    service.get_routine_by_id(id)
+}
+
+#[tauri::command]
+fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Option<RoutineWithExercises> {
+    service.get_routine_with_exercises(id)
+}
+
+#[tauri::command]
+fn update_routine(service: State<'_, RoutineService>, id: i32, name: String, code: String) -> Result<(), String> {
+    service.update_routine(id, name, code)
+}
+
+#[tauri::command]
+fn delete_routine(service: State<'_, RoutineService>, id: i32) -> Result<(), String> {
+    service.delete_routine(id)
+}
+
+#[tauri::command]
+fn list_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
+    service.list_routines()
+}
+
+#[tauri::command]
+fn list_routines_paginated(service: State<'_, RoutineService>, page: i32, page_size: i32) -> Vec<Routine> {
+    service.list_routines_paginated(page, page_size)
+}
+
+#[tauri::command]
+fn search_routines(service: State<'_, RoutineService>, query: String) -> Vec<Routine> {
+    service.search_routines(query)
+}
+
+#[tauri::command]
+fn search_routines_paginated(service: State<'_, RoutineService>, query: String, page: i32, page_size: i32) -> Vec<Routine> {
+    service.search_routines_paginated(query, page, page_size)
+}
+
+#[tauri::command]
+fn add_exercise_to_routine(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+    exercise_id: i32,
+    order_index: i32,
+    sets: Option<i32>,
+    reps: Option<i32>,
+    weight: Option<f64>,
+    notes: Option<String>,
+) -> Result<(), String> {
+    service.add_exercise_to_routine(routine_id, exercise_id, order_index, sets, reps, weight, notes)
+}
+
+#[tauri::command]
+fn update_routine_exercise(
+    service: State<'_, RoutineService>,
+    id: i32,
+    routine_id: i32,
+    exercise_id: i32,
+    order_index: i32,
+    sets: Option<i32>,
+    reps: Option<i32>,
+    weight: Option<f64>,
+    notes: Option<String>,
+) -> Result<(), String> {
+    service.update_routine_exercise(id, routine_id, exercise_id, order_index, sets, reps, weight, notes)
+}
+
+#[tauri::command]
+fn remove_exercise_from_routine(service: State<'_, RoutineService>, routine_id: i32, exercise_id: i32) -> Result<(), String> {
+    service.remove_exercise_from_routine(routine_id, exercise_id)
+}
+
+#[tauri::command]
+fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Vec<RoutineExerciseWithDetails> {
+    service.get_routine_exercises(routine_id)
+}
+
+#[tauri::command]
+fn reorder_routine_exercises(service: State<'_, RoutineService>, routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+    service.reorder_routine_exercises(routine_id, exercise_orders)
+}
+
+#[tauri::command]
+fn replace_routine_exercises(service: State<'_, RoutineService>, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
+    service.replace_routine_exercises(routine_id, exercises)
+}
+
+#[tauri::command]
+fn create_routine_from_workout(
+    service: State<'_, RoutineService>,
+    name: String,
+    code: String,
+    workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>)>,
+) -> Result<i32, String> {
+    service.create_routine_from_workout(name, code, workout_exercises)
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let (person_service, exercise_service, workout_entry_service) = setup_services();
+            let (person_service, exercise_service, workout_entry_service, routine_service) = setup_services();
             
             app.manage(person_service);
             app.manage(exercise_service);
             app.manage(workout_entry_service);
+            app.manage(routine_service);
             
             Ok(())
         })
@@ -174,7 +282,24 @@ fn main() {
             get_all_workout_entries,
             replace_workout_session,
             replace_workout_session_granular,
-            update_exercise_order
+            update_exercise_order,
+            // Routine commands
+            create_routine,
+            get_routine_by_id,
+            get_routine_with_exercises,
+            update_routine,
+            delete_routine,
+            list_routines,
+            list_routines_paginated,
+            search_routines,
+            search_routines_paginated,
+            add_exercise_to_routine,
+            update_routine_exercise,
+            remove_exercise_from_routine,
+            get_routine_exercises,
+            reorder_routine_exercises,
+            replace_routine_exercises,
+            create_routine_from_workout
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -57,4 +57,56 @@ export interface WorkoutEntryForm {
 
 export interface WorkoutSessionForm {
   exercises: WorkoutEntryForm[];
+}
+
+// Routine types
+export interface Routine {
+  id?: number;
+  name: string;
+  code: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RoutineExercise {
+  id?: number;
+  routine_id: number;
+  exercise_id: number;
+  order_index: number;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RoutineExerciseWithDetails extends RoutineExercise {
+  exercise_name: string;
+  exercise_code: string;
+}
+
+export interface RoutineWithExercises extends Routine {
+  exercises: RoutineExerciseWithDetails[];
+}
+
+export interface RoutineForm {
+  name: string;
+  code: string;
+}
+
+export interface RoutineExerciseForm {
+  exercise_id: number;
+  sets: number;
+  reps: number;
+  weight: number;
+  notes: string;
+}
+
+// Routine selection for workouts
+export interface RoutineOption {
+  id: number;
+  name: string;
+  code: string;
+  exerciseCount: number;
 } 

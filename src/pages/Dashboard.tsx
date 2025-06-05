@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm, message } from "@tauri-apps/plugin-dialog";
-import { DeleteConfirmationModal } from "../components/ui";
+import { DeleteConfirmationModal, Modal, Input, Button } from "../components/ui";
 import { WeeklyCalendar, WorkoutModals } from "../components/dashboard";
+import { getDashboardWrapperStyles, getContainerStyles } from "../config/layout";
 import {
   Person,
   Exercise,
   WorkoutEntry,
   WorkoutEntryWithDetails,
   WorkoutEntryForm,
-  WorkoutSessionForm
+  WorkoutSessionForm,
+  RoutineOption,
+  RoutineWithExercises
 } from "../types/dashboard";
 
 export default function Dashboard() {
@@ -23,6 +26,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [workoutLoading, setWorkoutLoading] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Routine state
+  const [routines, setRoutines] = useState<RoutineOption[]>([]);
+  const [loadingRoutine, setLoadingRoutine] = useState(false);
 
   // Workout Entry Modal State
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -54,6 +61,11 @@ export default function Dashboard() {
   const [deleteWorkoutId, setDeleteWorkoutId] = useState<number | null>(null);
   const [deletingWorkout, setDeletingWorkout] = useState(false);
 
+  // Load from routine modal state
+  const [showLoadRoutineModal, setShowLoadRoutineModal] = useState(false);
+  const [selectedRoutineForLoad, setSelectedRoutineForLoad] = useState<number | null>(null);
+  const [selectedDateForRoutine, setSelectedDateForRoutine] = useState<string>("");
+
   const fetchAllExercises = async () => {
     try {
       console.log("Fetching exercises...");
@@ -70,6 +82,41 @@ export default function Dashboard() {
       } catch (fallbackError) {
         console.error("Error fetching exercises with pagination:", fallbackError);
       }
+    }
+  };
+
+  const fetchRoutines = async () => {
+    try {
+      console.log("Fetching routines...");
+      const result = await invoke("list_routines", { page: 1, pageSize: 100 });
+      console.log("Routines fetched:", result);
+      
+      // Transform routines to include exercise count
+      const routineOptions: RoutineOption[] = await Promise.all(
+        (result as any[]).map(async (routine) => {
+          try {
+            const routineWithExercises = await invoke("get_routine_with_exercises", { id: routine.id }) as RoutineWithExercises;
+            return {
+              id: routine.id,
+              name: routine.name,
+              code: routine.code,
+              exerciseCount: routineWithExercises.exercises?.length || 0
+            };
+          } catch (error) {
+            console.error(`Error fetching exercises for routine ${routine.id}:`, error);
+            return {
+              id: routine.id,
+              name: routine.name,
+              code: routine.code,
+              exerciseCount: 0
+            };
+          }
+        })
+      );
+      
+      setRoutines(routineOptions);
+    } catch (error) {
+      console.error("Error fetching routines:", error);
     }
   };
 
@@ -491,8 +538,157 @@ export default function Dashboard() {
     }
   };
 
+  const handleLoadRoutine = async (routineId: number) => {
+    setLoadingRoutine(true);
+    try {
+      console.log("Loading routine:", routineId);
+      const routine = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
+      console.log("Routine loaded:", routine);
+      
+      if (routine.exercises && routine.exercises.length > 0) {
+        const exerciseForms: WorkoutEntryForm[] = routine.exercises.map((exercise, index) => ({
+          exercise_id: exercise.exercise_id,
+          sets: exercise.sets || 3,
+          reps: exercise.reps || 10,
+          weight: exercise.weight || 0,
+          notes: exercise.notes || "",
+          order: index
+        }));
+        
+        console.log("Setting session form with routine exercises:", exerciseForms);
+        setSessionForm({ exercises: exerciseForms });
+        
+        await message(`Rutina "${routine.name}" cargada con ${routine.exercises.length} ejercicios.`, {
+          title: "Rutina Cargada",
+          kind: "info"
+        });
+      } else {
+        await message("La rutina seleccionada no tiene ejercicios.", {
+          title: "Rutina Vacía",
+          kind: "warning"
+        });
+      }
+    } catch (error) {
+      console.error("Error loading routine:", error);
+      await message("Error al cargar la rutina. Por favor, inténtalo de nuevo.", {
+        title: "Error",
+        kind: "error"
+      });
+    } finally {
+      setLoadingRoutine(false);
+    }
+  };
+
+  const handleShowLoadRoutineModal = () => {
+    if (!selectedPerson) {
+      message("Por favor, selecciona una persona primero.", {
+        title: "Persona Requerida",
+        kind: "warning"
+      });
+      return;
+    }
+    setShowLoadRoutineModal(true);
+  };
+
+  const handleLoadRoutineToDate = async () => {
+    if (!selectedRoutineForLoad || !selectedDateForRoutine || !selectedPerson || !selectedPerson.id) {
+      return;
+    }
+
+    setLoadingRoutine(true);
+    try {
+      const routine = await invoke("get_routine_with_exercises", { id: selectedRoutineForLoad }) as RoutineWithExercises;
+      
+      if (routine.exercises && routine.exercises.length > 0) {
+        // Check if there are existing exercises for this date
+        const existingExercises = workoutData.filter(entry => 
+          entry.date === selectedDateForRoutine && entry.person_id === selectedPerson.id
+        );
+
+        let shouldProceed = true;
+        if (existingExercises.length > 0) {
+          shouldProceed = await confirm(
+            `Ya existen ${existingExercises.length} ejercicios para esta fecha. ¿Deseas reemplazarlos con la rutina "${routine.name}"?`,
+            { title: "Confirmar Reemplazo", kind: "warning" }
+          );
+        }
+
+        if (shouldProceed) {
+          // Delete existing exercises if any
+          if (existingExercises.length > 0) {
+            for (const exercise of existingExercises) {
+              if (exercise.id) {
+                await invoke("delete_workout_entry", { id: exercise.id });
+              }
+            }
+          }
+
+          // Create new exercises from routine
+          for (let i = 0; i < routine.exercises.length; i++) {
+            const exercise = routine.exercises[i];
+            await invoke("create_workout_entry", {
+              entry: {
+                person_id: selectedPerson.id,
+                exercise_id: exercise.exercise_id,
+                date: selectedDateForRoutine,
+                sets: exercise.sets || 3,
+                reps: exercise.reps || 10,
+                weight: exercise.weight || 0,
+                notes: exercise.notes || "",
+                order: i
+              }
+            });
+          }
+
+          // Refresh workout data
+          await fetchWorkoutData(selectedPerson.id);
+          
+          await message(`Rutina "${routine.name}" aplicada exitosamente con ${routine.exercises.length} ejercicios.`, {
+            title: "Rutina Aplicada",
+            kind: "info"
+          });
+
+          // Close modal and reset state
+          setShowLoadRoutineModal(false);
+          setSelectedRoutineForLoad(null);
+          setSelectedDateForRoutine("");
+        }
+      } else {
+        await message("La rutina seleccionada no tiene ejercicios.", {
+          title: "Rutina Vacía",
+          kind: "warning"
+        });
+      }
+    } catch (error) {
+      console.error("Error applying routine:", error);
+      await message("Error al aplicar la rutina. Por favor, inténtalo de nuevo.", {
+        title: "Error",
+        kind: "error"
+      });
+    } finally {
+      setLoadingRoutine(false);
+    }
+  };
+
   useEffect(() => {
-    fetchAllExercises();
+    const initializeData = async () => {
+      setLoading(true);
+      try {
+        await fetchAllExercises();
+        await fetchRoutines();
+        
+        if (selectedPerson?.id) {
+          await fetchWorkoutData(selectedPerson.id);
+        }
+      } catch (error) {
+        console.error("Error initializing data:", error);
+      } finally {
+        setLoading(false);
+        setInitialLoadDone(true);
+      }
+    };
+
+    initializeData();
   }, []);
 
   // Save selectedPerson to sessionStorage whenever it changes
@@ -503,14 +699,6 @@ export default function Dashboard() {
       sessionStorage.removeItem('dashboard-selectedPerson');
     }
   }, [selectedPerson]);
-
-  // Fetch workout data when component mounts if there's a saved person (only once)
-  useEffect(() => {
-    if (!initialLoadDone && selectedPerson?.id) {
-      fetchWorkoutData(selectedPerson.id);
-      setInitialLoadDone(true);
-    }
-  }, [selectedPerson?.id, initialLoadDone]);
 
   // Debug: Log exercises when they change
   useEffect(() => {
@@ -523,14 +711,47 @@ export default function Dashboard() {
   }, [sessionForm]);
 
   return (
-    <div style={{ 
-      minHeight: 'calc(100vh - 80px)', 
-      width: '100%', 
-      padding: '16px', 
-      fontFamily: 'Inter, system-ui, sans-serif',
-      backgroundColor: '#f8fafc'
-    }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={getDashboardWrapperStyles()}>
+      <div style={{ ...getContainerStyles(), height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <h1 style={{ 
+            fontSize: '2rem', 
+            fontWeight: 'bold', 
+            color: '#1f2937', 
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span>📊</span>
+            Dashboard de Entrenamientos
+          </h1>
+          
+          {selectedPerson && (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <Button
+                onClick={handleShowLoadRoutineModal}
+                variant="secondary"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontSize: '14px'
+                }}
+              >
+                <span>🏋️</span>
+                Cargar desde Rutina
+              </Button>
+            </div>
+          )}
+        </div>
         {/* Weekly Calendar with Embedded Person Search */}
         <WeeklyCalendar
           onPersonSelect={handlePersonSelect}
@@ -567,6 +788,11 @@ export default function Dashboard() {
         onAddExerciseToSession={addExerciseToSession}
         onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
         
+        // Routine functionality
+        routines={routines}
+        onLoadRoutine={handleLoadRoutine}
+        loadingRoutine={loadingRoutine}
+        
         // Common props
         selectedPerson={selectedPerson}
         selectedDate={selectedDate}
@@ -577,12 +803,113 @@ export default function Dashboard() {
       {/* Custom Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
-        title="Confirmar eliminación"
-        message="¿Estás seguro de que quieres eliminar este ejercicio? Esta acción no se puede deshacer."
         onCancel={cancelDeleteWorkoutEntry}
         onConfirm={confirmDeleteWorkoutEntry}
         isDeleting={deletingWorkout}
+        title="Eliminar Ejercicio"
+        message="¿Estás seguro de que deseas eliminar este ejercicio? Esta acción no se puede deshacer."
       />
+
+      {/* Load Routine Modal */}
+      <Modal
+        isOpen={showLoadRoutineModal}
+        onClose={() => {
+          setShowLoadRoutineModal(false);
+          setSelectedRoutineForLoad(null);
+          setSelectedDateForRoutine("");
+        }}
+        title="Cargar Rutina a Fecha Específica"
+        size="md"
+      >
+        <div style={{ padding: '8px 0' }}>
+          {selectedPerson && (
+            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
+                {selectedPerson.name} {selectedPerson.last_name}
+              </div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                Aplicar rutina a una fecha específica
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '20px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Seleccionar Rutina:
+              </label>
+              <select
+                value={selectedRoutineForLoad || ''}
+                onChange={(e) => setSelectedRoutineForLoad(e.target.value ? parseInt(e.target.value) : null)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value="">-- Seleccionar rutina --</option>
+                {routines.map(routine => (
+                  <option key={routine.id} value={routine.id}>
+                    {routine.name} ({routine.exerciseCount} ejercicios)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Fecha:
+              </label>
+              <Input
+                type="date"
+                value={selectedDateForRoutine}
+                onChange={(e) => setSelectedDateForRoutine(e.target.value)}
+                variant="primary"
+                fullWidth
+              />
+            </div>
+
+            {selectedRoutineForLoad && selectedDateForRoutine && (
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#f0f9ff', 
+                borderRadius: '8px', 
+                fontSize: '14px', 
+                color: '#1e40af',
+                border: '1px solid #bfdbfe'
+              }}>
+                ℹ️ La rutina seleccionada se aplicará a la fecha {new Date(selectedDateForRoutine).toLocaleDateString('es-ES')}. 
+                Si ya existen ejercicios para esa fecha, serán reemplazados.
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
+            <Button
+              onClick={() => {
+                setShowLoadRoutineModal(false);
+                setSelectedRoutineForLoad(null);
+                setSelectedDateForRoutine("");
+              }}
+              variant="secondary"
+              disabled={loadingRoutine}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleLoadRoutineToDate}
+              variant="primary"
+              disabled={!selectedRoutineForLoad || !selectedDateForRoutine || loadingRoutine}
+              loading={loadingRoutine}
+            >
+              {loadingRoutine ? "Aplicando..." : "Aplicar Rutina"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 } 

@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button, Input, Modal } from "../ui";
 import { ExerciseAutocomplete } from "./ExerciseAutocomplete";
-import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails } from '../../types/dashboard';
+import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../types/dashboard';
 
 interface WorkoutModalsProps {
   // Single workout modal
@@ -22,6 +22,11 @@ interface WorkoutModalsProps {
   onDeleteSessionExercise: (index: number) => void;
   onAddExerciseToSession: () => void;
   onDeleteWorkoutEntry: (id: number) => void;
+  
+  // Routine functionality
+  routines: RoutineOption[];
+  onLoadRoutine: (routineId: number) => void;
+  loadingRoutine: boolean;
   
   // Common props
   selectedPerson: Person | null;
@@ -50,12 +55,20 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
   onAddExerciseToSession,
   onDeleteWorkoutEntry,
   
+  // Routine functionality
+  routines,
+  onLoadRoutine,
+  loadingRoutine,
+  
   // Common props
   selectedPerson,
   selectedDate,
   exercises,
   workoutData
 }) => {
+  const [showRoutineSelector, setShowRoutineSelector] = useState(false);
+  const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { 
@@ -64,6 +77,14 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
       month: 'long', 
       day: 'numeric' 
     });
+  };
+
+  const handleLoadRoutine = () => {
+    if (selectedRoutineId) {
+      onLoadRoutine(selectedRoutineId);
+      setShowRoutineSelector(false);
+      setSelectedRoutineId(null);
+    }
   };
 
   return (
@@ -101,6 +122,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
               />
             </div>
 
+            {/* Temporarily commented out - using default values
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
               <Input
                 label="Series *"
@@ -142,6 +164,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
               variant="primary"
               fullWidth
             />
+            */}
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
@@ -184,7 +207,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             ? "Editar Sesión de Entrenamiento" 
             : "Nueva Sesión de Entrenamiento";
         })()}
-        size="md"
+        size="lg"
       >
         <div style={{ padding: '8px 0' }}>
           {selectedPerson && selectedDate && (
@@ -197,6 +220,86 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
               </div>
             </div>
           )}
+
+          {/* Routine Selection Section */}
+          <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ margin: 0, color: '#374151', fontSize: '16px', fontWeight: '600' }}>
+                🏋️ Cargar desde Rutina
+              </h4>
+              <Button
+                onClick={() => setShowRoutineSelector(!showRoutineSelector)}
+                variant="secondary"
+                style={{ fontSize: '14px' }}
+              >
+                {showRoutineSelector ? 'Cancelar' : 'Seleccionar Rutina'}
+              </Button>
+            </div>
+            
+            {showRoutineSelector && (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    Seleccionar Rutina:
+                  </label>
+                  <select
+                    value={selectedRoutineId || ''}
+                    onChange={(e) => setSelectedRoutineId(e.target.value ? parseInt(e.target.value) : null)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <option value="">-- Seleccionar rutina --</option>
+                    {routines.map(routine => (
+                      <option key={routine.id} value={routine.id}>
+                        {routine.name} ({routine.exerciseCount} ejercicios)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <Button
+                    onClick={() => {
+                      setShowRoutineSelector(false);
+                      setSelectedRoutineId(null);
+                    }}
+                    variant="secondary"
+                    style={{ fontSize: '14px' }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleLoadRoutine}
+                    variant="primary"
+                    disabled={!selectedRoutineId || loadingRoutine}
+                    loading={loadingRoutine}
+                    style={{ fontSize: '14px' }}
+                  >
+                    {loadingRoutine ? 'Cargando...' : 'Cargar Ejercicios'}
+                  </Button>
+                </div>
+                
+                {sessionForm.exercises.length > 1 && (
+                  <div style={{ 
+                    padding: '8px 12px', 
+                    backgroundColor: '#fef3c7', 
+                    borderRadius: '6px', 
+                    fontSize: '13px', 
+                    color: '#92400e',
+                    border: '1px solid #fbbf24'
+                  }}>
+                    ⚠️ Los ejercicios actuales serán reemplazados por los de la rutina seleccionada.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: 'grid', gap: '20px' }}>
             {/* Exercise Forms */}
@@ -234,6 +337,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                       placeholder="Buscar ejercicio..."
                     />
 
+                    {/* Temporarily commented out - using default values
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                       <Input
                         label="Series *"
@@ -275,6 +379,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                       variant="primary"
                       fullWidth
                     />
+                    */}
                   </div>
                 </div>
               ))}
