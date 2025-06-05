@@ -11,6 +11,8 @@ interface Exercise {
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState<Exercise>({ name: "", code: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,13 +45,43 @@ export default function ExerciseCrud() {
       // Get total count for display (fetch first page to estimate)
       if (page === 1) {
         const allExercises = await invoke("get_exercises");
-        setTotalExercises((allExercises as Exercise[]).length);
+        const allExercisesData = allExercises as Exercise[];
+        setAllExercises(allExercisesData);
+        setTotalExercises(allExercisesData.length);
       }
     } catch (error) {
       console.error("Error fetching exercises:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter exercises based on search term
+  const filteredExercises = searchTerm.trim() === "" 
+    ? exercises 
+    : allExercises.filter(exercise => 
+        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exercise.code.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // If searching, show all exercises that match
+    if (value.trim() !== "") {
+      // Load all exercises if not already loaded
+      if (allExercises.length === 0) {
+        invoke("get_exercises").then((result) => {
+          const allExercisesData = result as Exercise[];
+          setAllExercises(allExercisesData);
+        });
+      }
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
   };
 
   const loadMoreExercises = async () => {
@@ -204,12 +236,61 @@ export default function ExerciseCrud() {
             </Title>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
-                {totalExercises} {totalExercises === 1 ? 'ejercicio' : 'ejercicios'} total
+                {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
               </span>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>
-                Página {currentPage}
-              </span>
+              {searchTerm.trim() === "" && (
+                <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                  Página {currentPage}
+                </span>
+              )}
             </div>
+          </div>
+
+          {/* Search Field */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ position: 'relative', maxWidth: '400px' }}>
+              <Input
+                placeholder="🔍 Buscar ejercicios por nombre o código..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                variant="success"
+                fullWidth
+              />
+              {searchTerm.trim() !== "" && (
+                <button
+                  onClick={clearSearch}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {searchTerm.trim() !== "" && (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#059669', 
+                margin: '8px 0 0 0',
+                fontWeight: '500'
+              }}>
+                Mostrando resultados para: "{searchTerm}"
+              </p>
+            )}
           </div>
           
           {loading ? (
@@ -217,19 +298,24 @@ export default function ExerciseCrud() {
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
               <p style={{ color: '#6b7280', margin: 0 }}>Cargando ejercicios...</p>
             </div>
-          ) : exercises.length === 0 ? (
+          ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏋️</div>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+                {searchTerm.trim() !== "" ? '🔍' : '🏋️'}
+              </div>
               <Title level={3} variant="secondary" align="center">
-                No hay ejercicios registrados
+                {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
               </Title>
               <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
-                Agrega tu primer ejercicio usando el formulario de arriba
+                {searchTerm.trim() !== "" 
+                  ? `No hay ejercicios que coincidan con "${searchTerm}"`
+                  : 'Agrega tu primer ejercicio usando el formulario de arriba'
+                }
               </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '16px' }}>
-              {exercises.map((exercise) => (
+              {filteredExercises.map((exercise) => (
                 <Card
                   key={exercise.id}
                   variant={editingId === exercise.id ? "outlined" : "default"}
@@ -287,7 +373,7 @@ export default function ExerciseCrud() {
           )}
 
           {/* Pagination Controls */}
-          {!loading && exercises.length > 0 && (
+          {!loading && exercises.length > 0 && searchTerm.trim() === "" && (
             <div style={{ 
               marginTop: '24px', 
               display: 'flex', 

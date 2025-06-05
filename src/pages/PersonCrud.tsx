@@ -12,6 +12,8 @@ interface Person {
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
+  const [allPersons, setAllPersons] = useState<Person[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState<Person>({ name: "", last_name: "", phone: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,13 +46,44 @@ export default function PersonCrud() {
       // Get total count for display (fetch first page to estimate)
       if (page === 1) {
         const allPersons = await invoke("get_persons");
-        setTotalPersons((allPersons as Person[]).length);
+        const allPersonsData = allPersons as Person[];
+        setAllPersons(allPersonsData);
+        setTotalPersons(allPersonsData.length);
       }
     } catch (error) {
       console.error("Error fetching persons:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter persons based on search term
+  const filteredPersons = searchTerm.trim() === "" 
+    ? persons 
+    : allPersons.filter(person => 
+        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.phone.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // If searching, show all persons that match
+    if (value.trim() !== "") {
+      // Load all persons if not already loaded
+      if (allPersons.length === 0) {
+        invoke("get_persons").then((result) => {
+          const allPersonsData = result as Person[];
+          setAllPersons(allPersonsData);
+        });
+      }
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
   };
 
   const loadMorePersons = async () => {
@@ -214,12 +247,61 @@ export default function PersonCrud() {
             </Title>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
-                {totalPersons} {totalPersons === 1 ? 'persona' : 'personas'} total
+                {searchTerm.trim() !== "" ? filteredPersons.length : totalPersons} {(searchTerm.trim() !== "" ? filteredPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {searchTerm.trim() !== "" ? 'encontrada' : 'total'}
               </span>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>
-                Página {currentPage}
-              </span>
+              {searchTerm.trim() === "" && (
+                <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                  Página {currentPage}
+                </span>
+              )}
             </div>
+          </div>
+
+          {/* Search Field */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ position: 'relative', maxWidth: '400px' }}>
+              <Input
+                placeholder="🔍 Buscar personas por nombre, apellido o teléfono..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                variant="primary"
+                fullWidth
+              />
+              {searchTerm.trim() !== "" && (
+                <button
+                  onClick={clearSearch}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {searchTerm.trim() !== "" && (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#2563eb', 
+                margin: '8px 0 0 0',
+                fontWeight: '500'
+              }}>
+                Mostrando resultados para: "{searchTerm}"
+              </p>
+            )}
           </div>
           
           {loading ? (
@@ -227,19 +309,24 @@ export default function PersonCrud() {
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
               <p style={{ color: '#6b7280', margin: 0 }}>Cargando personas...</p>
             </div>
-          ) : persons.length === 0 ? (
+          ) : (searchTerm.trim() !== "" ? filteredPersons.length === 0 : persons.length === 0) ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>👥</div>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+                {searchTerm.trim() !== "" ? '🔍' : '👥'}
+              </div>
               <Title level={3} variant="secondary" align="center">
-                No hay personas registradas
+                {searchTerm.trim() !== "" ? 'No se encontraron personas' : 'No hay personas registradas'}
               </Title>
               <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
-                Agrega tu primera persona usando el formulario de arriba
+                {searchTerm.trim() !== "" 
+                  ? `No hay personas que coincidan con "${searchTerm}"`
+                  : 'Agrega tu primera persona usando el formulario de arriba'
+                }
               </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '16px' }}>
-              {persons.map((p) => (
+              {filteredPersons.map((p) => (
                 <Card
                   key={p.id}
                   variant={editingId === p.id ? "outlined" : "default"}
@@ -297,7 +384,7 @@ export default function PersonCrud() {
           )}
 
           {/* Pagination Controls */}
-          {!loading && persons.length > 0 && (
+          {!loading && persons.length > 0 && searchTerm.trim() === "" && (
             <div style={{ 
               marginTop: '24px', 
               display: 'flex', 
