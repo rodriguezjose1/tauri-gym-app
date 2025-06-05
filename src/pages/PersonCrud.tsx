@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { PersonService, Person } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/ui";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
-interface Person {
-  id: number;
-  name: string;
-  email: string;
-}
-
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
-  const [form, setForm] = useState({ name: "", email: "" });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
@@ -27,8 +21,8 @@ export default function PersonCrud() {
   const loadPersons = async () => {
     try {
       setLoading(true);
-      const result = await invoke<Person[]>("get_persons");
-      setPersons(result);
+      const data = await PersonService.getPersons();
+      setPersons(data);
     } catch (error) {
       console.error("Error loading persons:", error);
     } finally {
@@ -38,26 +32,45 @@ export default function PersonCrud() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) return;
+    if (!form.name.trim() || !form.last_name.trim()) return;
 
     try {
       setLoading(true);
-      if (editingId) {
-        await invoke("update_person", {
-          id: editingId,
+      
+      if (editingPerson) {
+        // Actualizar persona existente
+        const updatedPerson: Person = {
+          id: editingPerson.id,
           name: form.name.trim(),
-          email: form.email.trim(),
-        });
+          last_name: form.last_name.trim(),
+          phone: form.phone.trim()
+        };
+        
+        await PersonService.updatePerson(updatedPerson);
+        
+        // Actualizar la lista local
+        setPersons(prev => prev.map(p => 
+          p.id === editingPerson.id ? updatedPerson : p
+        ));
+        
+        setEditingPerson(null);
       } else {
-        await invoke("create_person", {
+        // Crear nueva persona
+        const newPerson: Person = {
           name: form.name.trim(),
-          email: form.email.trim(),
-        });
+          last_name: form.last_name.trim(),
+          phone: form.phone.trim()
+        };
+        
+        await PersonService.createPerson(newPerson);
+        
+        // Recargar la lista para obtener el ID asignado
+        await loadPersons();
       }
       
-      setForm({ name: "", email: "" });
-      setEditingId(null);
-      await loadPersons();
+      // Limpiar formulario
+      setForm({ name: "", last_name: "", phone: "" });
+      
     } catch (error) {
       console.error("Error saving person:", error);
     } finally {
@@ -66,43 +79,39 @@ export default function PersonCrud() {
   };
 
   const handleEdit = (person: Person) => {
-    setForm({ name: person.name, email: person.email });
-    setEditingId(person.id);
-  };
-
-  const handleCancel = () => {
-    setForm({ name: "", email: "" });
-    setEditingId(null);
-  };
-
-  const showDeleteConfirm = (person: Person) => {
-    setDeleteConfirm({
-      show: true,
-      personId: person.id,
-      personName: person.name
+    setEditingPerson(person);
+    setForm({
+      name: person.name,
+      last_name: person.last_name,
+      phone: person.phone || ""
     });
   };
 
-  const hideDeleteConfirm = () => {
+  const handleCancelEdit = () => {
+    setEditingPerson(null);
+    setForm({ name: "", last_name: "", phone: "" });
+  };
+
+  const handleDelete = (person: Person) => {
     setDeleteConfirm({
-      show: false,
-      personId: null,
-      personName: ""
+      show: true,
+      personId: person.id || null,
+      personName: `${person.name} ${person.last_name}`
     });
   };
 
   const confirmDelete = async () => {
-    if (deleteConfirm.personId) {
-      try {
-        setLoading(true);
-        await invoke("delete_person", { id: deleteConfirm.personId });
-        await loadPersons();
-        hideDeleteConfirm();
-      } catch (error) {
-        console.error("Error deleting person:", error);
-      } finally {
-        setLoading(false);
-      }
+    if (!deleteConfirm.personId) return;
+
+    try {
+      setLoading(true);
+      await PersonService.deletePerson(deleteConfirm.personId);
+      setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
+      setDeleteConfirm({ show: false, personId: null, personName: "" });
+    } catch (error) {
+      console.error("Error deleting person:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,7 +121,7 @@ export default function PersonCrud() {
         {/* Form */}
         <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
           <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
-            {editingId ? "Editar Persona" : "Agregar Nueva Persona"}
+            {editingPerson ? "Editar Persona" : "Agregar Nueva Persona"}
           </Title>
           
           <form onSubmit={handleSubmit}>
@@ -127,12 +136,21 @@ export default function PersonCrud() {
               />
               
               <Input
-                label="Correo Electrónico"
-                placeholder="Ej: juan@email.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                label="Apellido"
+                placeholder="Ej: Pérez"
+                value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
                 variant="success"
-                rightIcon="📧"
+                fullWidth
+              />
+
+              <Input
+                label="Teléfono"
+                placeholder="Ej: 555-1234"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                variant="success"
+                rightIcon="📞"
                 fullWidth
               />
             </div>
@@ -143,13 +161,13 @@ export default function PersonCrud() {
                 variant="success"
                 size="md"
               >
-                {editingId ? "Actualizar Persona" : "Agregar Persona"}
+                {editingPerson ? "Actualizar Persona" : "Agregar Persona"}
               </Button>
               
-              {editingId && (
+              {editingPerson && (
                 <Button
                   type="button"
-                  onClick={handleCancel}
+                  onClick={handleCancelEdit}
                   variant="secondary"
                   size="md"
                 >
@@ -191,13 +209,13 @@ export default function PersonCrud() {
               {persons.map((person) => (
                 <Card
                   key={person.id}
-                  variant={editingId === person.id ? "outlined" : "default"}
+                  variant={editingPerson?.id === person.id ? "outlined" : "default"}
                   padding="md"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    border: editingId === person.id ? '2px solid #059669' : undefined
+                    border: editingPerson?.id === person.id ? '2px solid #059669' : undefined
                   }}
                 >
                   <div style={{
@@ -217,11 +235,11 @@ export default function PersonCrud() {
                   
                   <div style={{ flex: 1 }}>
                     <Title level={4} variant="default" style={{ marginBottom: '4px' }}>
-                      {person.name}
+                      {person.name} {person.last_name}
                     </Title>
-                    <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                      📧 {person.email}
-                    </p>
+                    <div className="text-sm text-gray-600">
+                      {person.phone && <p>Tel: {person.phone}</p>}
+                    </div>
                   </div>
                   
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -233,7 +251,7 @@ export default function PersonCrud() {
                       ✏️ Editar
                     </Button>
                     <Button
-                      onClick={() => showDeleteConfirm(person)}
+                      onClick={() => handleDelete(person)}
                       variant="danger"
                       size="sm"
                     >
@@ -250,7 +268,7 @@ export default function PersonCrud() {
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={deleteConfirm.show}
-        onClose={hideDeleteConfirm}
+        onClose={() => setDeleteConfirm({ show: false, personId: null, personName: "" })}
         title="Confirmar Eliminación"
         size="sm"
       >
@@ -263,7 +281,7 @@ export default function PersonCrud() {
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <Button
-              onClick={hideDeleteConfirm}
+              onClick={() => setDeleteConfirm({ show: false, personId: null, personName: "" })}
               variant="secondary"
             >
               Cancelar

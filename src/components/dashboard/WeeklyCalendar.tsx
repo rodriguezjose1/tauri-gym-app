@@ -18,33 +18,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { invoke } from "@tauri-apps/api/core";
+import { PersonService, WorkoutService, Person, WorkoutEntryWithDetails } from "../../services";
 import { Input, Button } from "../ui";
-
-interface Person {
-  id?: number;
-  name: string;
-  last_name: string;
-  phone: string;
-}
-
-interface WorkoutEntryWithDetails {
-  id?: number;
-  person_id: number;
-  exercise_id: number;
-  date: string;
-  sets?: number;
-  reps?: number;
-  weight?: number;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-  person_name: string;
-  person_last_name: string;
-  exercise_name: string;
-  exercise_code: string;
-  order_index?: number;
-}
 
 interface WeeklyCalendarProps {
   onDayClick: (date: string) => void;
@@ -231,20 +206,15 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
 
     setPersonSearchLoading(true);
     try {
-      const result = await invoke("search_persons_paginated", { 
-        query: query.trim(), 
-        page, 
-        pageSize: personPageSize 
-      });
-      const newPersons = result as Person[];
+      const result = await PersonService.searchPersonsPaginated(query, page, personPageSize);
       
       if (reset) {
-        setPersons(newPersons);
+        setPersons(result);
       } else {
-        setPersons(prev => [...prev, ...newPersons]);
+        setPersons(prev => [...prev, ...result]);
       }
       
-      setPersonHasMore(newPersons.length === personPageSize);
+      setPersonHasMore(result.length === personPageSize);
       setPersonCurrentPage(page);
     } catch (error) {
       console.error("Error searching persons:", error);
@@ -295,31 +265,35 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   const fetchWorkoutData = async (personId: number, startDate?: string, endDate?: string) => {
     setWorkoutLoading(true);
     try {
-      let actualStartDate: string;
-      let actualEndDate: string;
-
-      if (startDate && endDate) {
-        actualStartDate = startDate;
-        actualEndDate = endDate;
-      } else {
+      // Calculate default date range if not provided
+      let actualStartDate = startDate;
+      let actualEndDate = endDate;
+      
+      if (!actualStartDate || !actualEndDate) {
         const today = new Date();
         const start = new Date(today);
-        start.setDate(today.getDate() - 20); // Last 3 weeks
-        actualStartDate = start.toISOString().split('T')[0];
-        actualEndDate = today.toISOString().split('T')[0];
+        start.setDate(today.getDate() - (weekOffset * 21) - 20); // 3 weeks * 7 days = 21
+        actualStartDate = formatDateForDB(start);
+        
+        const end = new Date(today);
+        end.setDate(today.getDate() - (weekOffset * 21));
+        actualEndDate = formatDateForDB(end);
       }
       
-      const result = await invoke("get_workout_entries_by_person_and_date_range", {
+      const data = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(
         personId,
-        startDate: actualStartDate,
-        endDate: actualEndDate
-      });
-
-      const workoutEntries = result as WorkoutEntryWithDetails[];
-      setWorkoutDataState(workoutEntries);
-      onWorkoutDataChange?.(workoutEntries);
+        actualStartDate,
+        actualEndDate
+      );
+      
+      if (onWorkoutDataChange) {
+        onWorkoutDataChange(data);
+      }
+      
+      return data;
     } catch (error) {
       console.error("Error fetching workout data:", error);
+      return [];
     } finally {
       setWorkoutLoading(false);
     }
@@ -420,7 +394,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     const dayDateString = formatDateForDB(new Date(activeWorkout.date));
     const dayWorkouts = currentWorkoutData
       .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
-      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     const oldIndex = dayWorkouts.findIndex(w => w.id === active.id);
     const newIndex = dayWorkouts.findIndex(w => w.id === over.id);

@@ -103,9 +103,11 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
               Ejercicio *
             </label>
             <ExerciseAutocomplete
-              exercises={exercises}
-              value={exercise.exercise_id}
-              onChange={(exerciseId: number) => onUpdateExercise(index, 'exercise_id', exerciseId)}
+              onExerciseSelect={(exercise) => {
+                if (exercise) {
+                  onUpdateExercise(index, 'exercise_id', exercise.id || 0);
+                }
+              }}
             />
           </div>
 

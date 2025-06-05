@@ -111,12 +111,14 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
           <div style={{ display: 'grid', gap: '20px' }}>
             <div>
               <ExerciseAutocomplete
-                exercises={exercises}
-                value={workoutForm.exercise_id}
-                onChange={(exerciseId) => {
-                  console.log("Single workout form - exercise ID changed to:", exerciseId);
-                  onUpdateWorkoutForm('exercise_id', exerciseId);
-                  console.log("Updated workout form:", { ...workoutForm, exercise_id: exerciseId });
+                onExerciseSelect={(exercise) => {
+                  if (exercise) {
+                    console.log("Single workout form - exercise selected:", exercise);
+                    onUpdateWorkoutForm('exercise_id', exercise.id || 0);
+                    console.log("Updated workout form with exercise ID:", exercise.id);
+                  } else {
+                    onUpdateWorkoutForm('exercise_id', 0);
+                  }
                 }}
                 placeholder="Buscar ejercicio..."
               />
@@ -328,11 +330,13 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
 
                   <div style={{ display: 'grid', gap: '16px' }}>
                     <ExerciseAutocomplete
-                      exercises={exercises}
-                      value={exercise.exercise_id}
-                      onChange={(exerciseId) => {
-                        console.log(`Session form - exercise ${index} ID changed to:`, exerciseId);
-                        onUpdateSessionExercise(index, 'exercise_id', exerciseId);
+                      onExerciseSelect={(exercise) => {
+                        if (exercise) {
+                          console.log(`Session form - exercise ${index} selected:`, exercise);
+                          onUpdateSessionExercise(index, 'exercise_id', exercise.id || 0);
+                        } else {
+                          onUpdateSessionExercise(index, 'exercise_id', 0);
+                        }
                       }}
                       placeholder="Buscar ejercicio..."
                     />

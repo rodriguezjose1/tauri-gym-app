@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { RoutineService, ExerciseService, Routine, RoutineWithExercises, RoutineExerciseWithDetails, Exercise } from "../../services";
 import {
   DndContext,
   closestCenter,
@@ -22,11 +22,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Input, Button, DeleteConfirmationModal } from "../ui";
 import { ExerciseAutocomplete } from "./ExerciseAutocomplete";
 import {
-  Routine,
-  RoutineWithExercises,
-  RoutineExerciseWithDetails,
-  RoutineExercise,
-  Exercise,
   RoutineForm,
 } from "../../types/dashboard";
 
@@ -292,10 +287,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
   // Load routines
   const loadRoutines = async () => {
-    setLoading(true);
     try {
-      const result = await invoke("list_routines") as Routine[];
-      setRoutines(result);
+      setLoading(true);
+      const data = await RoutineService.listRoutines();
+      setRoutines(data);
     } catch (error) {
       console.error("Error loading routines:", error);
     } finally {
@@ -307,7 +302,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const searchRoutines = async (query: string) => {
     setLoading(true);
     try {
-      const result = await invoke("search_routines", { query }) as Routine[];
+      const result = await RoutineService.searchRoutines(query) as Routine[];
       setRoutines(result);
     } catch (error) {
       console.error("Error searching routines:", error);
@@ -319,18 +314,21 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   // Load routine with exercises
   const loadRoutineWithExercises = async (routineId: number) => {
     try {
-      const result = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
-      setSelectedRoutine(result);
+      setLoading(true);
+      const routine = await RoutineService.getRoutineWithExercises(routineId);
+      setSelectedRoutine(routine);
     } catch (error) {
       console.error("Error loading routine with exercises:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Load exercises
   const loadExercises = async () => {
     try {
-      const result = await invoke("get_exercises") as Exercise[];
-      setExercises(result);
+      const data = await ExerciseService.getExercises();
+      setExercises(data);
     } catch (error) {
       console.error("Error loading exercises:", error);
     }
@@ -344,20 +342,19 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     }
 
     try {
-      const routineId = await invoke("create_routine", {
-        name: createForm.name.trim(),
-        code: createForm.code.trim().toUpperCase()
-      }) as number;
-
+      setLoading(true);
+      await RoutineService.createRoutine(createForm.name.trim(), createForm.code.trim().toUpperCase());
       setCreateForm({ name: '', code: '' });
       setShowCreateForm(false);
       await loadRoutines();
       
       // Load the newly created routine
-      await loadRoutineWithExercises(routineId);
+      await loadRoutineWithExercises(routines[routines.length - 1].id!);
     } catch (error) {
       console.error("Error creating routine:", error);
       alert("Error al crear la rutina: " + error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -373,7 +370,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
     setDeletingRoutine(true);
     try {
-      await invoke("delete_routine", { id: deleteRoutineId });
+      await RoutineService.deleteRoutine(deleteRoutineId);
       await loadRoutines();
       if (selectedRoutine?.id === deleteRoutineId) {
         setSelectedRoutine(null);
@@ -404,16 +401,16 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     }
 
     try {
-      const orderIndex = selectedRoutine.exercises.length;
-      await invoke("add_exercise_to_routine", {
-        routineId: selectedRoutine.id,
-        exerciseId: addExerciseForm.exerciseId,
-        orderIndex,
-        sets: addExerciseForm.sets || undefined,
-        reps: addExerciseForm.reps || undefined,
-        weight: addExerciseForm.weight || undefined,
-        notes: addExerciseForm.notes.trim() || undefined,
-      });
+      setLoading(true);
+      await RoutineService.addExerciseToRoutine(
+        selectedRoutine.id!,
+        addExerciseForm.exerciseId,
+        selectedRoutine.exercises.length,
+        addExerciseForm.sets || undefined,
+        addExerciseForm.reps || undefined,
+        addExerciseForm.weight || undefined,
+        addExerciseForm.notes.trim() || undefined,
+      );
 
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
@@ -430,22 +427,24 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     } catch (error) {
       console.error("Error adding exercise to routine:", error);
       alert("Error al agregar ejercicio: " + error);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Update routine exercise
   const handleUpdateRoutineExercise = async (exercise: RoutineExerciseWithDetails) => {
     try {
-      await invoke("update_routine_exercise", {
-        id: exercise.id,
-        routineId: exercise.routine_id,
-        exerciseId: exercise.exercise_id,
-        orderIndex: exercise.order_index,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weight: exercise.weight,
-        notes: exercise.notes,
-      });
+      await RoutineService.updateRoutineExercise(
+        exercise.id!,
+        exercise.routine_id,
+        exercise.exercise_id,
+        exercise.order_index,
+        exercise.sets || 0,
+        exercise.reps || 0,
+        exercise.weight || 0,
+        exercise.notes || '',
+      );
 
       // Reload routine
       if (selectedRoutine) {
@@ -462,10 +461,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     if (!selectedRoutine) return;
 
     try {
-      await invoke("remove_exercise_from_routine", {
-        routineId: selectedRoutine.id,
-        exerciseId
-      });
+      await RoutineService.removeExerciseFromRoutine(selectedRoutine.id!, exerciseId);
 
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
@@ -496,16 +492,13 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       } : null);
 
       // Create the order updates
-      const exerciseOrders = reorderedExercises.map((exercise, index) => [
+      const exerciseOrders: [number, number][] = reorderedExercises.map((exercise, index) => [
         exercise.exercise_id,
         index
       ]);
 
       try {
-        await invoke("reorder_routine_exercises", {
-          routineId: selectedRoutine.id,
-          exerciseOrders
-        });
+        await RoutineService.reorderRoutineExercises(selectedRoutine.id!, exerciseOrders);
       } catch (error) {
         console.error("Error reordering exercises:", error);
         // Reload to get correct state
@@ -806,9 +799,13 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               <h3 style={{ margin: '0 0 16px 0' }}>Agregar Ejercicio</h3>
               
               <ExerciseAutocomplete
-                exercises={exercises}
-                value={addExerciseForm.exerciseId}
-                onChange={(exerciseId) => setAddExerciseForm(prev => ({ ...prev, exerciseId }))}
+                onExerciseSelect={(exercise) => {
+                  if (exercise) {
+                    setAddExerciseForm(prev => ({ ...prev, exerciseId: exercise.id || 0 }));
+                  } else {
+                    setAddExerciseForm(prev => ({ ...prev, exerciseId: 0 }));
+                  }
+                }}
                 placeholder="Buscar ejercicio..."
               />
 

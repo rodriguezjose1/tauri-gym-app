@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { ExerciseService, Exercise } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/ui";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
-
-interface Exercise {
-  id: number;
-  name: string;
-  code: string;
-}
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [form, setForm] = useState({ name: "", code: "" });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,23 +42,15 @@ export default function ExerciseCrud() {
   const loadExercises = async (page = 1, append = false) => {
     try {
       setLoading(true);
-      const result = await invoke<{
-        exercises: Exercise[];
-        total: number;
-        has_more: boolean;
-      }>("get_exercises_paginated", {
-        page,
-        limit: ITEMS_PER_PAGE,
-      });
-
+      const data = await ExerciseService.getExercises();
       if (append) {
-        setExercises(prev => [...prev, ...result.exercises]);
+        setExercises(prev => [...prev, ...data]);
       } else {
-        setExercises(result.exercises);
+        setExercises(data);
       }
       
-      setTotalExercises(result.total);
-      setHasMore(result.has_more);
+      setTotalExercises(data.length);
+      setHasMore(data.length === ITEMS_PER_PAGE);
       setCurrentPage(page);
     } catch (error) {
       console.error("Error loading exercises:", error);
@@ -75,8 +61,8 @@ export default function ExerciseCrud() {
 
   const loadAllExercises = async () => {
     try {
-      const result = await invoke<Exercise[]>("get_all_exercises");
-      setAllExercises(result);
+      const data = await ExerciseService.getExercises();
+      setAllExercises(data);
     } catch (error) {
       console.error("Error loading all exercises:", error);
     }
@@ -100,23 +86,39 @@ export default function ExerciseCrud() {
 
     try {
       setLoading(true);
-      if (editingId) {
-        await invoke("update_exercise", {
-          id: editingId,
+      
+      if (editingExercise) {
+        // Actualizar ejercicio existente
+        const updatedExercise: Exercise = {
+          id: editingExercise.id,
           name: form.name.trim(),
-          code: form.code.trim(),
-        });
+          code: form.code.trim()
+        };
+        
+        await ExerciseService.updateExercise(updatedExercise);
+        
+        // Actualizar la lista local
+        setExercises(prev => prev.map(e => 
+          e.id === editingExercise.id ? updatedExercise : e
+        ));
+        
+        setEditingExercise(null);
       } else {
-        await invoke("create_exercise", {
+        // Crear nuevo ejercicio
+        const newExercise: Exercise = {
           name: form.name.trim(),
-          code: form.code.trim(),
-        });
+          code: form.code.trim()
+        };
+        
+        await ExerciseService.createExercise(newExercise);
+        
+        // Recargar la lista para obtener el ID asignado
+        await loadExercises();
       }
       
+      // Limpiar formulario
       setForm({ name: "", code: "" });
-      setEditingId(null);
-      await loadExercises(1);
-      await loadAllExercises();
+      
     } catch (error) {
       console.error("Error saving exercise:", error);
     } finally {
@@ -125,44 +127,38 @@ export default function ExerciseCrud() {
   };
 
   const handleEdit = (exercise: Exercise) => {
-    setForm({ name: exercise.name, code: exercise.code });
-    setEditingId(exercise.id);
+    setEditingExercise(exercise);
+    setForm({
+      name: exercise.name,
+      code: exercise.code
+    });
   };
 
-  const handleCancel = () => {
+  const handleCancelEdit = () => {
+    setEditingExercise(null);
     setForm({ name: "", code: "" });
-    setEditingId(null);
   };
 
-  const showDeleteConfirm = (exercise: Exercise) => {
+  const handleDelete = (exercise: Exercise) => {
     setDeleteConfirm({
       show: true,
-      exerciseId: exercise.id,
+      exerciseId: exercise.id || null,
       exerciseName: exercise.name
     });
   };
 
-  const hideDeleteConfirm = () => {
-    setDeleteConfirm({
-      show: false,
-      exerciseId: null,
-      exerciseName: ""
-    });
-  };
-
   const confirmDelete = async () => {
-    if (deleteConfirm.exerciseId) {
-      try {
-        setLoading(true);
-        await invoke("delete_exercise", { id: deleteConfirm.exerciseId });
-        await loadExercises(1);
-        await loadAllExercises();
-        hideDeleteConfirm();
-      } catch (error) {
-        console.error("Error deleting exercise:", error);
-      } finally {
-        setLoading(false);
-      }
+    if (!deleteConfirm.exerciseId) return;
+
+    try {
+      setLoading(true);
+      await ExerciseService.deleteExercise(deleteConfirm.exerciseId);
+      setExercises(prev => prev.filter(e => e.id !== deleteConfirm.exerciseId));
+      setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" });
+    } catch (error) {
+      console.error("Error deleting exercise:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,7 +176,7 @@ export default function ExerciseCrud() {
         {/* Form */}
         <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
           <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
-            {editingId ? "Editar Ejercicio" : "Agregar Nuevo Ejercicio"}
+            {editingExercise ? "Editar Ejercicio" : "Agregar Nuevo Ejercicio"}
           </Title>
           
           <form onSubmit={handleSubmit}>
@@ -211,13 +207,13 @@ export default function ExerciseCrud() {
                 variant="success"
                 size="md"
               >
-                {editingId ? "Actualizar Ejercicio" : "Agregar Ejercicio"}
+                {editingExercise ? "Actualizar Ejercicio" : "Agregar Ejercicio"}
               </Button>
               
-              {editingId && (
+              {editingExercise && (
                 <Button
                   type="button"
-                  onClick={handleCancel}
+                  onClick={handleCancelEdit}
                   variant="secondary"
                   size="md"
                 >
@@ -318,13 +314,13 @@ export default function ExerciseCrud() {
               {filteredExercises.map((exercise) => (
                 <Card
                   key={exercise.id}
-                  variant={editingId === exercise.id ? "outlined" : "default"}
+                  variant={editingExercise?.id === exercise.id ? "outlined" : "default"}
                   padding="md"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    border: editingId === exercise.id ? '2px solid #059669' : undefined
+                    border: editingExercise?.id === exercise.id ? '2px solid #059669' : undefined
                   }}
                 >
                   <div style={{
@@ -360,7 +356,7 @@ export default function ExerciseCrud() {
                       ✏️ Editar
                     </Button>
                     <Button
-                      onClick={() => showDeleteConfirm(exercise)}
+                      onClick={() => handleDelete(exercise)}
                       variant="danger"
                       size="sm"
                     >
@@ -428,7 +424,7 @@ export default function ExerciseCrud() {
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={deleteConfirm.show}
-        onClose={hideDeleteConfirm}
+        onClose={() => setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" })}
         title="Confirmar Eliminación"
         size="sm"
       >
@@ -441,7 +437,7 @@ export default function ExerciseCrud() {
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <Button
-              onClick={hideDeleteConfirm}
+              onClick={() => setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" })}
               variant="secondary"
             >
               Cancelar

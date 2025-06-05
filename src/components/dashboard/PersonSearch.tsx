@@ -1,70 +1,62 @@
-import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { PersonService, Person } from "../../services";
+import React, { useState, useEffect, useRef } from "react";
 import { Input, Button } from "../ui";
-
-interface Person {
-  id?: number;
-  name: string;
-  last_name: string;
-  phone: string;
-}
 
 interface PersonSearchProps {
   selectedPerson: Person | null;
   onPersonSelect: (person: Person) => void;
   onClearSelection: () => void;
+  placeholder?: string;
 }
 
 export const PersonSearch: React.FC<PersonSearchProps> = ({
   selectedPerson,
   onPersonSelect,
-  onClearSelection
+  onClearSelection,
+  placeholder = "🔍 Buscar persona..."
 }) => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [personSearchLoading, setPersonSearchLoading] = useState(false);
-  const [personCurrentPage, setPersonCurrentPage] = useState(1);
-  const [personHasMore, setPersonHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const personPageSize = 10;
+
+  const ITEMS_PER_PAGE = 10;
 
   const searchPersons = async (query: string, page: number = 1, reset: boolean = true) => {
     if (query.trim().length < 2) {
       setPersons([]);
-      setPersonHasMore(false);
+      setHasMore(false);
       return;
     }
 
-    setPersonSearchLoading(true);
+    setLoading(true);
     try {
-      const result = await invoke("search_persons_paginated", { 
-        query: query.trim(), 
-        page, 
-        pageSize: personPageSize 
-      });
-      const newPersons = result as Person[];
+      const data = await PersonService.searchPersonsPaginated(query, page, ITEMS_PER_PAGE);
       
       if (reset) {
-        setPersons(newPersons);
+        setPersons(data);
+        setCurrentPage(1);
       } else {
-        setPersons(prev => [...prev, ...newPersons]);
+        setPersons(prev => [...prev, ...data]);
+        setCurrentPage(page);
       }
       
-      setPersonHasMore(newPersons.length === personPageSize);
-      setPersonCurrentPage(page);
+      setHasMore(data.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error("Error searching persons:", error);
       setPersons([]);
-      setPersonHasMore(false);
+      setHasMore(false);
     } finally {
-      setPersonSearchLoading(false);
+      setLoading(false);
     }
   };
 
   const loadMorePersons = () => {
-    if (!personSearchLoading && personHasMore && searchTerm.length >= 2) {
-      searchPersons(searchTerm, personCurrentPage + 1, false);
+    if (!loading && hasMore && searchTerm.length >= 2) {
+      searchPersons(searchTerm, currentPage + 1, false);
     }
   };
 
@@ -91,8 +83,8 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     } else {
       setShowDropdown(false);
       setPersons([]);
-      setPersonHasMore(true);
-      setPersonCurrentPage(1);
+      setHasMore(true);
+      setCurrentPage(1);
     }
   };
 
@@ -165,7 +157,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       <div ref={dropdownRef} style={{ position: 'relative' }}>
         <Input
           label=""
-          placeholder={selectedPerson ? "🔍 Buscar otra persona..." : "🔍 Buscar persona para ver entrenamientos..."}
+          placeholder={placeholder}
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={handleSearchFocus}
@@ -191,7 +183,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
               <div style={{ padding: '12px 16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>
                 Escribe al menos 2 caracteres...
               </div>
-            ) : personSearchLoading ? (
+            ) : loading ? (
               <div style={{ padding: '12px 16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <div style={{ fontSize: '16px' }}>⏳</div>
@@ -225,7 +217,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
                     </div>
                   </div>
                 ))}
-                {personHasMore && (
+                {hasMore && (
                   <div
                     onClick={loadMorePersons}
                     style={{
