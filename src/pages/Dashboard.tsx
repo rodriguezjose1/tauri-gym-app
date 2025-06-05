@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm, message } from "@tauri-apps/plugin-dialog";
-import { DeleteConfirmationModal, Modal, Input, Button } from "../components/ui";
+import { DeleteConfirmationModal, Modal, Input, Button, Title } from "../components/ui";
 import { WeeklyCalendar, WorkoutModals } from "../components/dashboard";
 import { getDashboardWrapperStyles, getContainerStyles } from "../config/layout";
 import {
@@ -715,25 +715,12 @@ export default function Dashboard() {
       <div style={{ ...getContainerStyles(), height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          justifyContent: 'flex-end', 
           alignItems: 'center', 
           marginBottom: '20px',
           flexWrap: 'wrap',
           gap: '12px'
         }}>
-          <h1 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
-            color: '#1f2937', 
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span>📊</span>
-            Dashboard de Entrenamientos
-          </h1>
-          
           {selectedPerson && (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <Button

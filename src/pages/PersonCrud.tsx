@@ -1,142 +1,85 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Input, Title, Card, Modal } from "../components/ui";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
 interface Person {
-  id?: number;
+  id: number;
   name: string;
-  last_name: string;
-  phone: string;
+  email: string;
 }
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
-  const [allPersons, setAllPersons] = useState<Person[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [form, setForm] = useState<Person>({ name: "", last_name: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalPersons, setTotalPersons] = useState(0);
-  const pageSize = 10;
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; personId: number | null; personName: string }>({
+  const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
-    personId: null,
+    personId: null as number | null,
     personName: ""
   });
 
-  const fetchPersons = async (page: number = 1, reset: boolean = true) => {
-    setLoading(true);
+  useEffect(() => {
+    loadPersons();
+  }, []);
+
+  const loadPersons = async () => {
     try {
-      const result = await invoke("get_persons_paginated", { page, pageSize });
-      const newPersons = result as Person[];
-      
-      if (reset) {
-        setPersons(newPersons);
-        setCurrentPage(1);
-      } else {
-        setPersons(prev => [...prev, ...newPersons]);
-      }
-      
-      setHasMore(newPersons.length === pageSize);
-      setCurrentPage(page);
-      
-      // Get total count for display (fetch first page to estimate)
-      if (page === 1) {
-        const allPersons = await invoke("get_persons");
-        const allPersonsData = allPersons as Person[];
-        setAllPersons(allPersonsData);
-        setTotalPersons(allPersonsData.length);
-      }
+      setLoading(true);
+      const result = await invoke<Person[]>("get_persons");
+      setPersons(result);
     } catch (error) {
-      console.error("Error fetching persons:", error);
+      console.error("Error loading persons:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter persons based on search term
-  const filteredPersons = searchTerm.trim() === "" 
-    ? persons 
-    : allPersons.filter(person => 
-        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.phone.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // If searching, show all persons that match
-    if (value.trim() !== "") {
-      // Load all persons if not already loaded
-      if (allPersons.length === 0) {
-        invoke("get_persons").then((result) => {
-          const allPersonsData = result as Person[];
-          setAllPersons(allPersonsData);
-        });
-      }
-    }
-  };
-
-  const clearSearch = () => {
-    setSearchTerm("");
-  };
-
-  const loadMorePersons = async () => {
-    if (!loading && hasMore) {
-      await fetchPersons(currentPage + 1, false);
-    }
-  };
-
-  const goToPage = async (page: number) => {
-    if (page >= 1 && !loading) {
-      await fetchPersons(page, true);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.last_name.trim() || !form.phone.trim()) {
-      alert("Por favor, completa todos los campos");
-      return;
-    }
+    if (!form.name.trim() || !form.email.trim()) return;
 
     try {
+      setLoading(true);
       if (editingId) {
-        await invoke("update_person", { person: { ...form, id: editingId } });
-        alert("Persona actualizada correctamente");
+        await invoke("update_person", {
+          id: editingId,
+          name: form.name.trim(),
+          email: form.email.trim(),
+        });
       } else {
-        await invoke("create_person", { person: form });
-        alert("Persona agregada correctamente");
+        await invoke("create_person", {
+          name: form.name.trim(),
+          email: form.email.trim(),
+        });
       }
-      setForm({ name: "", last_name: "", phone: "" });
+      
+      setForm({ name: "", email: "" });
       setEditingId(null);
-      fetchPersons();
+      await loadPersons();
     } catch (error) {
       console.error("Error saving person:", error);
-      alert("Error al guardar la persona");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = (p: Person) => {
-    setForm({ name: p.name, last_name: p.last_name, phone: p.phone });
-    setEditingId(p.id!);
+  const handleEdit = (person: Person) => {
+    setForm({ name: person.name, email: person.email });
+    setEditingId(person.id);
   };
 
   const handleCancel = () => {
-    setForm({ name: "", last_name: "", phone: "" });
+    setForm({ name: "", email: "" });
     setEditingId(null);
   };
 
   const showDeleteConfirm = (person: Person) => {
     setDeleteConfirm({
       show: true,
-      personId: person.id!,
-      personName: `${person.name} ${person.last_name}`
+      personId: person.id,
+      personName: person.name
     });
   };
 
@@ -151,34 +94,21 @@ export default function PersonCrud() {
   const confirmDelete = async () => {
     if (deleteConfirm.personId) {
       try {
+        setLoading(true);
         await invoke("delete_person", { id: deleteConfirm.personId });
-        alert("Persona eliminada correctamente");
-        fetchPersons();
+        await loadPersons();
         hideDeleteConfirm();
       } catch (error) {
         console.error("Error deleting person:", error);
-        alert("Error al eliminar la persona");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  useEffect(() => {
-    fetchPersons();
-  }, []);
-
   return (
     <div style={getPageWrapperStyles()}>
       <div style={getContainerStyles()}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <Title level={1} variant="primary" align="center">
-            Gestión de Personas
-          </Title>
-          <Title level={3} variant="secondary" align="center" weight="normal">
-            Administra tu lista de contactos de forma sencilla y eficiente
-          </Title>
-        </div>
-
         {/* Form */}
         <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
           <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
@@ -188,30 +118,21 @@ export default function PersonCrud() {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '24px' }}>
               <Input
-                label="Nombre"
-                placeholder="Ingresa el nombre"
+                label="Nombre Completo"
+                placeholder="Ej: Juan Pérez"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                variant="primary"
+                variant="success"
                 fullWidth
               />
               
               <Input
-                label="Apellido"
-                placeholder="Ingresa el apellido"
-                value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                variant="primary"
-                fullWidth
-              />
-              
-              <Input
-                label="Teléfono"
-                placeholder="Ingresa el teléfono"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                variant="primary"
-                rightIcon="📞"
+                label="Correo Electrónico"
+                placeholder="Ej: juan@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                variant="success"
+                rightIcon="📧"
                 fullWidth
               />
             </div>
@@ -219,7 +140,7 @@ export default function PersonCrud() {
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Button
                 type="submit"
-                variant="primary"
+                variant="success"
                 size="md"
               >
                 {editingId ? "Actualizar Persona" : "Agregar Persona"}
@@ -245,63 +166,9 @@ export default function PersonCrud() {
             <Title level={2} variant="default">
               Lista de Personas
             </Title>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
-                {searchTerm.trim() !== "" ? filteredPersons.length : totalPersons} {(searchTerm.trim() !== "" ? filteredPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {searchTerm.trim() !== "" ? 'encontrada' : 'total'}
-              </span>
-              {searchTerm.trim() === "" && (
-                <span style={{ color: '#6b7280', fontSize: '14px' }}>
-                  Página {currentPage}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Search Field */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ position: 'relative', maxWidth: '400px' }}>
-              <Input
-                placeholder="🔍 Buscar personas por nombre, apellido o teléfono..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                variant="primary"
-                fullWidth
-              />
-              {searchTerm.trim() !== "" && (
-                <button
-                  onClick={clearSearch}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#6b7280',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  title="Limpiar búsqueda"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            {searchTerm.trim() !== "" && (
-              <p style={{ 
-                fontSize: '14px', 
-                color: '#2563eb', 
-                margin: '8px 0 0 0',
-                fontWeight: '500'
-              }}>
-                Mostrando resultados para: "{searchTerm}"
-              </p>
-            )}
+            <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
+              {persons.length} {persons.length === 1 ? 'persona' : 'personas'} registrada{persons.length === 1 ? '' : 's'}
+            </span>
           </div>
           
           {loading ? (
@@ -309,40 +176,35 @@ export default function PersonCrud() {
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
               <p style={{ color: '#6b7280', margin: 0 }}>Cargando personas...</p>
             </div>
-          ) : (searchTerm.trim() !== "" ? filteredPersons.length === 0 : persons.length === 0) ? (
+          ) : persons.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
-                {searchTerm.trim() !== "" ? '🔍' : '👥'}
-              </div>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>👥</div>
               <Title level={3} variant="secondary" align="center">
-                {searchTerm.trim() !== "" ? 'No se encontraron personas' : 'No hay personas registradas'}
+                No hay personas registradas
               </Title>
               <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
-                {searchTerm.trim() !== "" 
-                  ? `No hay personas que coincidan con "${searchTerm}"`
-                  : 'Agrega tu primera persona usando el formulario de arriba'
-                }
+                Agrega tu primera persona usando el formulario de arriba
               </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '16px' }}>
-              {filteredPersons.map((p) => (
+              {persons.map((person) => (
                 <Card
-                  key={p.id}
-                  variant={editingId === p.id ? "outlined" : "default"}
+                  key={person.id}
+                  variant={editingId === person.id ? "outlined" : "default"}
                   padding="md"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    border: editingId === p.id ? '2px solid #2563eb' : undefined
+                    border: editingId === person.id ? '2px solid #059669' : undefined
                   }}
                 >
                   <div style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '50%',
-                    backgroundColor: '#2563eb',
+                    backgroundColor: '#059669',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
@@ -350,28 +212,28 @@ export default function PersonCrud() {
                     fontWeight: 'bold',
                     fontSize: '16px'
                   }}>
-                    {p.name.charAt(0)}{p.last_name.charAt(0)}
+                    {person.name.charAt(0).toUpperCase()}
                   </div>
                   
                   <div style={{ flex: 1 }}>
                     <Title level={4} variant="default" style={{ marginBottom: '4px' }}>
-                      {p.name} {p.last_name}
+                      {person.name}
                     </Title>
                     <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                      📞 {p.phone}
+                      📧 {person.email}
                     </p>
                   </div>
                   
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <Button
-                      onClick={() => handleEdit(p)}
+                      onClick={() => handleEdit(person)}
                       variant="secondary"
                       size="sm"
                     >
                       ✏️ Editar
                     </Button>
                     <Button
-                      onClick={() => showDeleteConfirm(p)}
+                      onClick={() => showDeleteConfirm(person)}
                       variant="danger"
                       size="sm"
                     >
@@ -380,57 +242,6 @@ export default function PersonCrud() {
                   </div>
                 </Card>
               ))}
-            </div>
-          )}
-
-          {/* Pagination Controls */}
-          {!loading && persons.length > 0 && searchTerm.trim() === "" && (
-            <div style={{ 
-              marginTop: '24px', 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <Button
-                onClick={() => goToPage(currentPage - 1)}
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === 1 || loading}
-              >
-                ← Anterior
-              </Button>
-              
-              <span style={{ 
-                padding: '8px 16px', 
-                backgroundColor: '#f3f4f6', 
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}>
-                Página {currentPage}
-              </span>
-              
-              <Button
-                onClick={() => goToPage(currentPage + 1)}
-                variant="secondary"
-                size="sm"
-                disabled={!hasMore || loading}
-              >
-                Siguiente →
-              </Button>
-              
-              {hasMore && (
-                <Button
-                  onClick={loadMorePersons}
-                  variant="primary"
-                  size="sm"
-                  disabled={loading}
-                >
-                  {loading ? "Cargando..." : "Cargar más"}
-                </Button>
-              )}
             </div>
           )}
         </Card>

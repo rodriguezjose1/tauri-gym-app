@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Input, Title, Card, Modal } from "../components/ui";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
 interface Exercise {
-  id?: number;
+  id: number;
   name: string;
   code: string;
 }
@@ -12,117 +12,121 @@ interface Exercise {
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [form, setForm] = useState<Exercise>({ name: "", code: "" });
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [form, setForm] = useState({ name: "", code: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalExercises, setTotalExercises] = useState(0);
-  const pageSize = 10;
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; exerciseId: number | null; exerciseName: string }>({
+  const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
-    exerciseId: null,
+    exerciseId: null as number | null,
     exerciseName: ""
   });
 
-  const fetchExercises = async (page: number = 1, reset: boolean = true) => {
-    setLoading(true);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    loadExercises();
+    loadAllExercises();
+  }, []);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredExercises(exercises);
+    } else {
+      const filtered = allExercises.filter(exercise =>
+        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exercise.code.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredExercises(filtered);
+    }
+  }, [searchTerm, exercises, allExercises]);
+
+  const loadExercises = async (page = 1, append = false) => {
     try {
-      const result = await invoke("get_exercises_paginated", { page, pageSize });
-      const newExercises = result as Exercise[];
-      
-      if (reset) {
-        setExercises(newExercises);
-        setCurrentPage(1);
+      setLoading(true);
+      const result = await invoke<{
+        exercises: Exercise[];
+        total: number;
+        has_more: boolean;
+      }>("get_exercises_paginated", {
+        page,
+        limit: ITEMS_PER_PAGE,
+      });
+
+      if (append) {
+        setExercises(prev => [...prev, ...result.exercises]);
       } else {
-        setExercises(prev => [...prev, ...newExercises]);
+        setExercises(result.exercises);
       }
       
-      setHasMore(newExercises.length === pageSize);
+      setTotalExercises(result.total);
+      setHasMore(result.has_more);
       setCurrentPage(page);
-      
-      // Get total count for display (fetch first page to estimate)
-      if (page === 1) {
-        const allExercises = await invoke("get_exercises");
-        const allExercisesData = allExercises as Exercise[];
-        setAllExercises(allExercisesData);
-        setTotalExercises(allExercisesData.length);
-      }
     } catch (error) {
-      console.error("Error fetching exercises:", error);
+      console.error("Error loading exercises:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter exercises based on search term
-  const filteredExercises = searchTerm.trim() === "" 
-    ? exercises 
-    : allExercises.filter(exercise => 
-        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exercise.code.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // If searching, show all exercises that match
-    if (value.trim() !== "") {
-      // Load all exercises if not already loaded
-      if (allExercises.length === 0) {
-        invoke("get_exercises").then((result) => {
-          const allExercisesData = result as Exercise[];
-          setAllExercises(allExercisesData);
-        });
-      }
+  const loadAllExercises = async () => {
+    try {
+      const result = await invoke<Exercise[]>("get_all_exercises");
+      setAllExercises(result);
+    } catch (error) {
+      console.error("Error loading all exercises:", error);
     }
   };
 
-  const clearSearch = () => {
-    setSearchTerm("");
-  };
-
-  const loadMoreExercises = async () => {
-    if (!loading && hasMore) {
-      await fetchExercises(currentPage + 1, false);
+  const loadMoreExercises = () => {
+    if (hasMore && !loading) {
+      loadExercises(currentPage + 1, true);
     }
   };
 
-  const goToPage = async (page: number) => {
+  const goToPage = (page: number) => {
     if (page >= 1 && !loading) {
-      await fetchExercises(page, true);
+      loadExercises(page, false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.code.trim()) {
-      alert("Por favor, completa todos los campos");
-      return;
-    }
+    if (!form.name.trim() || !form.code.trim()) return;
 
     try {
+      setLoading(true);
       if (editingId) {
-        await invoke("update_exercise", { exercise: { ...form, id: editingId } });
-        alert("Ejercicio actualizado correctamente");
+        await invoke("update_exercise", {
+          id: editingId,
+          name: form.name.trim(),
+          code: form.code.trim(),
+        });
       } else {
-        await invoke("create_exercise", { exercise: form });
-        alert("Ejercicio agregado correctamente");
+        await invoke("create_exercise", {
+          name: form.name.trim(),
+          code: form.code.trim(),
+        });
       }
+      
       setForm({ name: "", code: "" });
       setEditingId(null);
-      fetchExercises();
+      await loadExercises(1);
+      await loadAllExercises();
     } catch (error) {
       console.error("Error saving exercise:", error);
-      alert("Error al guardar el ejercicio");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEdit = (exercise: Exercise) => {
     setForm({ name: exercise.name, code: exercise.code });
-    setEditingId(exercise.id!);
+    setEditingId(exercise.id);
   };
 
   const handleCancel = () => {
@@ -133,7 +137,7 @@ export default function ExerciseCrud() {
   const showDeleteConfirm = (exercise: Exercise) => {
     setDeleteConfirm({
       show: true,
-      exerciseId: exercise.id!,
+      exerciseId: exercise.id,
       exerciseName: exercise.name
     });
   };
@@ -149,34 +153,30 @@ export default function ExerciseCrud() {
   const confirmDelete = async () => {
     if (deleteConfirm.exerciseId) {
       try {
+        setLoading(true);
         await invoke("delete_exercise", { id: deleteConfirm.exerciseId });
-        alert("Ejercicio eliminado correctamente");
-        fetchExercises();
+        await loadExercises(1);
+        await loadAllExercises();
         hideDeleteConfirm();
       } catch (error) {
         console.error("Error deleting exercise:", error);
-        alert("Error al eliminar el ejercicio");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  useEffect(() => {
-    fetchExercises();
-  }, []);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+  };
 
   return (
     <div style={getPageWrapperStyles()}>
       <div style={getContainerStyles()}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <Title level={1} variant="success" align="center">
-            Gestión de Ejercicios
-          </Title>
-          <Title level={3} variant="secondary" align="center" weight="normal">
-            Administra tu biblioteca de ejercicios de forma sencilla y eficiente
-          </Title>
-        </div>
-
         {/* Form */}
         <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
           <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
