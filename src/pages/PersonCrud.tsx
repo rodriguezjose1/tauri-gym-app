@@ -5,6 +5,7 @@ import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,6 +116,16 @@ export default function PersonCrud() {
     }
   };
 
+  // Filtrar personas basado en el término de búsqueda
+  const filteredPersons = persons.filter(person => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      person.name.toLowerCase().includes(searchLower) ||
+      person.last_name.toLowerCase().includes(searchLower) ||
+      (person.phone && person.phone.toLowerCase().includes(searchLower))
+    );
+  });
+
   return (
     <div style={getPageWrapperStyles()}>
       <div style={getContainerStyles()}>
@@ -185,8 +196,21 @@ export default function PersonCrud() {
               Lista de Personas
             </Title>
             <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
-              {persons.length} {persons.length === 1 ? 'persona' : 'personas'} registrada{persons.length === 1 ? '' : 's'}
+              {filteredPersons.length} de {persons.length} {persons.length === 1 ? 'persona' : 'personas'}
             </span>
+          </div>
+
+          {/* Search Bar */}
+          <div style={{ marginBottom: '24px' }}>
+            <Input
+              label="Buscar personas"
+              placeholder="Buscar por nombre, apellido o teléfono..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              variant="primary"
+              leftIcon="🔍"
+              fullWidth
+            />
           </div>
           
           {loading ? (
@@ -194,19 +218,34 @@ export default function PersonCrud() {
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
               <p style={{ color: '#6b7280', margin: 0 }}>Cargando personas...</p>
             </div>
-          ) : persons.length === 0 ? (
+          ) : filteredPersons.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>👥</div>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+                {searchTerm ? '🔍' : '👥'}
+              </div>
               <Title level={3} variant="secondary" align="center">
-                No hay personas registradas
+                {searchTerm ? 'No se encontraron personas' : 'No hay personas registradas'}
               </Title>
               <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
-                Agrega tu primera persona usando el formulario de arriba
+                {searchTerm 
+                  ? `No hay personas que coincidan con "${searchTerm}"`
+                  : 'Agrega tu primera persona usando el formulario de arriba'
+                }
               </p>
+              {searchTerm && (
+                <Button
+                  onClick={() => setSearchTerm("")}
+                  variant="secondary"
+                  size="sm"
+                  style={{ marginTop: '16px' }}
+                >
+                  Limpiar búsqueda
+                </Button>
+              )}
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '16px' }}>
-              {persons.map((person) => (
+              {filteredPersons.map((person) => (
                 <Card
                   key={person.id}
                   variant={editingPerson?.id === person.id ? "outlined" : "default"}
