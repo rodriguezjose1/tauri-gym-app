@@ -109,4 +109,12 @@ export interface RoutineOption {
   name: string;
   code: string;
   exerciseCount: number;
+}
+
+export interface PaginatedExerciseResponse {
+  exercises: Exercise[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 } 

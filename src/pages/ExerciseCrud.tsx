@@ -23,8 +23,13 @@ export default function ExerciseCrud() {
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
-    loadExercises();
-    loadAllExercises();
+    // Cargar primero todos los ejercicios para obtener el total
+    // y luego cargar la primera página
+    const initializeData = async () => {
+      await loadAllExercises();
+      await loadExercises();
+    };
+    initializeData();
   }, []);
 
   useEffect(() => {
@@ -42,16 +47,23 @@ export default function ExerciseCrud() {
   const loadExercises = async (page = 1, append = false) => {
     try {
       setLoading(true);
-      const data = await ExerciseService.getExercises();
-      if (append) {
-        setExercises(prev => [...prev, ...data]);
-      } else {
-        setExercises(data);
+      const response = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      
+      if (response.exercises.length === 0 && page > 1) {
+        setHasMore(false);
+        setLoading(false);
+        return;
       }
       
-      setTotalExercises(data.length);
-      setHasMore(data.length === ITEMS_PER_PAGE);
+      if (append) {
+        setExercises(prev => [...prev, ...response.exercises]);
+      } else {
+        setExercises(response.exercises);
+      }
+      
       setCurrentPage(page);
+      setTotalExercises(response.total);
+      setHasMore(page < response.total_pages);
     } catch (error) {
       console.error("Error loading exercises:", error);
     } finally {
@@ -63,6 +75,7 @@ export default function ExerciseCrud() {
     try {
       const data = await ExerciseService.getExercises();
       setAllExercises(data);
+      // No necesitamos establecer totalExercises aquí ya que se establece en loadExercises
     } catch (error) {
       console.error("Error loading all exercises:", error);
     }
@@ -394,7 +407,7 @@ export default function ExerciseCrud() {
                 fontSize: '14px',
                 fontWeight: '500'
               }}>
-                Página {currentPage}
+                Página {currentPage} {totalExercises > 0 && `de ${Math.ceil(totalExercises / ITEMS_PER_PAGE)}`}
               </span>
               
               <Button

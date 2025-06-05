@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Exercise } from "../types/dashboard";
+import { Exercise, PaginatedExerciseResponse } from "../types/dashboard";
 
 const requestNames = {
   createExercise: "create_exercise",
@@ -9,6 +9,7 @@ const requestNames = {
   updateExercise: "update_exercise",
   deleteExercise: "delete_exercise"
 };
+
 export class ExerciseService {
   /**
    * Crea un nuevo ejercicio
@@ -37,9 +38,9 @@ export class ExerciseService {
   /**
    * Obtiene ejercicios paginados
    */
-  static async getExercisesPaginated(page: number, pageSize: number): Promise<Exercise[]> {
+  static async getExercisesPaginated(page: number, pageSize: number): Promise<PaginatedExerciseResponse> {
     try {
-      return await invoke(requestNames.getExercisesPaginated, { page, pageSize }) as Exercise[];
+      return await invoke(requestNames.getExercisesPaginated, { page, pageSize }) as PaginatedExerciseResponse;
     } catch (error) {
       console.error("Error getting paginated exercises:", error);
       throw new Error(`Error al obtener los ejercicios paginados: ${error}`);
@@ -49,9 +50,9 @@ export class ExerciseService {
   /**
    * Busca ejercicios paginados por query
    */
-  static async searchExercisesPaginated(query: string, page: number, pageSize: number): Promise<Exercise[]> {
+  static async searchExercisesPaginated(query: string, page: number, pageSize: number): Promise<PaginatedExerciseResponse> {
     try {
-      return await invoke(requestNames.searchExercisesPaginated, { query, page, pageSize }) as Exercise[];
+      return await invoke(requestNames.searchExercisesPaginated, { query, page, pageSize }) as PaginatedExerciseResponse;
     } catch (error) {
       console.error("Error searching paginated exercises:", error);
       throw new Error(`Error al buscar ejercicios paginados: ${error}`);
@@ -71,7 +72,7 @@ export class ExerciseService {
   }
 
   /**
-   * Elimina un ejercicio por ID
+   * Elimina un ejercicio
    */
   static async deleteExercise(id: number): Promise<void> {
     try {

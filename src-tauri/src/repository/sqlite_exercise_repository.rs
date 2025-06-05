@@ -99,6 +99,20 @@ impl ExerciseRepository for SqliteExerciseRepository {
         Ok(())
     }
 
+    fn count(&self) -> i32 {
+        let conn = match self.conn.lock() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+
+        match conn.query_row("SELECT COUNT(*) FROM exercise", [], |row| {
+            Ok(row.get::<_, i32>(0)?)
+        }) {
+            Ok(count) => count,
+            Err(_) => 0,
+        }
+    }
+
     fn search_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Exercise> {
         let conn = match self.conn.lock() {
             Ok(conn) => conn,
@@ -130,5 +144,24 @@ impl ExerciseRepository for SqliteExerciseRepository {
         };
 
         exercise_iter.filter_map(|exercise| exercise.ok()).collect()
+    }
+
+    fn search_count(&self, query: &str) -> i32 {
+        let conn = match self.conn.lock() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+
+        let search_pattern = format!("%{}%", query.to_lowercase());
+        
+        match conn.query_row(
+            "SELECT COUNT(*) FROM exercise 
+             WHERE LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1",
+            params![search_pattern],
+            |row| Ok(row.get::<_, i32>(0)?)
+        ) {
+            Ok(count) => count,
+            Err(_) => 0,
+        }
     }
 } 

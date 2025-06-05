@@ -50,17 +50,17 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
 
     setLoading(true);
     try {
-      const data = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
+      const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
       
       if (reset) {
-        setExercises(data);
+        setExercises(response.exercises);
         setCurrentPage(1);
       } else {
-        setExercises(prev => [...prev, ...data]);
+        setExercises(prev => [...prev, ...response.exercises]);
         setCurrentPage(page);
       }
       
-      setHasMore(data.length === ITEMS_PER_PAGE);
+      setHasMore(page < response.total_pages);
     } catch (error) {
       console.error("Error searching exercises:", error);
       setExercises([]);

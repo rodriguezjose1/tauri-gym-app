@@ -6,7 +6,7 @@ mod config;
 use tauri::{State, Manager};
 
 use models::person::Person;
-use models::exercise::Exercise;
+use models::exercise::{Exercise, PaginatedExerciseResponse};
 use models::workout_entry::{WorkoutEntry, WorkoutEntryWithDetails};
 use models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
 use services::person_service::PersonService;
@@ -64,7 +64,7 @@ fn get_exercises(service: State<'_, ExerciseService>) -> Vec<Exercise> {
 }
 
 #[tauri::command]
-fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> Vec<Exercise> {
+fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> PaginatedExerciseResponse {
     service.list_exercises_paginated(page, page_size)
 }
 
@@ -79,7 +79,7 @@ fn update_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> R
 }
 
 #[tauri::command]
-fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> Vec<Exercise> {
+fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> PaginatedExerciseResponse {
     service.search_exercises_paginated(&query, page, page_size)
 }
 
