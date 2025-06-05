@@ -112,15 +112,20 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             <div>
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
+                  console.log("=== SINGLE WORKOUT MODAL ===");
+                  console.log("Exercise received in modal:", exercise);
+                  console.log("Current workoutForm.exercise_id:", workoutForm.exercise_id);
                   if (exercise) {
-                    console.log("Single workout form - exercise selected:", exercise);
+                    console.log("Setting exercise_id to:", exercise.id);
                     onUpdateWorkoutForm('exercise_id', exercise.id || 0);
-                    console.log("Updated workout form with exercise ID:", exercise.id);
+                    console.log("After update - workoutForm should have exercise_id:", exercise.id);
                   } else {
+                    console.log("Clearing exercise_id");
                     onUpdateWorkoutForm('exercise_id', 0);
                   }
                 }}
                 placeholder="Buscar ejercicio..."
+                selectedExercise={exercises.find(ex => ex.id === workoutForm.exercise_id) || null}
               />
             </div>
 
@@ -277,13 +282,40 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                     Cancelar
                   </Button>
                   <Button
-                    onClick={handleLoadRoutine}
-                    variant="primary"
+                    onClick={() => {
+                      console.log("Cargar Ejercicios button clicked, selectedRoutineId:", selectedRoutineId);
+                      if (selectedRoutineId) {
+                        console.log("Calling handleLoadRoutine");
+                        handleLoadRoutine();
+                      } else {
+                        console.log("No routine selected");
+                      }
+                    }}
                     disabled={!selectedRoutineId || loadingRoutine}
-                    loading={loadingRoutine}
-                    style={{ fontSize: '14px' }}
+                    style={{
+                      backgroundColor: selectedRoutineId && !loadingRoutine ? '#007bff' : '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      cursor: selectedRoutineId && !loadingRoutine ? 'pointer' : 'not-allowed',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
                   >
-                    {loadingRoutine ? 'Cargando...' : 'Cargar Ejercicios'}
+                    {loadingRoutine ? (
+                      <>
+                        <span>⏳</span>
+                        Cargando...
+                      </>
+                    ) : (
+                      <>
+                        <span>📋</span>
+                        Cargar Ejercicios
+                      </>
+                    )}
                   </Button>
                 </div>
                 
@@ -339,6 +371,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                         }
                       }}
                       placeholder="Buscar ejercicio..."
+                      selectedExercise={exercises.find(ex => ex.id === exercise.exercise_id) || null}
                     />
 
                     {/* Temporarily commented out - using default values

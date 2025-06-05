@@ -7,16 +7,18 @@ interface ExerciseAutocompleteProps {
   placeholder?: string;
   value?: string;
   disabled?: boolean;
+  selectedExercise?: Exercise | null;
 }
 
 export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   onExerciseSelect,
   placeholder = "🔍 Buscar ejercicio...",
   value = "",
-  disabled = false
+  disabled = false,
+  selectedExercise = null
 }) => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [searchTerm, setSearchTerm] = useState(value);
+  const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -25,6 +27,19 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   const isSelectingRef = useRef(false);
 
   const ITEMS_PER_PAGE = 10;
+
+  // Simple effect to update display when selectedExercise changes
+  useEffect(() => {
+    if (selectedExercise) {
+      const displayText = `${selectedExercise.name} (${selectedExercise.code})`;
+      setSearchTerm(displayText);
+      setShowDropdown(false);
+      setExercises([]);
+    } else {
+      setSearchTerm("");
+      setExercises([]);
+    }
+  }, [selectedExercise]);
 
   const searchExercises = async (query: string, page: number = 1, reset: boolean = true) => {
     if (query.trim().length < 2) {
@@ -61,10 +76,14 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     }
   };
 
-  // Search when searchTerm changes
+  // Debounced search effect - only search when typing, not when selecting
   useEffect(() => {
     if (isSelectingRef.current) {
-      isSelectingRef.current = false;
+      return;
+    }
+
+    // Don't search if this looks like a selected exercise
+    if (searchTerm.includes("(") && searchTerm.includes(")")) {
       return;
     }
 
@@ -82,23 +101,36 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setSearchTerm(newValue);
-    setShowDropdown(true);
     
-    // If the input is cleared, reset the selection
+    // If user clears the input, clear the selection
     if (newValue === "") {
-      onExerciseSelect(null);
+      setSearchTerm("");
       setExercises([]);
       setHasMore(false);
+      setShowDropdown(false);
+      onExerciseSelect(null);
+      return;
     }
+    
+    // If we had a selected exercise and user is typing something new, clear selection
+    if (selectedExercise && !newValue.includes(selectedExercise.name)) {
+      onExerciseSelect(null);
+    }
+    
+    setSearchTerm(newValue);
+    setShowDropdown(true);
   };
 
   const handleExerciseSelect = (exercise: Exercise) => {
+    console.log("Exercise selected:", exercise);
     isSelectingRef.current = true;
+    
+    // Call the parent callback immediately
+    onExerciseSelect(exercise);
+    
+    // Update local state
     const displayText = `${exercise.name} (${exercise.code})`;
     setSearchTerm(displayText);
-    console.log("Calling onExerciseSelect with exercise:", exercise);
-    onExerciseSelect(exercise);
     setShowDropdown(false);
     setExercises([]);
     
@@ -109,10 +141,10 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   };
 
   const handleInputFocus = () => {
-    if (!disabled) {
+    if (!disabled && !selectedExercise) {
       setShowDropdown(true);
-      // If there's a search term but no results, search again
-      if (searchTerm.length >= 2 && exercises.length === 0) {
+      // Only search if we don't have a selected exercise and there's a search term
+      if (searchTerm.length >= 2 && !searchTerm.includes("(")) {
         searchExercises(searchTerm, 1, true);
       }
     }
@@ -123,12 +155,6 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     setTimeout(() => {
       if (!isSelectingRef.current) {
         setShowDropdown(false);
-        // Only reset if no valid exercise is selected
-        if (searchTerm !== "" && !searchTerm.includes("(")) {
-          // Only clear if we're sure no exercise is selected
-          setSearchTerm("");
-          onExerciseSelect(null);
-        }
       }
     }, 200);
   };
@@ -186,11 +212,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
           maxHeight: '200px',
           overflowY: 'auto'
         }}>
-          {exercises.length === 0 ? (
-            <div style={{ padding: '12px 16px', color: '#ef4444', fontStyle: 'italic' }}>
-              No hay ejercicios disponibles. Verifica la conexión con la base de datos.
-            </div>
-          ) : searchTerm.length < 2 ? (
+          {searchTerm.length < 2 ? (
             <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>
               Escribe al menos 2 caracteres para buscar
             </div>
@@ -242,11 +264,11 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
                 </div>
               )}
             </>
-          ) : (
+          ) : searchTerm.length >= 2 && !loading ? (
             <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>
-              No se encontraron ejercicios
+              No se encontraron ejercicios para "{searchTerm}"
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

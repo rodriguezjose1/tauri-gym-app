@@ -1,19 +1,16 @@
-import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { confirm, message } from "@tauri-apps/plugin-dialog";
-import { DeleteConfirmationModal, Modal, Input, Button, Title } from "../components/ui";
-import { WeeklyCalendar, WorkoutModals } from "../components/dashboard";
-import { getDashboardWrapperStyles, getContainerStyles } from "../config/layout";
-import {
-  Person,
-  Exercise,
-  WorkoutEntry,
-  WorkoutEntryWithDetails,
-  WorkoutEntryForm,
-  WorkoutSessionForm,
-  RoutineOption,
-  RoutineWithExercises
-} from "../types/dashboard";
+import React, { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { PersonSearch } from '../components/dashboard/PersonSearch';
+import { WeeklyCalendar } from '../components/dashboard/WeeklyCalendar';
+import { WorkoutModals } from '../components/dashboard/WorkoutModals';
+import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
+import { InfoModal } from '../components/ui/InfoModal';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
+import { Person, Exercise, WorkoutEntry, WorkoutEntryWithDetails, WorkoutEntryForm, WorkoutSessionForm, RoutineWithExercises, RoutineOption } from '../types/dashboard';
+import { getContainerStyles, getDashboardWrapperStyles } from '../config/layout';
 
 export default function Dashboard() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
@@ -39,7 +36,8 @@ export default function Dashboard() {
     sets: 1,
     reps: 1,
     weight: 0,
-    notes: ""
+    notes: "",
+    order: 0
   });
   const [savingWorkout, setSavingWorkout] = useState(false);
 
@@ -51,7 +49,8 @@ export default function Dashboard() {
       sets: 1,
       reps: 1,
       weight: 0,
-      notes: ""
+      notes: "",
+      order: 0
     }]
   });
   const [savingSession, setSavingSession] = useState(false);
@@ -65,6 +64,62 @@ export default function Dashboard() {
   const [showLoadRoutineModal, setShowLoadRoutineModal] = useState(false);
   const [selectedRoutineForLoad, setSelectedRoutineForLoad] = useState<number | null>(null);
   const [selectedDateForRoutine, setSelectedDateForRoutine] = useState<string>("");
+
+  // Custom modals
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalData, setInfoModalData] = useState<{
+    title?: string;
+    message: string;
+    type?: 'info' | 'success' | 'warning' | 'error';
+  }>({ message: '' });
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState<{
+    title?: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    type?: 'warning' | 'info' | 'success' | 'error';
+  }>({ message: '', onConfirm: () => {} });
+
+  // Funciones helper para mostrar modales
+  const showMessage = (message: string, options?: { title?: string; type?: 'info' | 'success' | 'warning' | 'error' }) => {
+    setInfoModalData({
+      message,
+      title: options?.title,
+      type: options?.type || 'info'
+    });
+    setShowInfoModal(true);
+  };
+
+  const showConfirm = (message: string, options?: { 
+    title?: string; 
+    confirmText?: string;
+    type?: 'warning' | 'info' | 'success' | 'error';
+  }): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const handleConfirm = () => {
+        setShowConfirmModal(false);
+        resolve(true);
+      };
+      
+      const handleCancel = () => {
+        setShowConfirmModal(false);
+        resolve(false);
+      };
+      
+      setConfirmModalData({
+        message,
+        title: options?.title,
+        confirmText: options?.confirmText,
+        type: options?.type || 'warning',
+        onConfirm: handleConfirm,
+        onCancel: handleCancel
+      });
+      setShowConfirmModal(true);
+    });
+  };
 
   const fetchAllExercises = async () => {
     try {
@@ -248,7 +303,8 @@ export default function Dashboard() {
       sets: 1,
       reps: 1,
       weight: 0,
-      notes: ""
+      notes: "",
+      order: 0
     });
     setShowWorkoutModal(true);
   };
@@ -261,7 +317,8 @@ export default function Dashboard() {
       sets: 1,
       reps: 1,
       weight: 0,
-      notes: ""
+      notes: "",
+      order: 0
     });
   };
 
@@ -308,12 +365,18 @@ export default function Dashboard() {
   };
 
   const updateWorkoutForm = (field: keyof WorkoutEntryForm, value: any) => {
-    setWorkoutForm({ ...workoutForm, [field]: value });
+    console.log("=== UPDATE WORKOUT FORM ===");
+    console.log("Field:", field);
+    console.log("Value:", value);
+    console.log("Current workoutForm:", workoutForm);
+    const newForm = { ...workoutForm, [field]: value };
+    console.log("New workoutForm:", newForm);
+    setWorkoutForm(newForm);
   };
 
   const handleSaveWorkoutEntry = async () => {
     if (!selectedPerson || !selectedDate || workoutForm.exercise_id === 0) {
-      await message("Por favor, completa todos los campos requeridos", { title: "Error", kind: "error" });
+      await showMessage("Por favor, completa todos los campos requeridos", { type: "error" });
       return;
     }
 
@@ -326,7 +389,8 @@ export default function Dashboard() {
         sets: workoutForm.sets,
         reps: workoutForm.reps,
         weight: workoutForm.weight || undefined,
-        notes: workoutForm.notes || undefined
+        notes: workoutForm.notes || undefined,
+        order: workoutForm.order || 0
       };
 
       await invoke("create_workout_entry", { workoutEntry });
@@ -337,10 +401,10 @@ export default function Dashboard() {
       // Close modal
       handleCloseWorkoutModal();
       
-      await message("Entrada de entrenamiento agregada correctamente", { title: "Éxito", kind: "info" });
+      await showMessage("Entrada de entrenamiento agregada correctamente", { type: "info" });
     } catch (error) {
       console.error("Error saving workout entry:", error);
-      await message("Error al guardar la entrada de entrenamiento", { title: "Error", kind: "error" });
+      await showMessage("Error al guardar la entrada de entrenamiento", { type: "error" });
     } finally {
       setSavingWorkout(false);
     }
@@ -348,7 +412,7 @@ export default function Dashboard() {
 
   const handleSaveWorkoutSession = async () => {
     if (!selectedPerson || !selectedDate) {
-      await message("Por favor, selecciona una persona y fecha", { title: "Error", kind: "error" });
+      await showMessage("Por favor, selecciona una persona y fecha", { type: "error" });
       return;
     }
 
@@ -357,9 +421,9 @@ export default function Dashboard() {
     
     if (!hasValidExercises) {
       // If no valid exercises, ask user if they want to delete all workouts for this date
-      const confirmDelete = await confirm(
+      const confirmDelete = await showConfirm(
         "No hay ejercicios válidos seleccionados. ¿Quieres eliminar todos los entrenamientos de esta fecha?",
-        { title: "Confirmar eliminación", kind: "warning" }
+        { type: "warning" }
       );
       
       if (confirmDelete) {
@@ -376,10 +440,10 @@ export default function Dashboard() {
           // Close modal
           handleCloseSessionModal();
           
-          await message("Todos los ejercicios han sido eliminados correctamente", { title: "Éxito", kind: "info" });
+          await showMessage("Todos los ejercicios han sido eliminados correctamente", { type: "info" });
         } catch (error) {
           console.error("Error clearing exercises:", error);
-          await message("Error al eliminar los ejercicios", { title: "Error", kind: "error" });
+          await showMessage("Error al eliminar los ejercicios", { type: "error" });
         }
       }
       return;
@@ -389,7 +453,7 @@ export default function Dashboard() {
     for (let i = 0; i < sessionForm.exercises.length; i++) {
       const exercise = sessionForm.exercises[i];
       if (exercise.exercise_id === 0) {
-        await message(`Por favor, selecciona un ejercicio para el ejercicio ${i + 1} o elimínalo`, { title: "Error", kind: "error" });
+        await showMessage(`Por favor, selecciona un ejercicio para el ejercicio ${i + 1} o elimínalo`, { type: "error" });
         return;
       }
     }
@@ -464,11 +528,11 @@ export default function Dashboard() {
       // Close modal
       handleCloseSessionModal();
       
-      await message("Sesión de entrenamiento guardada correctamente", { title: "Éxito", kind: "info" });
+      await showMessage("Sesión de entrenamiento guardada correctamente", { type: "info" });
       
     } catch (error) {
       console.error("Error saving workout session:", error);
-      await message("Error al guardar la sesión de entrenamiento", { title: "Error", kind: "error" });
+      await showMessage("Error al guardar la sesión de entrenamiento", { type: "error" });
     } finally {
       setSavingSession(false);
     }
@@ -503,10 +567,10 @@ export default function Dashboard() {
       setDeleteWorkoutId(null);
       
       console.log("Showing success message...");
-      await message("Ejercicio eliminado correctamente", { title: "Éxito", kind: "info" });
+      await showMessage("Ejercicio eliminado correctamente", { type: "info" });
     } catch (error) {
       console.error("Error deleting workout entry:", error);
-      await message("Error al eliminar el ejercicio", { title: "Error", kind: "error" });
+      await showMessage("Error al eliminar el ejercicio", { type: "error" });
     } finally {
       setDeletingWorkout(false);
     }
@@ -534,7 +598,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error reordering exercises:", error);
-      await message("Error al reordenar ejercicios", { title: "Error", kind: "error" });
+      await showMessage("Error al reordenar ejercicios", { type: "error" });
     }
   };
 
@@ -558,22 +622,13 @@ export default function Dashboard() {
         console.log("Setting session form with routine exercises:", exerciseForms);
         setSessionForm({ exercises: exerciseForms });
         
-        await message(`Rutina "${routine.name}" cargada con ${routine.exercises.length} ejercicios.`, {
-          title: "Rutina Cargada",
-          kind: "info"
-        });
+        await showMessage(`Rutina "${routine.name}" cargada con ${routine.exercises.length} ejercicios.`, { type: "info" });
       } else {
-        await message("La rutina seleccionada no tiene ejercicios.", {
-          title: "Rutina Vacía",
-          kind: "warning"
-        });
+        await showMessage("La rutina seleccionada no tiene ejercicios.", { type: "warning" });
       }
     } catch (error) {
       console.error("Error loading routine:", error);
-      await message("Error al cargar la rutina. Por favor, inténtalo de nuevo.", {
-        title: "Error",
-        kind: "error"
-      });
+      await showMessage("Error al cargar la rutina. Por favor, inténtalo de nuevo.", { type: "error" });
     } finally {
       setLoadingRoutine(false);
     }
@@ -581,10 +636,7 @@ export default function Dashboard() {
 
   const handleShowLoadRoutineModal = () => {
     if (!selectedPerson) {
-      message("Por favor, selecciona una persona primero.", {
-        title: "Persona Requerida",
-        kind: "warning"
-      });
+      showMessage("Por favor, selecciona una persona primero.", { type: "warning" });
       return;
     }
     setShowLoadRoutineModal(true);
@@ -607,9 +659,9 @@ export default function Dashboard() {
 
         let shouldProceed = true;
         if (existingExercises.length > 0) {
-          shouldProceed = await confirm(
+          shouldProceed = await showConfirm(
             `Ya existen ${existingExercises.length} ejercicios para esta fecha. ¿Deseas reemplazarlos con la rutina "${routine.name}"?`,
-            { title: "Confirmar Reemplazo", kind: "warning" }
+            { type: "warning" }
           );
         }
 
@@ -627,7 +679,7 @@ export default function Dashboard() {
           for (let i = 0; i < routine.exercises.length; i++) {
             const exercise = routine.exercises[i];
             await invoke("create_workout_entry", {
-              entry: {
+              workoutEntry: {
                 person_id: selectedPerson.id,
                 exercise_id: exercise.exercise_id,
                 date: selectedDateForRoutine,
@@ -643,10 +695,7 @@ export default function Dashboard() {
           // Refresh workout data
           await fetchWorkoutData(selectedPerson.id);
           
-          await message(`Rutina "${routine.name}" aplicada exitosamente con ${routine.exercises.length} ejercicios.`, {
-            title: "Rutina Aplicada",
-            kind: "info"
-          });
+          await showMessage(`Rutina "${routine.name}" aplicada exitosamente con ${routine.exercises.length} ejercicios.`, { type: "info" });
 
           // Close modal and reset state
           setShowLoadRoutineModal(false);
@@ -654,17 +703,11 @@ export default function Dashboard() {
           setSelectedDateForRoutine("");
         }
       } else {
-        await message("La rutina seleccionada no tiene ejercicios.", {
-          title: "Rutina Vacía",
-          kind: "warning"
-        });
+        await showMessage("La rutina seleccionada no tiene ejercicios.", { type: "warning" });
       }
     } catch (error) {
       console.error("Error applying routine:", error);
-      await message("Error al aplicar la rutina. Por favor, inténtalo de nuevo.", {
-        title: "Error",
-        kind: "error"
-      });
+      await showMessage("Error al aplicar la rutina. Por favor, inténtalo de nuevo.", { type: "error" });
     } finally {
       setLoadingRoutine(false);
     }
@@ -741,16 +784,17 @@ export default function Dashboard() {
         </div>
         {/* Weekly Calendar with Embedded Person Search */}
         <WeeklyCalendar
-          onPersonSelect={handlePersonSelect}
+          selectedPerson={selectedPerson}
+          workoutData={workoutData}
           onWorkoutDataChange={setWorkoutData}
-          onSelectedDateChange={setSelectedDate}
+          onReorderExercises={handleReorderExercises}
           onAddWorkoutClick={handleAddWorkoutClick}
+          onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
           onDayClick={handleDayClick}
           onDayRightClick={handleDayRightClick}
-          onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
-          onReorderExercises={handleReorderExercises}
-          workoutData={workoutData}
-          selectedPerson={selectedPerson}
+          onSelectedDateChange={setSelectedDate}
+          handlePersonSelect={handlePersonSelect}
+          handleClearSelection={handleClearSelection}
         />
       </div>
 
@@ -897,6 +941,26 @@ export default function Dashboard() {
           </div>
         </div>
       </Modal>
+
+      {/* Custom Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        title={infoModalData.title}
+        message={infoModalData.message}
+        type={infoModalData.type}
+        onClose={() => setShowInfoModal(false)}
+      />
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        title={confirmModalData.title}
+        message={confirmModalData.message}
+        confirmText={confirmModalData.confirmText}
+        type={confirmModalData.type}
+        onConfirm={confirmModalData.onConfirm}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 } 
