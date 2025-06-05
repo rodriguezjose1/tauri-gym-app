@@ -1,7 +1,7 @@
 import React from 'react';
-import { RoutineManager } from '../components/dashboard';
+import { RoutineManager } from '../components/complex';
 import { getDashboardWrapperStyles, getContainerStyles } from '../config/layout';
-import { Title } from '../components/ui';
+import { Title } from '../components/base';
 
 const RoutinePage = () => {
   return (

@@ -1,6 +1,6 @@
 import { PersonService, Person } from "../../services";
 import React, { useState, useEffect, useRef } from "react";
-import { Input, Button } from "../ui";
+import { Input, Button } from "../base";
 
 interface PersonSearchProps {
   selectedPerson: Person | null;

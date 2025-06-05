@@ -1,216 +1,128 @@
-# UI Components Library
+# 🧩 Componentes - Estructura de Árbol
 
-Una biblioteca de componentes reutilizables para tu aplicación React con TypeScript.
+Esta carpeta contiene todos los componentes de la aplicación organizados en una **estructura de árbol jerárquica** basada en dependencias.
 
-## 📦 Componentes Disponibles
+## 📁 Estructura Actual
 
-### Button
-Botón versátil con múltiples variantes y estados.
-
-```tsx
-import { Button } from './components/ui';
-
-// Variantes
-<Button variant="primary">Primario</Button>
-<Button variant="secondary">Secundario</Button>
-<Button variant="success">Éxito</Button>
-<Button variant="danger">Peligro</Button>
-
-// Tamaños
-<Button size="sm">Pequeño</Button>
-<Button size="md">Mediano</Button>
-<Button size="lg">Grande</Button>
-
-// Estados
-<Button loading>Cargando...</Button>
-<Button disabled>Deshabilitado</Button>
-<Button fullWidth>Ancho completo</Button>
+```
+src/components/
+├── 📄 COMPONENT_TREE.md          # Documentación detallada del árbol
+├── 📄 index.ts                   # Exportaciones principales
+├── 📄 README.md                  # Este archivo
+│
+├── 🔧 base/                      # Nivel 0 - Componentes primitivos
+│   ├── Button.tsx                # Botón base reutilizable
+│   ├── Input.tsx                 # Input base reutilizable  
+│   ├── Card.tsx                  # Tarjeta base reutilizable
+│   ├── Title.tsx                 # Título base reutilizable
+│   ├── Modal.tsx                 # Modal base reutilizable
+│   └── index.ts                  # Exportaciones base
+│
+├── 🔔 modals/                    # Nivel 1 - Modales específicos
+│   ├── InfoModal.tsx             # Modal de información
+│   ├── ConfirmationModal.tsx     # Modal de confirmación
+│   ├── DeleteConfirmationModal.tsx # Modal de confirmación de eliminación
+│   └── index.ts                  # Exportaciones modales
+│
+├── 📝 forms/                     # Nivel 1-2 - Componentes de formularios
+│   ├── PersonSearch.tsx          # Búsqueda de personas
+│   ├── ExerciseAutocomplete.tsx  # Autocompletado de ejercicios
+│   └── index.ts                  # Exportaciones formularios
+│
+├── 📋 lists/                     # Nivel 2 - Componentes de listas
+│   ├── SortableWorkoutItem.tsx   # Item de entrenamiento arrastrable
+│   ├── SortableExerciseItem.tsx  # Item de ejercicio arrastrable
+│   ├── SortableExerciseList.tsx  # Lista de ejercicios arrastrables
+│   └── index.ts                  # Exportaciones listas
+│
+├── 📅 calendar/                  # Nivel 2-3 - Componentes de calendario
+│   ├── DayCell.tsx               # Celda de día del calendario
+│   ├── CalendarHeader.tsx        # Cabecera del calendario
+│   ├── CalendarGrid.tsx          # Grilla del calendario
+│   ├── WeeklyCalendar.tsx        # Calendario semanal completo
+│   └── index.ts                  # Exportaciones calendario
+│
+└── 🏗️ complex/                   # Nivel 3-4 - Componentes complejos
+    ├── WorkoutModals.tsx         # Modales de entrenamientos
+    ├── RoutineManager.tsx        # Gestor de rutinas
+    └── index.ts                  # Exportaciones complejos
 ```
 
-### Input
-Campo de texto con etiquetas, iconos y validación.
+## 🎯 Principios de Organización
 
-```tsx
-import { Input } from './components/ui';
+### 1. **Jerarquía por Dependencias**
+- **Nivel 0**: Componentes que no dependen de otros
+- **Nivel 1**: Dependen solo de componentes base
+- **Nivel 2**: Dependen de base + nivel 1
+- **Nivel 3+**: Dependen de múltiples niveles
 
-// Básico
-<Input label="Nombre" placeholder="Tu nombre" />
+### 2. **Agrupación Funcional**
+- **base**: Primitivos reutilizables
+- **modals**: Diferentes tipos de modales
+- **forms**: Formularios y búsquedas
+- **lists**: Listas y elementos arrastrables
+- **calendar**: Funcionalidad de calendario
+- **complex**: Componentes con lógica compleja
 
-// Con iconos
-<Input 
-  label="Email" 
-  leftIcon="📧" 
-  placeholder="tu@email.com" 
-/>
+### 3. **Reglas de Importación**
+- ✅ Componentes pueden importar de niveles inferiores
+- ❌ Componentes NO pueden importar de niveles superiores
+- ❌ NO dependencias circulares
 
-// Con validación
-<Input 
-  label="Contraseña"
-  type="password"
-  error="La contraseña es muy corta"
-  helperText="Mínimo 8 caracteres"
-/>
+## 📦 Cómo Usar
 
-// Variantes
-<Input variant="primary" />
-<Input variant="success" />
+### Importación Individual
+```typescript
+import { Button } from '../components/base';
+import { InfoModal } from '../components/modals';
+import { PersonSearch } from '../components/forms';
 ```
 
-### Title
-Títulos semánticos con diferentes estilos.
-
-```tsx
-import { Title } from './components/ui';
-
-// Niveles semánticos
-<Title level={1}>Título Principal</Title>
-<Title level={2}>Subtítulo</Title>
-
-// Variantes de color
-<Title variant="primary">Azul</Title>
-<Title variant="success">Verde</Title>
-<Title variant="danger">Rojo</Title>
-
-// Personalización
-<Title 
-  level={2} 
-  size="3xl" 
-  weight="bold" 
-  align="center"
->
-  Título Personalizado
-</Title>
+### Importación Desde Índice Principal
+```typescript
+import { 
+  Button, 
+  InfoModal, 
+  PersonSearch,
+  WeeklyCalendar 
+} from '../components';
 ```
 
-### Card
-Contenedor versátil para agrupar contenido.
+## 🔄 Flujo de Dependencias
 
-```tsx
-import { Card } from './components/ui';
-
-// Variantes
-<Card variant="default">Contenido</Card>
-<Card variant="elevated">Con sombra</Card>
-<Card variant="outlined">Con borde</Card>
-
-// Padding
-<Card padding="sm">Poco espacio</Card>
-<Card padding="md">Espacio medio</Card>
-<Card padding="lg">Mucho espacio</Card>
-
-// Interactivo
-<Card hoverable onClick={() => console.log('Click!')}>
-  Tarjeta clickeable
-</Card>
+```
+📄 Pages (Dashboard, PersonCrud)
+    ↓
+🏗️ Complex Components (WeeklyCalendar, WorkoutModals)
+    ↓
+📅📋 Intermediate Components (Calendar, Lists)
+    ↓
+📝🔔 Simple Components (Forms, Modals)
+    ↓
+🔧 Base Components (Button, Input, Card, etc.)
 ```
 
-### Modal
-Diálogo modal con overlay y animaciones.
+## ✨ Beneficios
 
-```tsx
-import { Modal } from './components/ui';
+1. **🔍 Claridad**: Fácil entender quién usa qué
+2. **🛠️ Mantenibilidad**: Cambios controlados por nivel
+3. **♻️ Reutilización**: Componentes base muy reutilizables
+4. **🧪 Testing**: Fácil testear por niveles independientes
+5. **⚡ Performance**: Optimización por capas
+6. **📚 Escalabilidad**: Estructura que crece ordenadamente
 
-const [isOpen, setIsOpen] = useState(false);
+## 📋 Checklist de Nuevos Componentes
 
-<Modal
-  isOpen={isOpen}
-  onClose={() => setIsOpen(false)}
-  title="Mi Modal"
-  size="md"
->
-  <p>Contenido del modal</p>
-</Modal>
-```
+Cuando agregues un nuevo componente:
 
-## 🎨 Sistema de Diseño
+- [ ] ¿En qué nivel va según sus dependencias?
+- [ ] ¿Está en la carpeta funcional correcta?
+- [ ] ¿Actualicé el archivo `index.ts` correspondiente?
+- [ ] ¿Documenté sus dependencias?
+- [ ] ¿Sigue las reglas de importación?
 
-### Colores
-- **Primary**: `#2563eb` (Azul)
-- **Success**: `#059669` (Verde)
-- **Danger**: `#dc2626` (Rojo)
-- **Secondary**: `#6b7280` (Gris)
+## 📖 Documentación Detallada
 
-### Espaciado
-- **sm**: 8-12px
-- **md**: 16-20px
-- **lg**: 24-32px
-
-### Tipografía
-- **Tamaños**: xs, sm, md, lg, xl, 2xl, 3xl
-- **Pesos**: normal, medium, semibold, bold
-
-## 📱 Responsive Design
-
-Todos los componentes están optimizados para dispositivos móviles:
-- Breakpoints: 640px, 768px
-- Tamaños de fuente adaptativos
-- Espaciado responsive
-- Touch-friendly (44px mínimo para botones)
-
-## 🚀 Uso Rápido
-
-```tsx
-// Importar componentes individuales
-import { Button, Input, Title } from './components/ui';
-
-// O importar todo
-import * as UI from './components/ui';
-
-function MyComponent() {
-  return (
-    <UI.Card variant="elevated" padding="lg">
-      <UI.Title level={2} variant="primary">
-        Mi Formulario
-      </UI.Title>
-      
-      <UI.Input 
-        label="Nombre" 
-        placeholder="Tu nombre"
-        variant="primary"
-      />
-      
-      <UI.Button variant="primary" fullWidth>
-        Enviar
-      </UI.Button>
-    </UI.Card>
-  );
-}
-```
-
-## 🔧 Personalización
-
-Cada componente acepta una prop `className` para personalización adicional:
-
-```tsx
-<Button className="mi-clase-personalizada" variant="primary">
-  Botón personalizado
-</Button>
-```
-
-## 📋 Props Comunes
-
-### Todas las props HTML nativas son soportadas
-- `onClick`, `onFocus`, `onBlur`, etc.
-- `id`, `data-*`, `aria-*`, etc.
-- `style` (aunque se recomienda usar `className`)
-
-### Props de accesibilidad incluidas
-- Labels automáticos para inputs
-- ARIA attributes apropiados
-- Navegación por teclado
-- Focus management en modales
-
-## 🎯 Ejemplos Completos
-
-Ver `ComponentShowcase.tsx` para ejemplos interactivos de todos los componentes.
-
-## 🔄 Actualizaciones Futuras
-
-Componentes planeados:
-- Select/Dropdown
-- Checkbox/Radio
-- Toast/Notification
-- Tabs
-- Accordion
-- Table
-- Pagination 
+Para más información sobre la estructura y dependencias específicas, consulta:
+- 📄 `COMPONENT_TREE.md` - Documentación completa del árbol
+- 🔗 Cada `index.ts` - Exportaciones por categoría 

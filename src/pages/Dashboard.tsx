@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { PersonSearch } from '../components/dashboard/PersonSearch';
-import { WeeklyCalendar } from '../components/dashboard/WeeklyCalendar';
-import { WorkoutModals } from '../components/dashboard/WorkoutModals';
-import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
-import { ConfirmationModal } from '../components/ui/ConfirmationModal';
-import { InfoModal } from '../components/ui/InfoModal';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Modal } from '../components/ui/Modal';
+import { PersonSearch } from '../components/forms/PersonSearch';
+import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
+import { WorkoutModals } from '../components/complex/WorkoutModals';
+import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
+import { ConfirmationModal } from '../components/modals/ConfirmationModal';
+import { InfoModal } from '../components/modals/InfoModal';
+import { Button } from '../components/base/Button';
+import { Input } from '../components/base/Input';
+import { Modal } from '../components/base/Modal';
 import { Person, Exercise, WorkoutEntry, WorkoutEntryWithDetails, WorkoutEntryForm, WorkoutSessionForm, RoutineWithExercises, RoutineOption } from '../types/dashboard';
 import { getContainerStyles, getDashboardWrapperStyles } from '../config/layout';
 

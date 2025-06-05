@@ -19,8 +19,9 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input, Button, DeleteConfirmationModal } from "../ui";
-import { ExerciseAutocomplete } from "./ExerciseAutocomplete";
+import { Input, Button } from "../base";
+import { DeleteConfirmationModal } from "../modals";
+import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import {
   RoutineForm,
 } from "../../types/dashboard";

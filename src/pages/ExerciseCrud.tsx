@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ExerciseService, Exercise } from "../services";
-import { Button, Input, Title, Card, Modal } from "../components/ui";
+import { Button, Input, Title, Card, Modal } from "../components/base";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 
 export default function ExerciseCrud() {
