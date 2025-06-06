@@ -22,6 +22,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { Input, Button, ErrorMessage } from "../base";
 import { DeleteConfirmationModal } from "../modals";
 import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
+import ToastContainer from "../notifications/ToastContainer";
+import { useToastNotifications } from "../../hooks/useToastNotifications";
 import {
   RoutineForm,
 } from "../../types/dashboard";
@@ -288,9 +290,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [addExerciseError, setAddExerciseError] = useState<string | null>(null);
-  const [globalError, setGlobalError] = useState<string | null>(null);
   
   const [createForm, setCreateForm] = useState<RoutineForm>({
     name: '',
@@ -311,6 +310,9 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const [deleteRoutineId, setDeleteRoutineId] = useState<number | null>(null);
   const [deleteRoutineName, setDeleteRoutineName] = useState("");
   const [deletingRoutine, setDeletingRoutine] = useState(false);
+
+  // Toast notifications
+  const { notifications, addNotification, removeNotification } = useToastNotifications();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -371,13 +373,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   // Create routine
   const handleCreateRoutine = async () => {
     if (!createForm.name.trim() || !createForm.code.trim()) {
-      setCreateError(ROUTINE_ERROR_MESSAGES.REQUIRED_FIELDS);
+      showToast(ROUTINE_ERROR_MESSAGES.REQUIRED_FIELDS, "error");
       return;
     }
 
     try {
       setLoading(true);
-      setCreateError(null);
       await RoutineService.createRoutine(createForm.name.trim(), createForm.code.trim().toUpperCase());
       setCreateForm({ name: '', code: '' });
       setShowCreateForm(false);
@@ -389,14 +390,16 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       if (newRoutine) {
         await loadRoutineWithExercises(newRoutine.id!);
       }
+      
+      showToast(`Rutina "${createForm.name}" creada exitosamente`, "success");
     } catch (error) {
       console.error("Error creating routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes(ROUTINE_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED)) {
-        setCreateError(ROUTINE_ERROR_MESSAGES.DUPLICATE_CODE(createForm.code.trim().toUpperCase()));
+        showToast(ROUTINE_ERROR_MESSAGES.DUPLICATE_CODE(createForm.code.trim().toUpperCase()), "error");
       } else {
-        setCreateError(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(errorMessage));
+        showToast(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(errorMessage), "error");
       }
     } finally {
       setLoading(false);
@@ -425,10 +428,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setShowDeleteModal(false);
       setDeleteRoutineId(null);
       setDeleteRoutineName("");
+      
+      showToast(`Rutina "${deleteRoutineName}" eliminada exitosamente`, "success");
     } catch (error) {
       console.error("Error deleting routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setGlobalError(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED(errorMessage));
+      showToast(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED(errorMessage), "error");
     } finally {
       setDeletingRoutine(false);
     }
@@ -447,8 +452,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     }
 
     try {
-      setLoading(true);
-      setAddExerciseError(null);
       await RoutineService.addExerciseToRoutine(
         selectedRoutine.id!,
         addExerciseForm.exerciseId,
@@ -473,12 +476,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
         group_number: 1
       });
       setShowAddExercise(false);
+      
+      showToast("Ejercicio agregado exitosamente", "success");
     } catch (error) {
       console.error("Error adding exercise to routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setAddExerciseError(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage));
-    } finally {
-      setLoading(false);
+      showToast(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage), "error");
     }
   };
 
@@ -501,10 +504,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       if (selectedRoutine) {
         await loadRoutineWithExercises(selectedRoutine.id!);
       }
+      
+      showToast("Ejercicio actualizado exitosamente", "success");
     } catch (error) {
       console.error("Error updating routine exercise:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setGlobalError(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(errorMessage));
+      showToast(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(errorMessage), "error");
     }
   };
 
@@ -517,10 +522,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
+      
+      showToast("Ejercicio eliminado exitosamente", "success");
     } catch (error) {
       console.error("Error removing exercise from routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setGlobalError(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED(errorMessage));
+      showToast(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED(errorMessage), "error");
     }
   };
 
@@ -572,6 +579,11 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     }
   };
 
+  // Helper function to show toast notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    addNotification(message, type);
+  };
+
   useEffect(() => {
     loadRoutines();
     loadExercises();
@@ -618,16 +630,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             </button>
           )}
         </div>
-
-        {/* Global Error Message */}
-        {globalError && (
-          <div style={{ padding: '0 20px', paddingTop: '16px' }}>
-            <ErrorMessage 
-              message={globalError}
-              onDismiss={() => setGlobalError(null)}
-            />
-          </div>
-        )}
 
         {/* Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -845,18 +847,11 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             }}>
               <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}</h3>
               
-              {/* Error in modal */}
-              <ErrorMessage 
-                message={createError}
-                onDismiss={() => setCreateError(null)}
-              />
-              
               <Input
                 label={ROUTINE_UI_LABELS.NAME_LABEL}
                 value={createForm.name}
                 onChange={(e) => {
                   setCreateForm(prev => ({ ...prev, name: e.target.value }));
-                  if (createError) setCreateError(null); // Clear error when user types
                 }}
                 variant="primary"
                 fullWidth
@@ -866,7 +861,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 value={createForm.code}
                 onChange={(e) => {
                   setCreateForm(prev => ({ ...prev, code: e.target.value }));
-                  if (createError) setCreateError(null); // Clear error when user types
                 }}
                 variant="primary"
                 fullWidth
@@ -885,7 +879,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 <Button
                   onClick={() => {
                     setShowCreateForm(false);
-                    setCreateError(null);
                     setCreateForm({ name: '', code: '' });
                   }}
                   variant="secondary"
@@ -918,12 +911,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               width: '500px'
             }}>
               <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.ADD_EXERCISE_TITLE}</h3>
-              
-              {/* Error in modal */}
-              <ErrorMessage 
-                message={addExerciseError}
-                onDismiss={() => setAddExerciseError(null)}
-              />
               
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
@@ -1020,7 +1007,6 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 <Button
                   onClick={() => {
                     setShowAddExercise(false);
-                    setAddExerciseError(null);
                   }}
                   variant="secondary"
                   style={{ flex: 1 }}
@@ -1040,6 +1026,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
           isDeleting={deletingRoutine}
           title="Eliminar Rutina"
           message={`¿Estás seguro de que deseas eliminar la rutina "${deleteRoutineName}"? Esta acción no se puede deshacer y eliminará todos los ejercicios asociados.`}
+        />
+
+        {/* Toast Notifications */}
+        <ToastContainer
+          notifications={notifications}
+          onRemoveNotification={removeNotification}
         />
       </div>
     </div>

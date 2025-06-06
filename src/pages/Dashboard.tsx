@@ -5,18 +5,20 @@ import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
 import { WorkoutModals } from '../components/complex/WorkoutModals';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
-import { InfoModal } from '../components/modals/InfoModal';
+import ToastContainer from '../components/notifications/ToastContainer';
 import { Button } from '../components/base/Button';
 import { Input } from '../components/base/Input';
 import { Modal } from '../components/base/Modal';
 import { Person, Exercise, WorkoutEntry, WorkoutEntryWithDetails, WorkoutEntryForm, WorkoutSessionForm, RoutineWithExercises, RoutineOption } from '../types/dashboard';
 import { getContainerStyles, getDashboardWrapperStyles } from '../config/layout';
+import { useToastNotifications } from '../hooks/useToastNotifications';
 import { 
   DASHBOARD_ERROR_MESSAGES, 
   DASHBOARD_SUCCESS_MESSAGES, 
   DASHBOARD_WARNING_MESSAGES, 
   DASHBOARD_UI_LABELS 
 } from '../constants/errorMessages';
+import { WorkoutService } from '../services/WorkoutService';
 
 export default function Dashboard() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
@@ -29,6 +31,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [workoutLoading, setWorkoutLoading] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Toast notifications
+  const { notifications, addNotification, removeNotification } = useToastNotifications();
 
   // Routine state
   const [routines, setRoutines] = useState<RoutineOption[]>([]);
@@ -74,14 +79,7 @@ export default function Dashboard() {
   const [selectedDateForRoutine, setSelectedDateForRoutine] = useState<string>("");
   const [selectedGroupForRoutine, setSelectedGroupForRoutine] = useState<number>(1);
 
-  // Custom modals
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoModalData, setInfoModalData] = useState<{
-    title?: string;
-    message: string;
-    type?: 'info' | 'success' | 'warning' | 'error';
-  }>({ message: '' });
-
+  // Confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState<{
     title?: string;
@@ -92,14 +90,9 @@ export default function Dashboard() {
     type?: 'warning' | 'info' | 'success' | 'error';
   }>({ message: '', onConfirm: () => {} });
 
-  // Funciones helper para mostrar modales
-  const showMessage = (message: string, options?: { title?: string; type?: 'info' | 'success' | 'warning' | 'error' }) => {
-    setInfoModalData({
-      message,
-      title: options?.title,
-      type: options?.type || 'info'
-    });
-    setShowInfoModal(true);
+  // Helper function to show toast notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    addNotification(message, type);
   };
 
   const showConfirm = (message: string, options?: { 
@@ -407,17 +400,17 @@ export default function Dashboard() {
 
   const handleSaveWorkoutEntry = async () => {
     if (!selectedPerson) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "error");
       return;
     }
 
     if (!workoutForm.exercise_id) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.EXERCISE_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.EXERCISE_REQUIRED, "error");
       return;
     }
 
     if (!selectedDate) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, "error");
       return;
     }
 
@@ -436,7 +429,7 @@ export default function Dashboard() {
 
       console.log("Sending single workoutEntry:", workoutEntry);
       await invoke("create_workout_entry", { workoutEntry: workoutEntry });
-      showMessage(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_SAVED, { title: DASHBOARD_UI_LABELS.SUCCESS_TITLE, type: "info" });
+      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_SAVED, "success");
       
       // Refresh workout data
       await fetchWorkoutData(selectedPerson.id!);
@@ -445,30 +438,30 @@ export default function Dashboard() {
       setShowWorkoutModal(false);
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, error);
-      showMessage(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, "error");
     }
   };
 
   const handleSaveWorkoutSession = async () => {
     if (!selectedPerson) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "error");
       return;
     }
 
     if (!selectedDate) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, "error");
       return;
     }
 
     if (!sessionForm.exercises || sessionForm.exercises.length === 0) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.EXERCISES_REQUIRED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.EXERCISES_REQUIRED, "error");
       return;
     }
 
     // Validate that all entries have valid exercises
     const validEntries = sessionForm.exercises.filter((entry: WorkoutEntryForm) => entry.exercise_id && entry.exercise_id > 0);
     if (validEntries.length === 0) {
-      showMessage(DASHBOARD_WARNING_MESSAGES.NO_VALID_EXERCISES, { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" });
+      showToast(DASHBOARD_WARNING_MESSAGES.NO_VALID_EXERCISES, "warning");
       return;
     }
 
@@ -530,7 +523,7 @@ export default function Dashboard() {
         });
       }
 
-      showMessage(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, { title: DASHBOARD_UI_LABELS.SUCCESS_TITLE, type: "info" });
+      showToast(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, "success");
       
       // Refresh workout data
       await fetchWorkoutData(selectedPerson.id!);
@@ -539,7 +532,7 @@ export default function Dashboard() {
       setShowSessionModal(false);
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, error);
-      showMessage(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, "error");
     } finally {
       setSavingSession(false);
     }
@@ -562,10 +555,10 @@ export default function Dashboard() {
         setShowDeleteModal(false);
         setWorkoutToDelete(null);
         
-        showMessage(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_DELETED, { title: DASHBOARD_UI_LABELS.SUCCESS_TITLE, type: "info" });
+        showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_DELETED, "success");
       } catch (error) {
         console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_DELETE_WORKOUT, error);
-        showMessage(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+        showToast(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_FAILED, "error");
       }
     }
   };
@@ -585,13 +578,13 @@ export default function Dashboard() {
       await fetchWorkoutData(selectedPerson.id!);
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_REORDER_EXERCISES, error);
-      showMessage(DASHBOARD_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, "error");
     }
   };
 
   const handleLoadRoutine = async (routineId: number) => {
     if (!selectedPerson) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" });
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "warning");
       return;
     }
 
@@ -612,19 +605,19 @@ export default function Dashboard() {
         setSessionForm({ exercises: exerciseForms });
         setShowLoadRoutineModal(false);
         
-        showMessage(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED(routine.name, routine.exercises.length, selectedGroupForRoutine), { title: DASHBOARD_UI_LABELS.SUCCESS_TITLE, type: "info" });
+        showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED(routine.name, routine.exercises.length, selectedGroupForRoutine), "success");
       } else {
-        showMessage(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" });
+        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, "warning");
       }
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_LOAD_ROUTINE, error);
-      showMessage(DASHBOARD_ERROR_MESSAGES.LOAD_ROUTINE_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.LOAD_ROUTINE_FAILED, "error");
     }
   };
 
   const handleShowLoadRoutineModal = () => {
     if (!selectedPerson) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" });
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "warning");
       return;
     }
     
@@ -633,7 +626,7 @@ export default function Dashboard() {
 
   const handleLoadRoutineToDate = async () => {
     if (!selectedPerson || !selectedRoutineForLoad || !selectedDateForRoutine) {
-      showMessage(DASHBOARD_ERROR_MESSAGES.REQUIRED_FIELDS, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.REQUIRED_FIELDS, "error");
       return;
     }
 
@@ -690,16 +683,42 @@ export default function Dashboard() {
           setSelectedDateForRoutine("");
           setSelectedGroupForRoutine(1);
           
-          showMessage(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED(routine.name, routine.exercises.length, selectedGroupForRoutine), { title: DASHBOARD_UI_LABELS.SUCCESS_TITLE, type: "info" });
+          showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED(routine.name, routine.exercises.length, selectedGroupForRoutine), "success");
         }
       } else {
-        showMessage(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" });
+        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, "warning");
       }
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_APPLY_ROUTINE, error);
-      showMessage(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_FAILED, { title: DASHBOARD_UI_LABELS.ERROR_TITLE, type: "error" });
+      showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_FAILED, "error");
     }
   };
+
+  // Load workout data when selectedPerson is available (including from sessionStorage)
+  useEffect(() => {
+    if (selectedPerson && selectedPerson.id) {
+      // Calculate date range for the last 3 weeks
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 20); // Go back 20 days to cover 3 weeks
+      const endDate = new Date(today);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      // Load workout data for the selected person
+      WorkoutService.getWorkoutEntriesByPersonAndDateRange(
+        selectedPerson.id,
+        startDateStr,
+        endDateStr
+      ).then((data) => {
+        setWorkoutData(data);
+      }).catch((error) => {
+        console.error("Error loading workout data:", error);
+        showToast("Error al cargar los datos de entrenamiento", "error");
+      });
+    }
+  }, [selectedPerson]); // This will run when selectedPerson changes or is loaded from sessionStorage
 
   useEffect(() => {
     const initializeData = async () => {
@@ -951,15 +970,6 @@ export default function Dashboard() {
         </div>
       </Modal>
 
-      {/* Custom Info Modal */}
-      <InfoModal
-        isOpen={showInfoModal}
-        title={infoModalData.title}
-        message={infoModalData.message}
-        type={infoModalData.type}
-        onClose={() => setShowInfoModal(false)}
-      />
-
       {/* Custom Confirmation Modal */}
       <ConfirmationModal
         isOpen={showConfirmModal}
@@ -969,6 +979,12 @@ export default function Dashboard() {
         type={confirmModalData.type}
         onConfirm={confirmModalData.onConfirm}
         onCancel={() => setShowConfirmModal(false)}
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
       />
     </div>
   );
