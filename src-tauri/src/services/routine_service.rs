@@ -95,6 +95,7 @@ impl RoutineService {
         reps: Option<i32>,
         weight: Option<f64>,
         notes: Option<String>,
+        group_number: Option<i32>,
     ) -> Result<(), String> {
         // Validate that routine exists
         if self.repository.get_routine_by_id(routine_id).is_none() {
@@ -109,6 +110,7 @@ impl RoutineService {
             reps,
             weight,
             notes.map(|n| n.trim().to_string()).filter(|n| !n.is_empty()),
+            group_number,
         );
 
         self.repository.add_exercise_to_routine(routine_exercise)
@@ -124,6 +126,7 @@ impl RoutineService {
         reps: Option<i32>,
         weight: Option<f64>,
         notes: Option<String>,
+        group_number: Option<i32>,
     ) -> Result<(), String> {
         let routine_exercise = RoutineExercise {
             id: Some(id),
@@ -134,6 +137,7 @@ impl RoutineService {
             reps,
             weight,
             notes: notes.map(|n| n.trim().to_string()).filter(|n| !n.is_empty()),
+            group_number,
             created_at: None,
             updated_at: None,
         };
@@ -171,7 +175,7 @@ impl RoutineService {
         &self,
         name: String,
         code: String,
-        workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>)>, // (exercise_id, sets, reps, weight, notes)
+        workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>, Option<i32>)>, // (exercise_id, sets, reps, weight, notes, group_number)
     ) -> Result<i32, String> {
         // Create the routine first
         let routine_id = self.create_routine(name, code)?;
@@ -180,7 +184,7 @@ impl RoutineService {
         let routine_exercises: Vec<RoutineExercise> = workout_exercises
             .into_iter()
             .enumerate()
-            .map(|(index, (exercise_id, sets, reps, weight, notes))| {
+            .map(|(index, (exercise_id, sets, reps, weight, notes, group_number))| {
                 RoutineExercise::new(
                     routine_id,
                     exercise_id,
@@ -189,6 +193,7 @@ impl RoutineService {
                     reps,
                     weight,
                     notes,
+                    group_number,
                 )
             })
             .collect();

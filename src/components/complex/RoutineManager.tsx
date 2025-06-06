@@ -47,6 +47,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
     reps: exercise.reps || 0,
     weight: exercise.weight || 0,
     notes: exercise.notes || '',
+    group_number: exercise.group_number || 1,
   });
 
   const {
@@ -71,6 +72,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
       reps: editForm.reps || undefined,
       weight: editForm.weight || undefined,
       notes: editForm.notes.trim() || undefined,
+      group_number: editForm.group_number || undefined,
     };
     onUpdate(updatedExercise);
     setIsEditing(false);
@@ -82,6 +84,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
       reps: exercise.reps || 0,
       weight: exercise.weight || 0,
       notes: exercise.notes || '',
+      group_number: exercise.group_number || 1,
     });
     setIsEditing(false);
   };
@@ -93,21 +96,21 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
       {...attributes}
     >
       <div style={{
-        padding: '12px',
-        backgroundColor: '#f8fafc',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0',
-        marginBottom: '8px',
+        padding: '8px 4px',
+        backgroundColor: 'transparent',
+        borderRadius: '4px',
+        border: 'none',
+        marginBottom: '4px',
         transition: 'all 0.2s'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Drag handle */}
           <div
             {...listeners}
             style={{
               cursor: 'grab',
-              color: '#6b7280',
-              fontSize: '16px',
+              color: '#9ca3af',
+              fontSize: '14px',
               flexShrink: 0
             }}
             title="Arrastrar para reordenar"
@@ -118,50 +121,75 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
           {/* Exercise info */}
           <div style={{ flex: 1 }}>
             <div style={{ 
-              fontWeight: '600', 
-              color: '#1e40af',
-              marginBottom: '4px'
+              fontWeight: '500', 
+              color: '#374151',
+              fontSize: '14px'
             }}>
-              {exercise.exercise_name} ({exercise.exercise_code})
+              {exercise.exercise_name}
             </div>
             
             {!isEditing ? (
               <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                {exercise.sets && `${exercise.sets} series`}
-                {exercise.sets && exercise.reps && ' × '}
-                {exercise.reps && `${exercise.reps} reps`}
-                {exercise.weight && ` @ ${exercise.weight}kg`}
-                {exercise.notes && (
-                  <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
-                    {exercise.notes}
-                  </div>
-                )}
+                {/* Solo mostrar el nombre del ejercicio */}
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px' }}>
-                <Input
-                  label="Series"
-                  type="number"
-                  value={editForm.sets.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-                <Input
-                  label="Reps"
-                  type="number"
-                  value={editForm.reps.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-                <Input
-                  label="Peso (kg)"
-                  type="number"
-                  step="0.5"
-                  value={editForm.weight.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-                <div style={{ gridColumn: 'span 3' }}>
+              <div style={{ marginTop: '8px' }}>
+                {/* Group Selection */}
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '4px', 
+                    fontSize: '12px', 
+                    fontWeight: '500', 
+                    color: '#374151' 
+                  }}>
+                    Grupo:
+                  </label>
+                  <select
+                    value={editForm.group_number}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, group_number: parseInt(e.target.value) }))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <option value={1}>Grupo 1</option>
+                    <option value={2}>Grupo 2</option>
+                    <option value={3}>Grupo 3</option>
+                    <option value={4}>Grupo 4</option>
+                    <option value={5}>Grupo 5</option>
+                  </select>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  <Input
+                    label="Series"
+                    type="number"
+                    value={editForm.sets.toString()}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
+                    variant="primary"
+                  />
+                  <Input
+                    label="Reps"
+                    type="number"
+                    value={editForm.reps.toString()}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
+                    variant="primary"
+                  />
+                  <Input
+                    label="Peso (kg)"
+                    type="number"
+                    step="0.5"
+                    value={editForm.weight.toString()}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                    variant="primary"
+                  />
+                </div>
+                <div style={{ marginTop: '8px' }}>
                   <Input
                     label="Notas"
                     value={editForm.notes}
@@ -270,7 +298,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     sets: 3,
     reps: 10,
     weight: 0,
-    notes: ''
+    notes: '',
+    group_number: 1
   });
 
   // Delete confirmation modal state
@@ -411,6 +440,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
         addExerciseForm.reps || undefined,
         addExerciseForm.weight || undefined,
         addExerciseForm.notes.trim() || undefined,
+        addExerciseForm.group_number || undefined,
       );
 
       // Reload routine
@@ -422,7 +452,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
         sets: 3,
         reps: 10,
         weight: 0,
-        notes: ''
+        notes: '',
+        group_number: 1
       });
       setShowAddExercise(false);
     } catch (error) {
@@ -445,6 +476,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
         exercise.reps || 0,
         exercise.weight || 0,
         exercise.notes || '',
+        exercise.group_number || undefined,
       );
 
       // Reload routine
@@ -696,14 +728,53 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                         items={selectedRoutine.exercises.map(ex => ex.id!)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {selectedRoutine.exercises.map((exercise) => (
-                          <SortableRoutineExercise
-                            key={exercise.id}
-                            exercise={exercise}
-                            onUpdate={handleUpdateRoutineExercise}
-                            onRemove={handleRemoveExercise}
-                          />
-                        ))}
+                        {(() => {
+                          // Group exercises by group_number
+                          const groupedExercises = selectedRoutine.exercises.reduce((groups, exercise) => {
+                            const groupNumber = exercise.group_number || 1;
+                            if (!groups[groupNumber]) {
+                              groups[groupNumber] = [];
+                            }
+                            groups[groupNumber].push(exercise);
+                            return groups;
+                          }, {} as Record<number, typeof selectedRoutine.exercises>);
+
+                          // Sort groups by group number
+                          const sortedGroups = Object.keys(groupedExercises)
+                            .map(Number)
+                            .sort((a, b) => a - b);
+
+                          return sortedGroups.map(groupNumber => (
+                            <div key={`group-${groupNumber}`} style={{ marginBottom: '20px' }}>
+                              {/* Group Header */}
+                              <div style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: '#374151',
+                                marginBottom: '8px',
+                                paddingLeft: '4px'
+                              }}>
+                                Grupo {groupNumber}
+                              </div>
+
+                              {/* Group Exercises */}
+                              <div style={{
+                                border: '1px dashed #d1d5db',
+                                borderRadius: '6px',
+                                padding: '8px'
+                              }}>
+                                {groupedExercises[groupNumber].map((exercise) => (
+                                  <SortableRoutineExercise
+                                    key={exercise.id}
+                                    exercise={exercise}
+                                    onUpdate={handleUpdateRoutineExercise}
+                                    onRemove={handleRemoveExercise}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ));
+                        })()}
                       </SortableContext>
                     </DndContext>
                   )}
@@ -809,6 +880,44 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 }}
                 placeholder="Buscar ejercicio..."
               />
+
+              {/* Group Selection */}
+              <div style={{ marginTop: '16px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: '#374151' 
+                }}>
+                  Grupo:
+                </label>
+                <select
+                  value={addExerciseForm.group_number}
+                  onChange={(e) => setAddExerciseForm(prev => ({ ...prev, group_number: parseInt(e.target.value) }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value={1}>Grupo 1</option>
+                  <option value={2}>Grupo 2</option>
+                  <option value={3}>Grupo 3</option>
+                  <option value={4}>Grupo 4</option>
+                  <option value={5}>Grupo 5</option>
+                </select>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#6b7280', 
+                  marginTop: '4px' 
+                }}>
+                  Los ejercicios del mismo grupo se mostrarán juntos en el calendario
+                </div>
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
                 <Input

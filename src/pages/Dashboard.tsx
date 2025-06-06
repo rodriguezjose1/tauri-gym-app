@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [showLoadRoutineModal, setShowLoadRoutineModal] = useState(false);
   const [selectedRoutineForLoad, setSelectedRoutineForLoad] = useState<number | null>(null);
   const [selectedDateForRoutine, setSelectedDateForRoutine] = useState<string>("");
+  const [selectedGroupForRoutine, setSelectedGroupForRoutine] = useState<number>(1);
 
   // Custom modals
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -629,13 +630,13 @@ export default function Dashboard() {
           weight: exercise.weight || 0,
           notes: exercise.notes || "",
           order: index,
-          group_number: 1
+          group_number: selectedGroupForRoutine
         }));
         
         console.log("Setting session form with routine exercises:", exerciseForms);
         setSessionForm({ exercises: exerciseForms });
         
-        await showMessage(`Rutina "${routine.name}" cargada con ${routine.exercises.length} ejercicios.`, { type: "info" });
+        await showMessage(`Rutina "${routine.name}" cargada con ${routine.exercises.length} ejercicios en el Grupo ${selectedGroupForRoutine}.`, { type: "info" });
       } else {
         await showMessage("La rutina seleccionada no tiene ejercicios.", { type: "warning" });
       }
@@ -701,7 +702,7 @@ export default function Dashboard() {
                 weight: exercise.weight || 0,
                 notes: exercise.notes || "",
                 order: i,
-                group_number: 1
+                group_number: selectedGroupForRoutine
               }
             });
           }
@@ -709,12 +710,13 @@ export default function Dashboard() {
           // Refresh workout data
           await fetchWorkoutData(selectedPerson.id);
           
-          await showMessage(`Rutina "${routine.name}" aplicada exitosamente con ${routine.exercises.length} ejercicios.`, { type: "info" });
+          await showMessage(`Rutina "${routine.name}" aplicada exitosamente con ${routine.exercises.length} ejercicios en el Grupo ${selectedGroupForRoutine}.`, { type: "info" });
 
           // Close modal and reset state
           setShowLoadRoutineModal(false);
           setSelectedRoutineForLoad(null);
           setSelectedDateForRoutine("");
+          setSelectedGroupForRoutine(1);
         }
       } else {
         await showMessage("La rutina seleccionada no tiene ejercicios.", { type: "warning" });
@@ -862,6 +864,7 @@ export default function Dashboard() {
           setShowLoadRoutineModal(false);
           setSelectedRoutineForLoad(null);
           setSelectedDateForRoutine("");
+          setSelectedGroupForRoutine(1);
         }}
         title="Cargar Rutina a Fecha Específica"
         size="md"
@@ -917,6 +920,33 @@ export default function Dashboard() {
               />
             </div>
 
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Grupo:
+              </label>
+              <select
+                value={selectedGroupForRoutine}
+                onChange={(e) => setSelectedGroupForRoutine(parseInt(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value={1}>Grupo 1</option>
+                <option value={2}>Grupo 2</option>
+                <option value={3}>Grupo 3</option>
+                <option value={4}>Grupo 4</option>
+                <option value={5}>Grupo 5</option>
+              </select>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                Todos los ejercicios de la rutina se asignarán a este grupo
+              </div>
+            </div>
+
             {selectedRoutineForLoad && selectedDateForRoutine && (
               <div style={{ 
                 padding: '12px', 
@@ -926,7 +956,7 @@ export default function Dashboard() {
                 color: '#1e40af',
                 border: '1px solid #bfdbfe'
               }}>
-                ℹ️ La rutina seleccionada se aplicará a la fecha {new Date(selectedDateForRoutine).toLocaleDateString('es-ES')}. 
+                ℹ️ La rutina seleccionada se aplicará a la fecha {new Date(selectedDateForRoutine).toLocaleDateString('es-ES')} en el Grupo {selectedGroupForRoutine}. 
                 Si ya existen ejercicios para esa fecha, serán reemplazados.
               </div>
             )}
@@ -938,6 +968,7 @@ export default function Dashboard() {
                 setShowLoadRoutineModal(false);
                 setSelectedRoutineForLoad(null);
                 setSelectedDateForRoutine("");
+                setSelectedGroupForRoutine(1);
               }}
               variant="secondary"
               disabled={loadingRoutine}

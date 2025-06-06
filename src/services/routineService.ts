@@ -143,17 +143,19 @@ export class RoutineService {
     sets?: number,
     reps?: number,
     weight?: number,
-    notes?: string
+    notes?: string,
+    groupNumber?: number
   ): Promise<void> {
     try {
       await invoke(requestNames.addExerciseToRoutine, {
         routineId,
         exerciseId,
         orderIndex,
-        sets: sets || undefined,
-        reps: reps || undefined,
-        weight: weight || undefined,
-        notes: notes?.trim() || undefined,
+        sets,
+        reps,
+        weight,
+        notes,
+        groupNumber,
       });
     } catch (error) {
       console.error("Error adding exercise to routine:", error);
@@ -172,7 +174,8 @@ export class RoutineService {
     sets?: number,
     reps?: number,
     weight?: number,
-    notes?: string
+    notes?: string,
+    groupNumber?: number
   ): Promise<void> {
     try {
       await invoke(requestNames.updateRoutineExercise, {
@@ -184,6 +187,7 @@ export class RoutineService {
         reps,
         weight,
         notes,
+        groupNumber,
       });
     } catch (error) {
       console.error("Error updating routine exercise:", error);

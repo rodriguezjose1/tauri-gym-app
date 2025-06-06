@@ -79,6 +79,7 @@ export interface RoutineExercise {
   reps?: number;
   weight?: number;
   notes?: string;
+  group_number?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -103,6 +104,7 @@ export interface RoutineExerciseForm {
   reps: number;
   weight: number;
   notes: string;
+  group_number?: number;
 }
 
 // Routine selection for workouts

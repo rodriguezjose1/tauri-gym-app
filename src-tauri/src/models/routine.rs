@@ -17,6 +17,7 @@ pub struct RoutineExercise {
     pub reps: Option<i32>,
     pub weight: Option<f64>,
     pub notes: Option<String>,
+    pub group_number: Option<i32>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -41,6 +42,7 @@ pub struct RoutineExerciseWithDetails {
     pub reps: Option<i32>,
     pub weight: Option<f64>,
     pub notes: Option<String>,
+    pub group_number: Option<i32>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     // Joined data from exercise table
@@ -69,6 +71,7 @@ impl RoutineExercise {
         reps: Option<i32>,
         weight: Option<f64>,
         notes: Option<String>,
+        group_number: Option<i32>,
     ) -> Self {
         Self {
             id: None,
@@ -79,6 +82,7 @@ impl RoutineExercise {
             reps,
             weight,
             notes,
+            group_number,
             created_at: None,
             updated_at: None,
         }

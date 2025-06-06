@@ -195,8 +195,9 @@ fn add_exercise_to_routine(
     reps: Option<i32>,
     weight: Option<f64>,
     notes: Option<String>,
+    group_number: Option<i32>,
 ) -> Result<(), String> {
-    service.add_exercise_to_routine(routine_id, exercise_id, order_index, sets, reps, weight, notes)
+    service.add_exercise_to_routine(routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
 }
 
 #[tauri::command]
@@ -210,8 +211,9 @@ fn update_routine_exercise(
     reps: Option<i32>,
     weight: Option<f64>,
     notes: Option<String>,
+    group_number: Option<i32>,
 ) -> Result<(), String> {
-    service.update_routine_exercise(id, routine_id, exercise_id, order_index, sets, reps, weight, notes)
+    service.update_routine_exercise(id, routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
 }
 
 #[tauri::command]
@@ -239,7 +241,7 @@ fn create_routine_from_workout(
     service: State<'_, RoutineService>,
     name: String,
     code: String,
-    workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>)>,
+    workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>, Option<i32>)>,
 ) -> Result<i32, String> {
     service.create_routine_from_workout(name, code, workout_exercises)
 }

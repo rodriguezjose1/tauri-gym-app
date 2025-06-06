@@ -41,6 +41,7 @@ impl SqliteRoutineRepository {
                 reps INTEGER,
                 weight REAL,
                 notes TEXT,
+                group_number INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (routine_id) REFERENCES routines (id) ON DELETE CASCADE,
@@ -49,6 +50,11 @@ impl SqliteRoutineRepository {
             )",
             [],
         )?;
+
+        // Check if group_number migration is needed
+        if self.check_if_routine_group_migration_needed()? {
+            self.migrate_routine_group_column()?;
+        }
 
         // Create indexes for better performance
         conn.execute(
@@ -63,6 +69,34 @@ impl SqliteRoutineRepository {
             [],
         )?;
 
+        Ok(())
+    }
+
+    fn check_if_routine_group_migration_needed(&self) -> SqliteResult<bool> {
+        let conn = self.get_connection()?;
+        
+        let mut stmt = conn.prepare("PRAGMA table_info(routine_exercises)")?;
+        let column_info: Result<Vec<String>, _> = stmt.query_map([], |row| {
+            Ok(row.get::<_, String>(1)?) // Column name is at index 1
+        })?.collect();
+        
+        match column_info {
+            Ok(columns) => Ok(!columns.contains(&"group_number".to_string())),
+            Err(_) => Ok(false),
+        }
+    }
+
+    fn migrate_routine_group_column(&self) -> SqliteResult<()> {
+        let conn = self.get_connection()?;
+        
+        println!("Adding group_number column to routine_exercises table...");
+        
+        conn.execute(
+            "ALTER TABLE routine_exercises ADD COLUMN group_number INTEGER DEFAULT 1",
+            [],
+        )?;
+        
+        println!("group_number column added successfully to routine_exercises table");
         Ok(())
     }
 
@@ -281,8 +315,8 @@ impl RoutineRepository for SqliteRoutineRepository {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
-            "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 routine_exercise.routine_id,
                 routine_exercise.exercise_id,
@@ -290,7 +324,8 @@ impl RoutineRepository for SqliteRoutineRepository {
                 routine_exercise.sets,
                 routine_exercise.reps,
                 routine_exercise.weight,
-                routine_exercise.notes
+                routine_exercise.notes,
+                routine_exercise.group_number
             ],
         ).map_err(|e| e.to_string())?;
 
@@ -302,14 +337,15 @@ impl RoutineRepository for SqliteRoutineRepository {
         
         conn.execute(
             "UPDATE routine_exercises 
-             SET order_index = ?1, sets = ?2, reps = ?3, weight = ?4, notes = ?5, updated_at = CURRENT_TIMESTAMP
-             WHERE id = ?6",
+             SET order_index = ?1, sets = ?2, reps = ?3, weight = ?4, notes = ?5, group_number = ?6, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?7",
             params![
                 routine_exercise.order_index,
                 routine_exercise.sets,
                 routine_exercise.reps,
                 routine_exercise.weight,
                 routine_exercise.notes,
+                routine_exercise.group_number,
                 routine_exercise.id
             ],
         ).map_err(|e| e.to_string())?;
@@ -336,7 +372,7 @@ impl RoutineRepository for SqliteRoutineRepository {
 
         let mut stmt = match conn.prepare(
             "SELECT 
-                re.id, re.routine_id, re.exercise_id, re.order_index, re.sets, re.reps, re.weight, re.notes,
+                re.id, re.routine_id, re.exercise_id, re.order_index, re.sets, re.reps, re.weight, re.notes, re.group_number,
                 re.created_at, re.updated_at,
                 e.name as exercise_name, e.code as exercise_code
              FROM routine_exercises re
@@ -358,10 +394,11 @@ impl RoutineRepository for SqliteRoutineRepository {
                 reps: row.get(5)?,
                 weight: row.get(6)?,
                 notes: row.get(7)?,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
-                exercise_name: row.get(10)?,
-                exercise_code: row.get(11)?,
+                group_number: row.get(8)?,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
+                exercise_name: row.get(11)?,
+                exercise_code: row.get(12)?,
             })
         }) {
             Ok(iter) => iter,
@@ -405,8 +442,8 @@ impl RoutineRepository for SqliteRoutineRepository {
             // Insert new exercises
             if !exercises.is_empty() {
                 let mut stmt = tx.prepare(
-                    "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
+                    "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
                 ).map_err(|e| e.to_string())?;
 
                 for exercise in exercises {
@@ -417,7 +454,8 @@ impl RoutineRepository for SqliteRoutineRepository {
                         exercise.sets,
                         exercise.reps,
                         exercise.weight,
-                        exercise.notes
+                        exercise.notes,
+                        exercise.group_number
                     ]).map_err(|e| e.to_string())?;
                 }
             }
