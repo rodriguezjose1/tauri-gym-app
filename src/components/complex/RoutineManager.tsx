@@ -19,7 +19,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input, Button } from "../base";
+import { Input, Button, ErrorMessage } from "../base";
 import { DeleteConfirmationModal } from "../modals";
 import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import {
@@ -835,19 +835,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               <h3 style={{ margin: '0 0 16px 0' }}>Nueva Rutina</h3>
               
               {/* Error in modal */}
-              {createError && (
-                <div style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '6px',
-                  color: '#dc2626',
-                  fontSize: '14px',
-                  marginBottom: '16px'
-                }}>
-                  {createError}
-                </div>
-              )}
+              <ErrorMessage 
+                message={createError}
+                onDismiss={() => setCreateError(null)}
+              />
               
               <Input
                 label="Nombre"
@@ -918,19 +909,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               <h3 style={{ margin: '0 0 16px 0' }}>Agregar Ejercicio</h3>
               
               {/* Error in modal */}
-              {addExerciseError && (
-                <div style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '6px',
-                  color: '#dc2626',
-                  fontSize: '14px',
-                  marginBottom: '16px'
-                }}>
-                  {addExerciseError}
-                </div>
-              )}
+              <ErrorMessage 
+                message={addExerciseError}
+                onDismiss={() => setAddExerciseError(null)}
+              />
               
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
