@@ -287,6 +287,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [addExerciseError, setAddExerciseError] = useState<string | null>(null);
   
   const [createForm, setCreateForm] = useState<RoutineForm>({
     name: '',
@@ -321,8 +323,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setLoading(true);
       const data = await RoutineService.listRoutines();
       setRoutines(data);
-    } catch (error) {
-      console.error("Error loading routines:", error);
+    } catch (err) {
+      console.error("Error loading routines:", err);
     } finally {
       setLoading(false);
     }
@@ -334,8 +336,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     try {
       const result = await RoutineService.searchRoutines(query) as Routine[];
       setRoutines(result);
-    } catch (error) {
-      console.error("Error searching routines:", error);
+    } catch (err) {
+      console.error("Error searching routines:", err);
     } finally {
       setLoading(false);
     }
@@ -347,8 +349,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setLoading(true);
       const routine = await RoutineService.getRoutineWithExercises(routineId);
       setSelectedRoutine(routine);
-    } catch (error) {
-      console.error("Error loading routine with exercises:", error);
+    } catch (err) {
+      console.error("Error loading routine with exercises:", err);
     } finally {
       setLoading(false);
     }
@@ -359,30 +361,41 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     try {
       const data = await ExerciseService.getExercises();
       setExercises(data);
-    } catch (error) {
-      console.error("Error loading exercises:", error);
+    } catch (err) {
+      console.error("Error loading exercises:", err);
     }
   };
 
   // Create routine
   const handleCreateRoutine = async () => {
     if (!createForm.name.trim() || !createForm.code.trim()) {
-      alert("Por favor completa todos los campos");
+      setCreateError("Por favor completa todos los campos");
       return;
     }
 
     try {
       setLoading(true);
+      setCreateError(null);
       await RoutineService.createRoutine(createForm.name.trim(), createForm.code.trim().toUpperCase());
       setCreateForm({ name: '', code: '' });
       setShowCreateForm(false);
       await loadRoutines();
       
       // Load the newly created routine
-      await loadRoutineWithExercises(routines[routines.length - 1].id!);
+      const newRoutines = await RoutineService.listRoutines();
+      const newRoutine = newRoutines.find(r => r.code === createForm.code.trim().toUpperCase());
+      if (newRoutine) {
+        await loadRoutineWithExercises(newRoutine.id!);
+      }
     } catch (error) {
       console.error("Error creating routine:", error);
-      alert("Error al crear la rutina: " + error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('UNIQUE constraint failed: routines.code')) {
+        setCreateError(`El código "${createForm.code.trim().toUpperCase()}" ya existe. Por favor usa un código diferente.`);
+      } else {
+        setCreateError(`Error al crear la rutina: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -412,7 +425,9 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setDeleteRoutineName("");
     } catch (error) {
       console.error("Error deleting routine:", error);
-      alert("Error al eliminar la rutina: " + error);
+      // For delete errors, we can show an alert since there's no modal to display it in
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Error al eliminar la rutina: ${errorMessage}`);
     } finally {
       setDeletingRoutine(false);
     }
@@ -432,6 +447,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
     try {
       setLoading(true);
+      setAddExerciseError(null);
       await RoutineService.addExerciseToRoutine(
         selectedRoutine.id!,
         addExerciseForm.exerciseId,
@@ -458,7 +474,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setShowAddExercise(false);
     } catch (error) {
       console.error("Error adding exercise to routine:", error);
-      alert("Error al agregar ejercicio: " + error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setAddExerciseError(`Error al agregar ejercicio: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -485,7 +502,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       }
     } catch (error) {
       console.error("Error updating routine exercise:", error);
-      alert("Error al actualizar ejercicio: " + error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Error al actualizar ejercicio: ${errorMessage}`);
     }
   };
 
@@ -500,7 +518,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       await loadRoutineWithExercises(selectedRoutine.id!);
     } catch (error) {
       console.error("Error removing exercise from routine:", error);
-      alert("Error al eliminar ejercicio: " + error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Error al eliminar ejercicio: ${errorMessage}`);
     }
   };
 
@@ -814,31 +833,59 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               width: '400px'
             }}>
               <h3 style={{ margin: '0 0 16px 0' }}>Nueva Rutina</h3>
+              
+              {/* Error in modal */}
+              {createError && (
+                <div style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  color: '#dc2626',
+                  fontSize: '14px',
+                  marginBottom: '16px'
+                }}>
+                  {createError}
+                </div>
+              )}
+              
               <Input
                 label="Nombre"
                 value={createForm.name}
-                onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => {
+                  setCreateForm(prev => ({ ...prev, name: e.target.value }));
+                  if (createError) setCreateError(null); // Clear error when user types
+                }}
                 variant="primary"
                 fullWidth
               />
               <Input
                 label="Código"
                 value={createForm.code}
-                onChange={(e) => setCreateForm(prev => ({ ...prev, code: e.target.value }))}
+                onChange={(e) => {
+                  setCreateForm(prev => ({ ...prev, code: e.target.value }));
+                  if (createError) setCreateError(null); // Clear error when user types
+                }}
                 variant="primary"
                 fullWidth
                 style={{ marginTop: '12px' }}
+                placeholder="Ej: PUSH, PULL, LEGS..."
               />
               <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                 <Button
                   onClick={handleCreateRoutine}
                   variant="primary"
                   style={{ flex: 1 }}
+                  disabled={loading}
                 >
-                  Crear
+                  {loading ? 'Creando...' : 'Crear'}
                 </Button>
                 <Button
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setCreateError(null);
+                    setCreateForm({ name: '', code: '' });
+                  }}
                   variant="secondary"
                   style={{ flex: 1 }}
                 >
@@ -869,6 +916,21 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               width: '500px'
             }}>
               <h3 style={{ margin: '0 0 16px 0' }}>Agregar Ejercicio</h3>
+              
+              {/* Error in modal */}
+              {addExerciseError && (
+                <div style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  color: '#dc2626',
+                  fontSize: '14px',
+                  marginBottom: '16px'
+                }}>
+                  {addExerciseError}
+                </div>
+              )}
               
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
@@ -963,7 +1025,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   Agregar
                 </Button>
                 <Button
-                  onClick={() => setShowAddExercise(false)}
+                  onClick={() => {
+                    setShowAddExercise(false);
+                    setAddExerciseError(null);
+                  }}
                   variant="secondary"
                   style={{ flex: 1 }}
                 >
