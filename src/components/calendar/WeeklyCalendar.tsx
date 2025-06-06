@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import React, { useState, useEffect, useMemo } from "react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PersonSearch } from "../forms/PersonSearch";
 import { SortableWorkoutItem } from "../lists/SortableWorkoutItem";
 import { useWeeklyCalendar } from "../../hooks/useWeeklyCalendar";
 import * as styles from "../../styles/weeklyCalendarStyles";
+import { WorkoutEntryWithDetails } from '../../services';
 
 interface WeeklyCalendarProps {
   selectedPerson?: any;
@@ -19,6 +20,35 @@ interface WeeklyCalendarProps {
   handlePersonSelect: (person: any) => void;
   handleClearSelection: () => void;
 }
+
+// Helper function to group workouts by group_number
+const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[]) => {
+  console.log("=== GROUPING WORKOUTS ===");
+  console.log("Input workouts:", workouts.map(w => ({ id: w.id, exercise_name: w.exercise_name, group_number: w.group_number })));
+  
+  const groups = workouts.reduce((acc, workout) => {
+    const groupNumber = workout.group_number || 1;
+    console.log(`Workout ${workout.id} (${workout.exercise_name}) -> Group ${groupNumber}`);
+    if (!acc[groupNumber]) {
+      acc[groupNumber] = [];
+    }
+    acc[groupNumber].push(workout);
+    return acc;
+  }, {} as Record<number, WorkoutEntryWithDetails[]>);
+  
+  console.log("Groups created:", Object.keys(groups).map(key => ({ group: key, count: groups[parseInt(key)].length })));
+  
+  // Sort groups by group number and return as array
+  const result = Object.keys(groups)
+    .sort((a, b) => parseInt(a) - parseInt(b))
+    .map(groupNumber => ({
+      groupNumber: parseInt(groupNumber),
+      workouts: groups[parseInt(groupNumber)]
+    }));
+    
+  console.log("Final grouped result:", result.map(g => ({ groupNumber: g.groupNumber, workoutCount: g.workouts.length })));
+  return result;
+};
 
 export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   selectedPerson,
@@ -271,17 +301,42 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                 items={dayWorkouts.map(w => w.id!)}
                                 strategy={verticalListSortingStrategy}
                               >
-                                {dayWorkouts.map((workout, workoutIndex) => (
-                                  <SortableWorkoutItem
-                                    key={workout.id || workoutIndex}
-                                    workout={workout}
-                                    onDayClick={(date) => {
-                                      onSelectedDateChange?.(date);
-                                      onDayClick(date);
-                                    }}
-                                    onDeleteWorkoutEntry={onDeleteWorkoutEntry}
-                                  />
-                                ))}
+                                {(() => {
+                                  const workoutGroups = groupWorkoutsByGroup(dayWorkouts);
+                                  console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
+                                  return workoutGroups.map((group, groupIndex) => (
+                                    <div key={`group-${group.groupNumber}`} style={{
+                                      marginBottom: '8px',
+                                      padding: '6px',
+                                      border: '1px dashed #cbd5e1',
+                                      borderRadius: '6px',
+                                      backgroundColor: '#f8fafc',
+                                      position: 'relative'
+                                    }}>
+                                      <div style={{
+                                        fontSize: '10px',
+                                        color: '#64748b',
+                                        fontWeight: '500',
+                                        marginBottom: '4px',
+                                        textAlign: 'center'
+                                      }}>
+                                        Grupo {group.groupNumber}
+                                      </div>
+                                      {group.workouts.map((workout, workoutIndex) => (
+                                        <div key={workout.id || workoutIndex} style={{ marginBottom: '4px' }}>
+                                          <SortableWorkoutItem
+                                            workout={workout}
+                                            onDayClick={(date) => {
+                                              onSelectedDateChange?.(date);
+                                              onDayClick(date);
+                                            }}
+                                            onDeleteWorkoutEntry={onDeleteWorkoutEntry}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ));
+                                })()}
                               </SortableContext>
                             </DndContext>
                           )}

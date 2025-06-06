@@ -37,7 +37,8 @@ export default function Dashboard() {
     reps: 1,
     weight: 0,
     notes: "",
-    order: 0
+    order: 0,
+    group_number: 1
   });
   const [savingWorkout, setSavingWorkout] = useState(false);
 
@@ -50,7 +51,8 @@ export default function Dashboard() {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0
+      order: 0,
+      group_number: 1
     }]
   });
   const [savingSession, setSavingSession] = useState(false);
@@ -248,7 +250,8 @@ export default function Dashboard() {
           reps: exercise.reps || 1,
           weight: exercise.weight || 0,
           notes: exercise.notes || "",
-          order: exercise.order || 0
+          order: exercise.order || 0,
+          group_number: exercise.group_number || 1
         };
       });
       
@@ -264,7 +267,8 @@ export default function Dashboard() {
           reps: 1,
           weight: 0,
           notes: "",
-          order: 0
+          order: 0,
+          group_number: 1
         }]
       });
     }
@@ -286,7 +290,8 @@ export default function Dashboard() {
         reps: 1,
         weight: 0,
         notes: "",
-        order: 0
+        order: 0,
+        group_number: 1
       }]
     });
     
@@ -304,7 +309,8 @@ export default function Dashboard() {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0
+      order: 0,
+      group_number: 1
     });
     setShowWorkoutModal(true);
   };
@@ -318,7 +324,8 @@ export default function Dashboard() {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0
+      order: 0,
+      group_number: 1
     });
   };
 
@@ -332,7 +339,8 @@ export default function Dashboard() {
         reps: 1,
         weight: 0,
         notes: "",
-        order: 0
+        order: 0,
+        group_number: 1
       }]
     });
   };
@@ -345,7 +353,8 @@ export default function Dashboard() {
         reps: 1,
         weight: 0,
         notes: "",
-        order: sessionForm.exercises.length
+        order: sessionForm.exercises.length,
+        group_number: 1
       }]
     });
   };
@@ -390,7 +399,8 @@ export default function Dashboard() {
         reps: workoutForm.reps,
         weight: workoutForm.weight || undefined,
         notes: workoutForm.notes || undefined,
-        order: workoutForm.order || 0
+        order: workoutForm.order || 0,
+        group_number: workoutForm.group_number || 1
       };
 
       await invoke("create_workout_entry", { workoutEntry });
@@ -495,7 +505,8 @@ export default function Dashboard() {
               reps: formExercise.reps,
               weight: formExercise.weight || undefined,
               notes: formExercise.notes || undefined,
-              order: formExercise.order || validExercises.indexOf(formExercise)
+              order: formExercise.order || validExercises.indexOf(formExercise),
+              group_number: formExercise.group_number || 1
             });
           }
           // If no changes, do nothing (preserve existing)
@@ -509,7 +520,8 @@ export default function Dashboard() {
             reps: formExercise.reps,
             weight: formExercise.weight || undefined,
             notes: formExercise.notes || undefined,
-            order: formExercise.order || validExercises.indexOf(formExercise)
+            order: formExercise.order || validExercises.indexOf(formExercise),
+            group_number: formExercise.group_number || 1
           });
         }
       }
@@ -616,7 +628,8 @@ export default function Dashboard() {
           reps: exercise.reps || 10,
           weight: exercise.weight || 0,
           notes: exercise.notes || "",
-          order: index
+          order: index,
+          group_number: 1
         }));
         
         console.log("Setting session form with routine exercises:", exerciseForms);
@@ -687,7 +700,8 @@ export default function Dashboard() {
                 reps: exercise.reps || 10,
                 weight: exercise.weight || 0,
                 notes: exercise.notes || "",
-                order: i
+                order: i,
+                group_number: 1
               }
             });
           }

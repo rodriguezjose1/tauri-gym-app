@@ -11,6 +11,7 @@ pub struct WorkoutEntry {
     pub weight: Option<f64>, // in kg
     pub notes: Option<String>,
     pub order: Option<i32>,  // Order of exercise in the workout session
+    pub group_number: Option<i32>, // Group number for organizing exercises
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -26,6 +27,7 @@ pub struct WorkoutEntryWithDetails {
     pub weight: Option<f64>,
     pub notes: Option<String>,
     pub order: Option<i32>,  // Order of exercise in the workout session
+    pub group_number: Option<i32>, // Group number for organizing exercises
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     // Joined data
@@ -55,6 +57,7 @@ impl WorkoutEntry {
             weight,
             notes,
             order: None,
+            group_number: None,
             created_at: None,
             updated_at: None,
         }

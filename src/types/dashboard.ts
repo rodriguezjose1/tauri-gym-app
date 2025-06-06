@@ -21,6 +21,7 @@ export interface WorkoutEntry {
   weight?: number;
   notes?: string;
   order?: number;
+  group_number?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -53,6 +54,7 @@ export interface WorkoutEntryForm {
   weight: number;
   notes: string;
   order?: number;
+  group_number?: number;
 }
 
 export interface WorkoutSessionForm {

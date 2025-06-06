@@ -23,8 +23,10 @@ impl SqliteWorkoutEntryRepository {
             self.migrate_date_column(&conn)?;
         } else if self.check_if_order_migration_needed(&conn)? {
             self.migrate_order_column(&conn)?;
+        } else if self.check_if_group_migration_needed(&conn)? {
+            self.migrate_group_column(&conn)?;
         } else {
-            // Create new table with DATE type and order column
+            // Create new table with DATE type, order column, and group_number column
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS workout_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,6 +38,7 @@ impl SqliteWorkoutEntryRepository {
                     weight REAL,
                     notes TEXT,
                     order_index INTEGER DEFAULT 0,
+                    group_number INTEGER DEFAULT 1,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (person_id) REFERENCES people (id) ON DELETE CASCADE,
@@ -83,6 +86,22 @@ impl SqliteWorkoutEntryRepository {
         
         match table_sql {
             Ok(sql) => Ok(!sql.contains("order_index") && sql.contains("date DATE")),
+            Err(_) => Ok(false), // Table doesn't exist, no migration needed
+        }
+    }
+
+    fn check_if_group_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
+        // Check if table exists but doesn't have group_number column
+        let mut stmt = conn.prepare(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='workout_entries'"
+        )?;
+        
+        let table_sql: Result<String, _> = stmt.query_row([], |row| {
+            Ok(row.get::<_, String>(0)?)
+        });
+        
+        match table_sql {
+            Ok(sql) => Ok(!sql.contains("group_number") && sql.contains("order_index")),
             Err(_) => Ok(false), // Table doesn't exist, no migration needed
         }
     }
@@ -152,6 +171,19 @@ impl SqliteWorkoutEntryRepository {
         Ok(())
     }
 
+    fn migrate_group_column(&self, conn: &Connection) -> SqliteResult<()> {
+        println!("Adding group_number column to workout_entries table...");
+        
+        // Add the group_number column with default value 1
+        conn.execute(
+            "ALTER TABLE workout_entries ADD COLUMN group_number INTEGER DEFAULT 1",
+            [],
+        )?;
+        
+        println!("Group column migration completed successfully!");
+        Ok(())
+    }
+
     fn get_connection(&self) -> SqliteResult<Connection> {
         Connection::open(&self.db_path)
     }
@@ -162,8 +194,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
-            "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index, group_number)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 workout_entry.person_id,
                 workout_entry.exercise_id,
@@ -172,7 +204,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 workout_entry.reps,
                 workout_entry.weight,
                 workout_entry.notes,
-                workout_entry.order.unwrap_or(0)
+                workout_entry.order.unwrap_or(0),
+                workout_entry.group_number.unwrap_or(1)
             ],
         ).map_err(|e| e.to_string())?;
 
@@ -191,8 +224,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
         
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+                "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index, group_number)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
             ).map_err(|e| e.to_string())?;
 
             for workout_entry in workout_entries {
@@ -204,7 +237,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                     workout_entry.reps,
                     workout_entry.weight,
                     workout_entry.notes,
-                    workout_entry.order.unwrap_or(0)
+                    workout_entry.order.unwrap_or(0),
+                    workout_entry.group_number.unwrap_or(1)
                 ]).map_err(|e| e.to_string())?;
             }
         }
@@ -219,7 +253,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
         let conn = self.get_connection().ok()?;
         
         let mut stmt = conn.prepare(
-            "SELECT id, person_id, exercise_id, date, sets, reps, weight, notes, order_index, created_at, updated_at
+            "SELECT id, person_id, exercise_id, date, sets, reps, weight, notes, order_index, group_number, created_at, updated_at
              FROM workout_entries WHERE id = ?1"
         ).ok()?;
 
@@ -234,8 +268,9 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 weight: row.get(6)?,
                 notes: row.get(7)?,
                 order: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                group_number: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
             })
         }).ok()?;
 
@@ -250,7 +285,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
 
         let mut stmt = match conn.prepare(
             "SELECT 
-                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index,
+                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index, we.group_number,
                 we.created_at, we.updated_at,
                 p.name as person_name, p.last_name as person_last_name,
                 e.name as exercise_name, e.code as exercise_code
@@ -275,12 +310,13 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 weight: row.get(6)?,
                 notes: row.get(7)?,
                 order: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
-                person_name: row.get(11)?,
-                person_last_name: row.get(12)?,
-                exercise_name: row.get(13)?,
-                exercise_code: row.get(14)?,
+                group_number: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                person_name: row.get(12)?,
+                person_last_name: row.get(13)?,
+                exercise_name: row.get(14)?,
+                exercise_code: row.get(15)?,
             })
         }) {
             Ok(rows) => rows,
@@ -298,7 +334,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
 
         let mut stmt = match conn.prepare(
             "SELECT 
-                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index,
+                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index, we.group_number,
                 we.created_at, we.updated_at,
                 p.name as person_name, p.last_name as person_last_name,
                 e.name as exercise_name, e.code as exercise_code
@@ -323,12 +359,13 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 weight: row.get(6)?,
                 notes: row.get(7)?,
                 order: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
-                person_name: row.get(11)?,
-                person_last_name: row.get(12)?,
-                exercise_name: row.get(13)?,
-                exercise_code: row.get(14)?,
+                group_number: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                person_name: row.get(12)?,
+                person_last_name: row.get(13)?,
+                exercise_name: row.get(14)?,
+                exercise_code: row.get(15)?,
             })
         }) {
             Ok(rows) => rows,
@@ -343,8 +380,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
         
         conn.execute(
             "UPDATE workout_entries 
-             SET person_id = ?1, exercise_id = ?2, date = ?3, sets = ?4, reps = ?5, weight = ?6, notes = ?7, order_index = ?8, updated_at = CURRENT_TIMESTAMP
-             WHERE id = ?9",
+             SET person_id = ?1, exercise_id = ?2, date = ?3, sets = ?4, reps = ?5, weight = ?6, notes = ?7, order_index = ?8, group_number = ?9
+             WHERE id = ?10",
             params![
                 workout_entry.person_id,
                 workout_entry.exercise_id,
@@ -354,6 +391,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 workout_entry.weight,
                 workout_entry.notes,
                 workout_entry.order.unwrap_or(0),
+                workout_entry.group_number.unwrap_or(1),
                 workout_entry.id
             ],
         ).map_err(|e| e.to_string())?;
@@ -389,7 +427,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
 
         let mut stmt = match conn.prepare(
             "SELECT 
-                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index,
+                we.id, we.person_id, we.exercise_id, we.date, we.sets, we.reps, we.weight, we.notes, we.order_index, we.group_number,
                 we.created_at, we.updated_at,
                 p.name as person_name, p.last_name as person_last_name,
                 e.name as exercise_name, e.code as exercise_code
@@ -413,12 +451,13 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 weight: row.get(6)?,
                 notes: row.get(7)?,
                 order: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
-                person_name: row.get(11)?,
-                person_last_name: row.get(12)?,
-                exercise_name: row.get(13)?,
-                exercise_code: row.get(14)?,
+                group_number: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                person_name: row.get(12)?,
+                person_last_name: row.get(13)?,
+                exercise_name: row.get(14)?,
+                exercise_code: row.get(15)?,
             })
         }) {
             Ok(rows) => rows,
@@ -444,8 +483,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
             // Then, insert new entries if any
             if !workout_entries.is_empty() {
                 let mut stmt = tx.prepare(
-                    "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+                    "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index, group_number)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
                 ).map_err(|e| e.to_string())?;
 
                 for workout_entry in workout_entries {
@@ -457,7 +496,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                         workout_entry.reps,
                         workout_entry.weight,
                         workout_entry.notes,
-                        workout_entry.order.unwrap_or(0)
+                        workout_entry.order.unwrap_or(0),
+                        workout_entry.group_number.unwrap_or(1)
                     ]).map_err(|e| e.to_string())?;
                 }
             }
@@ -488,8 +528,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
             // Then, batch insert new entries
             if !workout_entries_to_insert.is_empty() {
                 let mut stmt = tx.prepare(
-                    "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+                    "INSERT INTO workout_entries (person_id, exercise_id, date, sets, reps, weight, notes, order_index, group_number)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
                 ).map_err(|e| e.to_string())?;
 
                 for workout_entry in workout_entries_to_insert {
@@ -501,7 +541,8 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                         workout_entry.reps,
                         workout_entry.weight,
                         workout_entry.notes,
-                        workout_entry.order.unwrap_or(0)
+                        workout_entry.order.unwrap_or(0),
+                        workout_entry.group_number.unwrap_or(1)
                     ]).map_err(|e| e.to_string())?;
                 }
             }

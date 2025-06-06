@@ -129,6 +129,44 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
               />
             </div>
 
+            {/* Group Selection */}
+            <div>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151' 
+              }}>
+                Grupo:
+              </label>
+              <select
+                value={workoutForm.group_number || 1}
+                onChange={(e) => onUpdateWorkoutForm('group_number', parseInt(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value={1}>Grupo 1</option>
+                <option value={2}>Grupo 2</option>
+                <option value={3}>Grupo 3</option>
+                <option value={4}>Grupo 4</option>
+                <option value={5}>Grupo 5</option>
+              </select>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#6b7280', 
+                marginTop: '4px' 
+              }}>
+                Los ejercicios del mismo grupo se mostrarán juntos en el calendario
+              </div>
+            </div>
+
             {/* Temporarily commented out - using default values
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
               <Input
@@ -373,6 +411,44 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                       placeholder="Buscar ejercicio..."
                       selectedExercise={exercises.find(ex => ex.id === exercise.exercise_id) || null}
                     />
+
+                    {/* Group Selection */}
+                    <div>
+                      <label style={{ 
+                        display: 'block', 
+                        marginBottom: '8px', 
+                        fontSize: '14px', 
+                        fontWeight: '500', 
+                        color: '#374151' 
+                      }}>
+                        Grupo:
+                      </label>
+                      <select
+                        value={exercise.group_number || 1}
+                        onChange={(e) => onUpdateSessionExercise(index, 'group_number', parseInt(e.target.value))}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <option value={1}>Grupo 1</option>
+                        <option value={2}>Grupo 2</option>
+                        <option value={3}>Grupo 3</option>
+                        <option value={4}>Grupo 4</option>
+                        <option value={5}>Grupo 5</option>
+                      </select>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#6b7280', 
+                        marginTop: '4px' 
+                      }}>
+                        Los ejercicios del mismo grupo se mostrarán juntos en el calendario
+                      </div>
+                    </div>
 
                     {/* Temporarily commented out - using default values
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
