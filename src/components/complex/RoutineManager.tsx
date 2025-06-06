@@ -25,6 +25,7 @@ import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import {
   RoutineForm,
 } from "../../types/dashboard";
+import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../constants/errorMessages";
 
 interface RoutineManagerProps {
   onClose?: () => void;
@@ -113,7 +114,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
               fontSize: '14px',
               flexShrink: 0
             }}
-            title="Arrastrar para reordenar"
+            title={ROUTINE_UI_LABELS.DRAG_TOOLTIP}
           >
             ⋮⋮
           </div>
@@ -143,7 +144,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     fontWeight: '500', 
                     color: '#374151' 
                   }}>
-                    Grupo:
+                    {ROUTINE_UI_LABELS.GROUP_LABEL}
                   </label>
                   <select
                     value={editForm.group_number}
@@ -167,21 +168,21 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                   <Input
-                    label="Series"
+                    label={ROUTINE_UI_LABELS.SETS_LABEL}
                     type="number"
                     value={editForm.sets.toString()}
                     onChange={(e) => setEditForm(prev => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
                     variant="primary"
                   />
                   <Input
-                    label="Reps"
+                    label={ROUTINE_UI_LABELS.REPS_LABEL}
                     type="number"
                     value={editForm.reps.toString()}
                     onChange={(e) => setEditForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
                     variant="primary"
                   />
                   <Input
-                    label="Peso (kg)"
+                    label={ROUTINE_UI_LABELS.WEIGHT_LABEL}
                     type="number"
                     step="0.5"
                     value={editForm.weight.toString()}
@@ -191,7 +192,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 </div>
                 <div style={{ marginTop: '8px' }}>
                   <Input
-                    label="Notas"
+                    label={ROUTINE_UI_LABELS.NOTES_LABEL}
                     value={editForm.notes}
                     onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                     variant="primary"
@@ -217,9 +218,9 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
-                  title="Editar ejercicio"
+                  title={ROUTINE_UI_LABELS.EDIT_TOOLTIP}
                 >
-                  Editar
+                  {ROUTINE_UI_LABELS.EDIT_BUTTON}
                 </button>
                 <button
                   onClick={() => onRemove(exercise.exercise_id)}
@@ -233,9 +234,9 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
-                  title="Eliminar ejercicio"
+                  title={ROUTINE_UI_LABELS.DELETE_TOOLTIP}
                 >
-                  Eliminar
+                  {ROUTINE_UI_LABELS.DELETE_BUTTON}
                 </button>
               </>
             ) : (
@@ -253,7 +254,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     transition: 'all 0.2s'
                   }}
                 >
-                  Guardar
+                  {ROUTINE_UI_LABELS.SAVE_BUTTON}
                 </button>
                 <button
                   onClick={handleCancel}
@@ -268,7 +269,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     transition: 'all 0.2s'
                   }}
                 >
-                  Cancelar
+                  {ROUTINE_UI_LABELS.CANCEL_BUTTON}
                 </button>
               </>
             )}
@@ -289,6 +290,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
   const [addExerciseError, setAddExerciseError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   
   const [createForm, setCreateForm] = useState<RoutineForm>({
     name: '',
@@ -369,7 +371,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   // Create routine
   const handleCreateRoutine = async () => {
     if (!createForm.name.trim() || !createForm.code.trim()) {
-      setCreateError("Por favor completa todos los campos");
+      setCreateError(ROUTINE_ERROR_MESSAGES.REQUIRED_FIELDS);
       return;
     }
 
@@ -391,10 +393,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       console.error("Error creating routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      if (errorMessage.includes('UNIQUE constraint failed: routines.code')) {
-        setCreateError(`El código "${createForm.code.trim().toUpperCase()}" ya existe. Por favor usa un código diferente.`);
+      if (errorMessage.includes(ROUTINE_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED)) {
+        setCreateError(ROUTINE_ERROR_MESSAGES.DUPLICATE_CODE(createForm.code.trim().toUpperCase()));
       } else {
-        setCreateError(`Error al crear la rutina: ${errorMessage}`);
+        setCreateError(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(errorMessage));
       }
     } finally {
       setLoading(false);
@@ -425,9 +427,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setDeleteRoutineName("");
     } catch (error) {
       console.error("Error deleting routine:", error);
-      // For delete errors, we can show an alert since there's no modal to display it in
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Error al eliminar la rutina: ${errorMessage}`);
+      setGlobalError(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED(errorMessage));
     } finally {
       setDeletingRoutine(false);
     }
@@ -475,7 +476,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     } catch (error) {
       console.error("Error adding exercise to routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setAddExerciseError(`Error al agregar ejercicio: ${errorMessage}`);
+      setAddExerciseError(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -503,7 +504,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     } catch (error) {
       console.error("Error updating routine exercise:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Error al actualizar ejercicio: ${errorMessage}`);
+      setGlobalError(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(errorMessage));
     }
   };
 
@@ -519,7 +520,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     } catch (error) {
       console.error("Error removing exercise from routine:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Error al eliminar ejercicio: ${errorMessage}`);
+      setGlobalError(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED(errorMessage));
     }
   };
 
@@ -618,6 +619,16 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
           )}
         </div>
 
+        {/* Global Error Message */}
+        {globalError && (
+          <div style={{ padding: '0 20px', paddingTop: '16px' }}>
+            <ErrorMessage 
+              message={globalError}
+              onDismiss={() => setGlobalError(null)}
+            />
+          </div>
+        )}
+
         {/* Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Left Panel - Routines List */}
@@ -631,7 +642,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
               <Input
                 label=""
-                placeholder="🔍 Buscar rutinas..."
+                placeholder={ROUTINE_UI_LABELS.SEARCH_PLACEHOLDER}
                 value={searchTerm}
                 onChange={handleSearch}
                 variant="primary"
@@ -650,11 +661,11 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
               {loading ? (
                 <div style={{ textAlign: 'center', color: '#6b7280' }}>
-                  Cargando rutinas...
+                  {ROUTINE_ERROR_MESSAGES.LOADING_ROUTINES}
                 </div>
               ) : routines.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#6b7280' }}>
-                  No hay rutinas disponibles
+                  {ROUTINE_ERROR_MESSAGES.NO_ROUTINES_AVAILABLE}
                 </div>
               ) : (
                 routines.map((routine) => (
@@ -693,7 +704,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                         marginTop: '8px'
                       }}
                     >
-                      Eliminar
+                      {ROUTINE_UI_LABELS.DELETE_BUTTON}
                     </button>
                   </div>
                 ))
@@ -733,9 +744,9 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                       color: '#6b7280',
                       padding: '40px'
                     }}>
-                      Esta rutina no tiene ejercicios aún.
+                      {ROUTINE_ERROR_MESSAGES.NO_EXERCISES_IN_ROUTINE}
                       <br />
-                      Haz clic en "Agregar Ejercicio" para comenzar.
+                      {ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_PROMPT}
                     </div>
                   ) : (
                     <DndContext
@@ -807,7 +818,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 justifyContent: 'center',
                 color: '#6b7280'
               }}>
-                Selecciona una rutina para ver sus detalles
+                {ROUTINE_ERROR_MESSAGES.SELECT_ROUTINE_PROMPT}
               </div>
             )}
           </div>
@@ -832,7 +843,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               padding: '24px',
               width: '400px'
             }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>Nueva Rutina</h3>
+              <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}</h3>
               
               {/* Error in modal */}
               <ErrorMessage 
@@ -841,7 +852,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               />
               
               <Input
-                label="Nombre"
+                label={ROUTINE_UI_LABELS.NAME_LABEL}
                 value={createForm.name}
                 onChange={(e) => {
                   setCreateForm(prev => ({ ...prev, name: e.target.value }));
@@ -851,7 +862,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 fullWidth
               />
               <Input
-                label="Código"
+                label={ROUTINE_UI_LABELS.CODE_LABEL}
                 value={createForm.code}
                 onChange={(e) => {
                   setCreateForm(prev => ({ ...prev, code: e.target.value }));
@@ -860,7 +871,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 variant="primary"
                 fullWidth
                 style={{ marginTop: '12px' }}
-                placeholder="Ej: PUSH, PULL, LEGS..."
+                placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
               />
               <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                 <Button
@@ -869,7 +880,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   style={{ flex: 1 }}
                   disabled={loading}
                 >
-                  {loading ? 'Creando...' : 'Crear'}
+                  {loading ? ROUTINE_UI_LABELS.CREATING_BUTTON : ROUTINE_UI_LABELS.CREATE_BUTTON}
                 </Button>
                 <Button
                   onClick={() => {
@@ -880,7 +891,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   variant="secondary"
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {ROUTINE_UI_LABELS.CANCEL_BUTTON}
                 </Button>
               </div>
             </div>
@@ -906,7 +917,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               padding: '24px',
               width: '500px'
             }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>Agregar Ejercicio</h3>
+              <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.ADD_EXERCISE_TITLE}</h3>
               
               {/* Error in modal */}
               <ErrorMessage 
@@ -922,7 +933,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                     setAddExerciseForm(prev => ({ ...prev, exerciseId: 0 }));
                   }
                 }}
-                placeholder="Buscar ejercicio..."
+                placeholder={ROUTINE_UI_LABELS.EXERCISE_SEARCH_PLACEHOLDER}
               />
 
               {/* Group Selection */}
@@ -934,7 +945,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   fontWeight: '500', 
                   color: '#374151' 
                 }}>
-                  Grupo:
+                  {ROUTINE_UI_LABELS.GROUP_LABEL}
                 </label>
                 <select
                   value={addExerciseForm.group_number}
@@ -959,27 +970,27 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   color: '#6b7280', 
                   marginTop: '4px' 
                 }}>
-                  Los ejercicios del mismo grupo se mostrarán juntos en el calendario
+                  {ROUTINE_UI_LABELS.GROUP_DESCRIPTION}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
                 <Input
-                  label="Series"
+                  label={ROUTINE_UI_LABELS.SETS_LABEL}
                   type="number"
                   value={addExerciseForm.sets.toString()}
                   onChange={(e) => setAddExerciseForm(prev => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
                   variant="primary"
                 />
                 <Input
-                  label="Reps"
+                  label={ROUTINE_UI_LABELS.REPS_LABEL}
                   type="number"
                   value={addExerciseForm.reps.toString()}
                   onChange={(e) => setAddExerciseForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
                   variant="primary"
                 />
                 <Input
-                  label="Peso (kg)"
+                  label={ROUTINE_UI_LABELS.WEIGHT_LABEL}
                   type="number"
                   step="0.5"
                   value={addExerciseForm.weight.toString()}
@@ -989,7 +1000,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
               </div>
 
               <Input
-                label="Notas"
+                label={ROUTINE_UI_LABELS.NOTES_LABEL}
                 value={addExerciseForm.notes}
                 onChange={(e) => setAddExerciseForm(prev => ({ ...prev, notes: e.target.value }))}
                 variant="primary"
@@ -1004,7 +1015,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   style={{ flex: 1 }}
                   disabled={!addExerciseForm.exerciseId}
                 >
-                  Agregar
+                  {ROUTINE_UI_LABELS.ADD_BUTTON}
                 </Button>
                 <Button
                   onClick={() => {
@@ -1014,7 +1025,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   variant="secondary"
                   style={{ flex: 1 }}
                 >
-                  Cancelar
+                  {ROUTINE_UI_LABELS.CANCEL_BUTTON}
                 </Button>
               </div>
             </div>
