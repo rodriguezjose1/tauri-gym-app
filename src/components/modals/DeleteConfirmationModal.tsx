@@ -53,20 +53,20 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: '#fee2e2',
+            backgroundColor: 'var(--error-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: '16px'
           }}>
-            <span style={{ fontSize: '24px', color: '#dc2626' }}>⚠️</span>
+            <span style={{ fontSize: '24px', color: 'var(--error-color)' }}>⚠️</span>
           </div>
           <div>
             <h3 style={{
               margin: 0,
               fontSize: '18px',
               fontWeight: '600',
-              color: '#1f2937'
+              color: 'var(--text-primary)'
             }}>
               {title}
             </h3>
@@ -75,7 +75,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
         
         <p style={{
           margin: '0 0 24px 0',
-          color: '#6b7280',
+          color: 'var(--text-secondary)',
           lineHeight: '1.5'
         }}>
           {message}
@@ -92,9 +92,9 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              backgroundColor: 'white',
-              color: '#374151',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
               fontSize: '14px',
               fontWeight: '500',
               cursor: isDeleting ? 'not-allowed' : 'pointer',
@@ -110,7 +110,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
               padding: '8px 16px',
               borderRadius: '6px',
               border: 'none',
-              backgroundColor: '#dc2626',
+              backgroundColor: 'var(--error-color)',
               color: 'white',
               fontSize: '14px',
               fontWeight: '500',

@@ -244,11 +244,11 @@ export default function ExerciseCrud() {
               Lista de Ejercicios
             </Title>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>
                 {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
               </span>
               {searchTerm.trim() === "" && (
-                <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                   Página {currentPage}
                 </span>
               )}
@@ -275,7 +275,7 @@ export default function ExerciseCrud() {
                     transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
-                    color: '#6b7280',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: '16px',
                     padding: '4px',
@@ -293,7 +293,7 @@ export default function ExerciseCrud() {
             {searchTerm.trim() !== "" && (
               <p style={{ 
                 fontSize: '14px', 
-                color: '#059669', 
+                color: 'var(--success-color)', 
                 margin: '8px 0 0 0',
                 fontWeight: '500'
               }}>
@@ -305,7 +305,7 @@ export default function ExerciseCrud() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-              <p style={{ color: '#6b7280', margin: 0 }}>Cargando ejercicios...</p>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando ejercicios...</p>
             </div>
           ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
@@ -315,7 +315,7 @@ export default function ExerciseCrud() {
               <Title level={3} variant="secondary" align="center">
                 {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
               </Title>
-              <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
+              <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
                 {searchTerm.trim() !== "" 
                   ? `No hay ejercicios que coincidan con "${searchTerm}"`
                   : 'Agrega tu primer ejercicio usando el formulario de arriba'
@@ -333,14 +333,14 @@ export default function ExerciseCrud() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    border: editingExercise?.id === exercise.id ? '2px solid #059669' : undefined
+                    border: editingExercise?.id === exercise.id ? '2px solid var(--success-color)' : undefined
                   }}
                 >
                   <div style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '50%',
-                    backgroundColor: '#059669',
+                    backgroundColor: 'var(--success-color)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
@@ -355,7 +355,7 @@ export default function ExerciseCrud() {
                     <Title level={4} variant="default" style={{ marginBottom: '4px' }}>
                       {exercise.name}
                     </Title>
-                    <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>
                       🏷️ {exercise.code}
                     </p>
                   </div>
@@ -402,7 +402,7 @@ export default function ExerciseCrud() {
               
               <span style={{ 
                 padding: '8px 16px', 
-                backgroundColor: '#f3f4f6', 
+                backgroundColor: 'var(--bg-tertiary)', 
                 borderRadius: '6px',
                 fontSize: '14px',
                 fontWeight: '500'
@@ -443,7 +443,7 @@ export default function ExerciseCrud() {
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <p style={{ marginBottom: '24px', color: '#374151' }}>
+          <p style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>
             ¿Estás seguro de que quieres eliminar el ejercicio <strong>{deleteConfirm.exerciseName}</strong>?
             <br />
             Esta acción no se puede deshacer.

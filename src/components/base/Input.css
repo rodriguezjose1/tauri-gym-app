@@ -12,7 +12,7 @@
 
 .ui-input-label {
   display: block;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-weight: 500;
   font-size: 14px;
   margin: 0;
@@ -27,55 +27,55 @@
 .ui-input {
   width: 100%;
   padding: 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 16px;
   font-family: inherit;
   box-sizing: border-box;
   transition: all 0.2s ease;
   outline: none;
-  background-color: white;
-  color: #1f2937;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .ui-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--accent-primary);
 }
 
 .ui-input:disabled {
-  background-color: #f9fafb;
-  color: #9ca3af;
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .ui-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* Variants */
 .ui-input--default:focus {
-  border-color: #6b7280;
+  border-color: var(--text-secondary);
 }
 
 .ui-input--primary:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary);
 }
 
 .ui-input--success:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+  border-color: var(--success-color);
+  box-shadow: 0 0 0 2px var(--success-color);
 }
 
 /* Error State */
 .ui-input--error {
-  border-color: #dc2626;
+  border-color: var(--error-color);
 }
 
 .ui-input--error:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 2px var(--error-color);
 }
 
 /* With Icons */
@@ -91,7 +91,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 16px;
   pointer-events: none;
   z-index: 1;
@@ -112,16 +112,16 @@
 }
 
 .ui-input-message--error {
-  color: #dc2626;
+  color: var(--error-color);
 }
 
 .ui-input-message--helper {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 /* Error Container State */
 .ui-input-container--error .ui-input-label {
-  color: #dc2626;
+  color: var(--error-color);
 }
 
 /* Responsive */

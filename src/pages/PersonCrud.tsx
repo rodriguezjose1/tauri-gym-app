@@ -195,7 +195,7 @@ export default function PersonCrud() {
             <Title level={2} variant="default">
               Lista de Personas
             </Title>
-            <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>
               {filteredPersons.length} de {persons.length} {persons.length === 1 ? 'persona' : 'personas'}
             </span>
           </div>
@@ -216,7 +216,7 @@ export default function PersonCrud() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-              <p style={{ color: '#6b7280', margin: 0 }}>Cargando personas...</p>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando personas...</p>
             </div>
           ) : filteredPersons.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px' }}>
@@ -226,7 +226,7 @@ export default function PersonCrud() {
               <Title level={3} variant="secondary" align="center">
                 {searchTerm ? 'No se encontraron personas' : 'No hay personas registradas'}
               </Title>
-              <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>
+              <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
                 {searchTerm 
                   ? `No hay personas que coincidan con "${searchTerm}"`
                   : 'Agrega tu primera persona usando el formulario de arriba'
@@ -254,14 +254,14 @@ export default function PersonCrud() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    border: editingPerson?.id === person.id ? '2px solid #059669' : undefined
+                    border: editingPerson?.id === person.id ? '2px solid var(--success-color)' : undefined
                   }}
                 >
                   <div style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '50%',
-                    backgroundColor: '#059669',
+                    backgroundColor: 'var(--success-color)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
@@ -313,7 +313,7 @@ export default function PersonCrud() {
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <p style={{ marginBottom: '24px', color: '#374151' }}>
+          <p style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>
             ¿Estás seguro de que quieres eliminar a <strong>{deleteConfirm.personName}</strong>?
             <br />
             Esta acción no se puede deshacer.

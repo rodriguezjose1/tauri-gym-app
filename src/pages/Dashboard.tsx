@@ -5,6 +5,7 @@ import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
 import { WorkoutModals } from '../components/complex/WorkoutModals';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
+import { SettingsModal } from '../components/settings/SettingsModal';
 import ToastContainer from '../components/notifications/ToastContainer';
 import { Button } from '../components/base/Button';
 import { Input } from '../components/base/Input';
@@ -18,7 +19,7 @@ import {
   DASHBOARD_WARNING_MESSAGES, 
   DASHBOARD_UI_LABELS 
 } from '../constants/errorMessages';
-import { WorkoutService } from '../services/WorkoutService';
+import { WorkoutService } from '../services/workoutService';
 
 export default function Dashboard() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
@@ -38,6 +39,9 @@ export default function Dashboard() {
   // Routine state
   const [routines, setRoutines] = useState<RoutineOption[]>([]);
   const [loadingRoutine, setLoadingRoutine] = useState(false);
+
+  // Settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Workout Entry Modal State
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -757,12 +761,27 @@ export default function Dashboard() {
       <div style={{ ...getContainerStyles(), height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'flex-end', 
+          justifyContent: 'space-between', 
           alignItems: 'center', 
           marginBottom: '20px',
           flexWrap: 'wrap',
           gap: '12px'
         }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Button
+              onClick={() => setShowSettingsModal(true)}
+              variant="secondary"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <span>⚙️</span>
+              Configuraciones
+            </Button>
+          </div>
           {selectedPerson && (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <Button
@@ -854,11 +873,11 @@ export default function Dashboard() {
       >
         <div style={{ padding: '8px 0' }}>
           {selectedPerson && (
-            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
-              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
+            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+              <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
                 {selectedPerson.name} {selectedPerson.last_name}
               </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                 Aplicar rutina a una fecha específica
               </div>
             </div>
@@ -866,7 +885,7 @@ export default function Dashboard() {
 
           <div style={{ display: 'grid', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                 Seleccionar Rutina:
               </label>
               <select
@@ -875,10 +894,10 @@ export default function Dashboard() {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: 'var(--bg-primary)'
                 }}
               >
                 <option value="">-- Seleccionar rutina --</option>
@@ -891,7 +910,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                 Fecha:
               </label>
               <Input
@@ -904,7 +923,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                 Grupo:
               </label>
               <select
@@ -913,10 +932,10 @@ export default function Dashboard() {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: 'var(--bg-primary)'
                 }}
               >
                 <option value={1}>Grupo 1</option>
@@ -925,7 +944,7 @@ export default function Dashboard() {
                 <option value={4}>Grupo 4</option>
                 <option value={5}>Grupo 5</option>
               </select>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                 Todos los ejercicios de la rutina se asignarán a este grupo
               </div>
             </div>
@@ -933,11 +952,11 @@ export default function Dashboard() {
             {selectedRoutineForLoad && selectedDateForRoutine && (
               <div style={{ 
                 padding: '12px', 
-                backgroundColor: '#f0f9ff', 
+                backgroundColor: 'var(--bg-tertiary)', 
                 borderRadius: '8px', 
                 fontSize: '14px', 
-                color: '#1e40af',
-                border: '1px solid #bfdbfe'
+                color: 'var(--accent-primary)',
+                border: '1px solid var(--border-light)'
               }}>
                 ℹ️ La rutina seleccionada se aplicará a la fecha {new Date(selectedDateForRoutine).toLocaleDateString('es-ES')} en el Grupo {selectedGroupForRoutine}. 
                 Si ya existen ejercicios para esa fecha, serán reemplazados.
@@ -979,6 +998,12 @@ export default function Dashboard() {
         type={confirmModalData.type}
         onConfirm={confirmModalData.onConfirm}
         onCancel={() => setShowConfirmModal(false)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
 
       {/* Toast Notifications */}

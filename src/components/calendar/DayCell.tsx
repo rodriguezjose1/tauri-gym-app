@@ -37,10 +37,10 @@ export const DayCell: React.FC<DayCellProps> = ({
     <div
       style={{
         minHeight: '120px',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border-light)',
         borderRadius: '8px',
         padding: '8px',
-        backgroundColor: isToday ? '#fef3c7' : 'white',
+        backgroundColor: isToday ? 'var(--accent-bg)' : 'var(--bg-primary)',
         cursor: 'pointer',
         transition: 'all 0.2s',
         opacity: isPastDay ? 0.7 : 1,
@@ -48,12 +48,12 @@ export const DayCell: React.FC<DayCellProps> = ({
       }}
       onMouseEnter={(e) => {
         if (!isToday) {
-          e.currentTarget.style.backgroundColor = '#f9fafb';
+          e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isToday) {
-          e.currentTarget.style.backgroundColor = 'white';
+          e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
         }
       }}
       onClick={() => onDayClick(dayDateString)}
@@ -68,7 +68,7 @@ export const DayCell: React.FC<DayCellProps> = ({
       }}>
         <div style={{
           fontWeight: isToday ? '700' : '600',
-          color: isToday ? '#92400e' : '#374151',
+          color: isToday ? 'var(--accent-primary)' : 'var(--text-primary)',
           fontSize: '14px'
         }}>
           {day.toLocaleDateString('es-ES', { 
@@ -84,7 +84,7 @@ export const DayCell: React.FC<DayCellProps> = ({
             onAddWorkoutClick(dayDateString);
           }}
           style={{
-            background: '#10b981',
+            background: 'var(--success-color)',
             color: 'white',
             border: 'none',
             borderRadius: '50%',
@@ -130,7 +130,7 @@ export const DayCell: React.FC<DayCellProps> = ({
           </SortableContext>
         ) : (
           <div style={{
-            color: '#9ca3af',
+            color: 'var(--text-muted)',
             fontSize: '11px',
             fontStyle: 'italic',
             textAlign: 'center',

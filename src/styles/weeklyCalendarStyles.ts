@@ -2,37 +2,39 @@ import { CSSProperties } from 'react';
 
 // Container styles
 export const getCalendarContainerStyles = (): CSSProperties => ({
-  backgroundColor: 'white',
+  backgroundColor: 'var(--bg-primary)',
   borderRadius: '12px',
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  border: '1px solid #e5e7eb',
+  boxShadow: '0 1px 3px var(--shadow-light)',
+  border: '1px solid var(--border-light)',
   overflow: 'hidden'
 });
 
 // Header styles
 export const getHeaderStyles = (): CSSProperties => ({
   padding: '16px 20px',
-  borderBottom: '1px solid #e5e7eb',
-  backgroundColor: '#f8fafc'
+  borderBottom: '1px solid var(--border-light)',
+  backgroundColor: 'var(--bg-secondary)'
 });
 
-export const getHeaderLayoutStyles = (): CSSProperties => ({
+export const getHeaderContentStyles = (): CSSProperties => ({
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'center'
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: '16px'
 });
 
 export const getTitleStyles = (): CSSProperties => ({
   fontWeight: '600',
-  color: '#1f2937',
+  color: 'var(--text-primary)',
   fontSize: '16px',
   flex: '0 0 auto'
 });
 
-export const getPersonSearchContainerStyles = (): CSSProperties => ({
-  position: 'relative',
-  flex: '1',
-  maxWidth: '400px'
+export const getNavigationContainerStyles = (): CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
 });
 
 // Selected person styles
@@ -41,16 +43,16 @@ export const getSelectedPersonContainerStyles = (): CSSProperties => ({
   alignItems: 'center',
   gap: '12px',
   padding: '8px 12px',
-  backgroundColor: '#f0f9ff',
+  backgroundColor: 'var(--bg-tertiary)',
   borderRadius: '8px',
-  border: '1px solid #0ea5e9'
+  border: '1px solid var(--accent-primary)'
 });
 
 export const getPersonAvatarStyles = (): CSSProperties => ({
   width: '32px',
   height: '32px',
   borderRadius: '50%',
-  backgroundColor: '#2563eb',
+  backgroundColor: 'var(--accent-primary)',
   color: 'white',
   display: 'flex',
   alignItems: 'center',
@@ -59,30 +61,29 @@ export const getPersonAvatarStyles = (): CSSProperties => ({
   fontSize: '12px'
 });
 
+export const getPersonInfoStyles = (): CSSProperties => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px'
+});
+
 export const getPersonNameStyles = (): CSSProperties => ({
   fontWeight: '600',
-  color: '#1f2937',
-  fontSize: '14px'
+  fontSize: '14px',
+  color: 'var(--text-primary)'
 });
 
-export const getPersonPhoneStyles = (): CSSProperties => ({
+export const getPersonEmailStyles = (): CSSProperties => ({
   fontSize: '12px',
-  color: '#6b7280'
-});
-
-// Navigation styles
-export const getNavigationContainerStyles = (): CSSProperties => ({
-  display: 'flex',
-  gap: '8px',
-  alignItems: 'center'
+  color: 'var(--text-secondary)'
 });
 
 export const getNavigationButtonStyles = (disabled = false): CSSProperties => ({
   padding: '6px 12px',
-  backgroundColor: disabled ? '#f9fafb' : '#f3f4f6',
-  border: '1px solid #d1d5db',
+  backgroundColor: disabled ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+  border: '1px solid var(--border-color)',
   borderRadius: '6px',
-  color: disabled ? '#9ca3af' : '#374151',
+  color: disabled ? 'var(--text-muted)' : 'var(--text-primary)',
   fontSize: '14px',
   cursor: disabled ? 'not-allowed' : 'pointer',
   transition: 'all 0.2s',
@@ -93,8 +94,8 @@ export const getNavigationButtonStyles = (disabled = false): CSSProperties => ({
 
 export const getCurrentButtonStyles = (): CSSProperties => ({
   padding: '6px 12px',
-  backgroundColor: '#2563eb',
-  border: '1px solid #2563eb',
+  backgroundColor: 'var(--accent-primary)',
+  border: '1px solid var(--accent-primary)',
   borderRadius: '6px',
   color: 'white',
   fontSize: '14px',
@@ -102,35 +103,30 @@ export const getCurrentButtonStyles = (): CSSProperties => ({
   transition: 'all 0.2s'
 });
 
-export const getWeekendToggleStyles = (): CSSProperties => ({
-  fontSize: '14px',
-  color: '#374151',
+export const getPersonSearchContainerStyles = (): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
+  gap: '12px',
+  flex: '1 1 auto',
+  minWidth: '300px'
+});
+
+export const getClearButtonStyles = (): CSSProperties => ({
+  padding: '6px 12px',
+  backgroundColor: 'transparent',
+  border: '1px solid var(--error-color)',
+  borderRadius: '6px',
+  color: 'var(--error-color)',
+  fontSize: '12px',
   cursor: 'pointer',
-  userSelect: 'none',
-  marginLeft: '8px'
-});
-
-export const getCheckboxStyles = (): CSSProperties => ({
-  width: '16px',
-  height: '16px',
-  cursor: 'pointer'
-});
-
-// Calendar content styles
-export const getCalendarContentStyles = (): CSSProperties => ({
-  padding: '16px',
-  maxHeight: '70vh',
-  overflowY: 'auto'
+  transition: 'all 0.2s'
 });
 
 // Empty state styles
 export const getEmptyStateStyles = (): CSSProperties => ({
   textAlign: 'center',
   padding: '60px 20px',
-  color: '#6b7280'
+  color: 'var(--text-muted)'
 });
 
 export const getEmptyStateIconStyles = (): CSSProperties => ({
@@ -141,14 +137,14 @@ export const getEmptyStateIconStyles = (): CSSProperties => ({
 export const getEmptyStateTitleStyles = (): CSSProperties => ({
   fontSize: '18px',
   fontWeight: '600',
-  color: '#1f2937',
+  color: 'var(--text-primary)',
   marginBottom: '8px'
 });
 
 export const getEmptyStateDescriptionStyles = (): CSSProperties => ({
-  fontSize: '16px',
-  lineHeight: '1.5',
-  margin: 0
+  fontSize: '14px',
+  color: 'var(--text-secondary)',
+  lineHeight: '1.5'
 });
 
 // Loading state styles
@@ -157,70 +153,60 @@ export const getLoadingStateStyles = (): CSSProperties => ({
   justifyContent: 'center',
   alignItems: 'center',
   height: '300px',
-  color: '#6b7280'
+  color: 'var(--text-muted)'
 });
 
-export const getLoadingContentStyles = (): CSSProperties => ({
-  textAlign: 'center'
+export const getLoadingSpinnerStyles = (): CSSProperties => ({
+  width: '32px',
+  height: '32px',
+  border: '3px solid var(--border-light)',
+  borderTop: '3px solid var(--accent-primary)',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite',
+  marginRight: '12px'
 });
 
-export const getLoadingIconStyles = (): CSSProperties => ({
-  fontSize: '24px',
-  marginBottom: '8px'
-});
-
-// Week styles
-export const getWeeksContainerStyles = (): CSSProperties => ({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '20px'
-});
-
-export const getWeekContainerStyles = (): CSSProperties => ({
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  overflow: 'hidden'
+export const getLoadingTextStyles = (): CSSProperties => ({
+  fontSize: '14px',
+  color: 'var(--text-secondary)'
 });
 
 export const getWeekHeaderStyles = (): CSSProperties => ({
   padding: '12px 16px',
-  backgroundColor: '#f8fafc',
-  borderBottom: '1px solid #e5e7eb',
+  backgroundColor: 'var(--bg-secondary)',
+  borderBottom: '1px solid var(--border-light)',
   fontWeight: '600',
   fontSize: '14px',
-  color: '#374151'
+  color: 'var(--text-primary)'
 });
 
-export const getWeekGridStyles = (showWeekends: boolean): CSSProperties => ({
+export const getWeekGridStyles = (showWeekends = true): CSSProperties => ({
   display: 'grid',
-  gridTemplateColumns: showWeekends ? 'repeat(7, 1fr)' : 'repeat(5, 1fr)',
-  gap: '1px',
-  backgroundColor: '#e5e7eb',
-  width: '100%'
+  gridTemplateColumns: showWeekends ? 'repeat(7, 1fr)' : 'repeat(5, 1fr)'
 });
 
 // Day styles
 export const getDayContainerStyles = (isToday: boolean, isPastDay: boolean): CSSProperties => ({
-  backgroundColor: isToday ? '#eff6ff' : isPastDay ? '#f9fafb' : 'white',
+  backgroundColor: isToday ? 'var(--bg-tertiary)' : isPastDay ? 'var(--bg-secondary)' : 'var(--bg-primary)',
   padding: '8px',
   minHeight: '120px',
   display: 'flex',
   flexDirection: 'column',
-  border: isToday ? '2px solid #3b82f6' : 'none',
+  border: isToday ? '2px solid var(--accent-primary)' : 'none',
   overflow: 'hidden'
 });
 
 export const getDayHeaderStyles = (): CSSProperties => ({
-  textAlign: 'center',
-  marginBottom: '8px',
-  paddingBottom: '6px',
-  borderBottom: '1px solid #e5e7eb'
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '8px'
 });
 
 export const getDayWeekdayStyles = (isToday: boolean): CSSProperties => ({
   fontSize: '11px',
   fontWeight: '600',
-  color: isToday ? '#3b82f6' : '#6b7280',
+  color: isToday ? 'var(--accent-primary)' : 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: '0.5px'
 });
@@ -228,11 +214,10 @@ export const getDayWeekdayStyles = (isToday: boolean): CSSProperties => ({
 export const getDayNumberStyles = (isToday: boolean): CSSProperties => ({
   fontSize: '16px',
   fontWeight: 'bold',
-  color: isToday ? '#3b82f6' : '#1f2937'
+  color: isToday ? 'var(--accent-primary)' : 'var(--text-primary)'
 });
 
-// Workouts container styles
-export const getWorkoutsContainerStyles = (): CSSProperties => ({
+export const getDayContentStyles = (): CSSProperties => ({
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
@@ -244,40 +229,108 @@ export const getNoWorkoutsStyles = (): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#9ca3af',
+  color: 'var(--text-muted)',
   fontSize: '11px',
   textAlign: 'center',
   minHeight: '60px'
 });
 
-// Add workout button styles
-export const getAddWorkoutButtonContainerStyles = (): CSSProperties => ({
-  marginTop: '8px'
-});
-
 export const getAddWorkoutButtonStyles = (): CSSProperties => ({
-  width: '100%',
-  padding: '4px 6px',
+  padding: '4px 8px',
   backgroundColor: 'transparent',
-  border: '1px dashed #9ca3af',
+  border: '1px dashed var(--border-color)',
   borderRadius: '4px',
-  color: '#6b7280',
-  fontSize: '10px',
+  color: 'var(--text-muted)',
+  fontSize: '11px',
   cursor: 'pointer',
-  transition: 'all 0.2s'
+  transition: 'all 0.2s',
+  textAlign: 'center'
 });
 
-// Hover effects
+// Hover styles
 export const getNavigationButtonHoverStyles = (): CSSProperties => ({
-  backgroundColor: '#e5e7eb'
+  backgroundColor: 'var(--hover-bg)'
 });
 
 export const getCurrentButtonHoverStyles = (): CSSProperties => ({
-  backgroundColor: '#1d4ed8'
+  backgroundColor: 'var(--accent-secondary)'
 });
 
 export const getAddWorkoutButtonHoverStyles = (): CSSProperties => ({
-  borderColor: '#3b82f6',
-  color: '#3b82f6',
-  backgroundColor: '#f0f9ff'
+  borderColor: 'var(--accent-primary)',
+  color: 'var(--accent-primary)',
+  backgroundColor: 'var(--bg-tertiary)'
+});
+
+export const getClearButtonHoverStyles = (): CSSProperties => ({
+  backgroundColor: 'var(--error-color)',
+  color: 'white'
+});
+
+// Missing functions that need to be added
+export const getLoadingContentStyles = (): CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '20px',
+  color: 'var(--text-secondary)'
+});
+
+export const getLoadingIconStyles = (): CSSProperties => ({
+  fontSize: '24px',
+  marginRight: '8px'
+});
+
+export const getHeaderLayoutStyles = (): CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  flexWrap: 'wrap'
+});
+
+export const getPersonPhoneStyles = (): CSSProperties => ({
+  fontSize: '12px',
+  color: 'var(--text-muted)',
+  fontStyle: 'italic'
+});
+
+export const getWeekendToggleStyles = (): CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '14px',
+  color: 'var(--text-primary)',
+  cursor: 'pointer'
+});
+
+export const getCheckboxStyles = (): CSSProperties => ({
+  marginRight: '8px',
+  cursor: 'pointer'
+});
+
+export const getCalendarContentStyles = (): CSSProperties => ({
+  flex: 1,
+  overflow: 'auto'
+});
+
+export const getWeeksContainerStyles = (): CSSProperties => ({
+  display: 'flex',
+  flexDirection: 'column'
+});
+
+export const getWeekContainerStyles = (): CSSProperties => ({
+  borderBottom: '1px solid var(--border-light)'
+});
+
+export const getWorkoutsContainerStyles = (): CSSProperties => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginTop: '8px'
+});
+
+export const getAddWorkoutButtonContainerStyles = (): CSSProperties => ({
+  marginTop: '8px',
+  display: 'flex',
+  justifyContent: 'center'
 }); 

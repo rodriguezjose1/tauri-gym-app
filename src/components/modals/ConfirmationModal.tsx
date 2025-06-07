@@ -1,60 +1,60 @@
 import React from 'react';
 
-export interface ConfirmationModalProps {
+interface ConfirmationModalProps {
   isOpen: boolean;
   title?: string;
-  message?: string;
+  message: string;
   confirmText?: string;
-  cancelText?: string;
-  isLoading?: boolean;
+  type?: 'warning' | 'info' | 'success' | 'error';
   onConfirm: () => void;
   onCancel: () => void;
-  type?: 'warning' | 'info' | 'success' | 'error';
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
-  title = "Confirmar acción",
-  message = "¿Estás seguro de que quieres continuar?",
+  title,
+  message,
   confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  isLoading = false,
+  type = "warning",
   onConfirm,
-  onCancel,
-  type = 'warning'
+  onCancel
 }) => {
   if (!isOpen) return null;
 
-  const getTypeStyles = () => {
-    switch (type) {
-      case 'info':
-        return {
-          backgroundColor: '#dbeafe',
-          color: '#1d4ed8',
-          icon: 'ℹ️'
-        };
-      case 'success':
-        return {
-          backgroundColor: '#dcfce7',
-          color: '#16a34a',
-          icon: '✅'
-        };
-      case 'error':
-        return {
-          backgroundColor: '#fee2e2',
-          color: '#dc2626',
-          icon: '❌'
-        };
-      default: // warning
-        return {
-          backgroundColor: '#fef3c7',
-          color: '#d97706',
-          icon: '⚠️'
-        };
+  const typeStyles = {
+    warning: {
+      backgroundColor: 'var(--warning-color)',
+      color: 'white',
+      icon: '⚠️',
+      defaultTitle: 'Advertencia'
+    },
+    error: {
+      backgroundColor: 'var(--error-color)',
+      color: 'white',
+      icon: '❌',
+      defaultTitle: 'Error'
+    },
+    success: {
+      backgroundColor: 'var(--success-color)',
+      color: 'white',
+      icon: '✅',
+      defaultTitle: 'Éxito'
+    },
+    info: {
+      backgroundColor: 'var(--info-color)',
+      color: 'white',
+      icon: 'ℹ️',
+      defaultTitle: 'Información'
     }
   };
 
-  const typeStyles = getTypeStyles();
+  const currentTypeStyle = typeStyles[type];
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onCancel();
+    }
+  };
 
   return (
     <div style={{
@@ -68,14 +68,15 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000
-    }}>
+    }} onClick={handleOverlayClick}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         borderRadius: '12px',
         padding: '24px',
         maxWidth: '400px',
         width: '90%',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        boxShadow: '0 20px 25px -5px var(--shadow-medium), 0 10px 10px -5px var(--shadow-light)',
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{
           display: 'flex',
@@ -86,29 +87,29 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: typeStyles.backgroundColor,
+            backgroundColor: currentTypeStyle.backgroundColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: '16px'
           }}>
-            <span style={{ fontSize: '24px', color: typeStyles.color }}>{typeStyles.icon}</span>
+            <span style={{ fontSize: '24px', color: currentTypeStyle.color }}>{currentTypeStyle.icon}</span>
           </div>
           <div>
             <h3 style={{
               margin: 0,
               fontSize: '18px',
               fontWeight: '600',
-              color: '#1f2937'
+              color: 'var(--text-primary)'
             }}>
-              {title}
+              {title || currentTypeStyle.defaultTitle}
             </h3>
           </div>
         </div>
         
         <p style={{
           margin: '0 0 24px 0',
-          color: '#6b7280',
+          color: 'var(--text-secondary)',
           lineHeight: '1.5'
         }}>
           {message}
@@ -121,49 +122,33 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         }}>
           <button
             onClick={onCancel}
-            disabled={isLoading}
             style={{
               padding: '8px 16px',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
               borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              backgroundColor: 'white',
-              color: '#374151',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
+              transition: 'all 0.2s'
             }}
           >
-            {cancelText}
+            Cancelar
           </button>
           <button
             onClick={onConfirm}
-            disabled={isLoading}
             style={{
               padding: '8px 16px',
+              backgroundColor: currentTypeStyle.backgroundColor,
+              border: `1px solid ${currentTypeStyle.backgroundColor}`,
               borderRadius: '6px',
-              border: 'none',
-              backgroundColor: type === 'error' ? '#dc2626' : '#3b82f6',
               color: 'white',
+              cursor: 'pointer',
               fontSize: '14px',
               fontWeight: '500',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              transition: 'all 0.2s'
             }}
           >
-            {isLoading && (
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid transparent',
-                borderTop: '2px solid white',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            )}
             {confirmText}
           </button>
         </div>

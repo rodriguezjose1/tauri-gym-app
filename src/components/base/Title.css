@@ -8,23 +8,23 @@
 
 /* Variants */
 .ui-title--default {
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .ui-title--primary {
-  color: #2563eb;
+  color: var(--accent-primary);
 }
 
 .ui-title--secondary {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .ui-title--success {
-  color: #059669;
+  color: var(--success-color);
 }
 
 .ui-title--danger {
-  color: #dc2626;
+  color: var(--error-color);
 }
 
 /* Sizes */

@@ -259,9 +259,9 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
               <div style={styles.getNavigationContainerStyles()}>
                 <button
                   onClick={goToOlderWeeks}
-                  style={styles.getNavigationButtonStyles()}
+                  style={styles.getNavigationButtonStyles(false)}
                   onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.getNavigationButtonHoverStyles())}
-                  onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles())}
+                  onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles(false))}
                   title="Ver semanas anteriores"
                 >
                   ← Anteriores
@@ -290,7 +290,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                   }}
                   onMouseLeave={(e) => {
                     if (weekOffset > 0) {
-                      Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles());
+                      Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles(false));
                     }
                   }}
                   title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}

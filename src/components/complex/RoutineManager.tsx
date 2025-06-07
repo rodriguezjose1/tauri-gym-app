@@ -112,7 +112,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
             {...listeners}
             style={{
               cursor: 'grab',
-              color: '#9ca3af',
+              color: 'var(--text-muted)',
               fontSize: '14px',
               flexShrink: 0
             }}
@@ -125,14 +125,14 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
           <div style={{ flex: 1 }}>
             <div style={{ 
               fontWeight: '500', 
-              color: '#374151',
+              color: 'var(--text-primary)',
               fontSize: '14px'
             }}>
               {exercise.exercise_name}
             </div>
             
             {!isEditing ? (
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                 {/* Solo mostrar el nombre del ejercicio */}
               </div>
             ) : (
@@ -144,7 +144,7 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     marginBottom: '4px', 
                     fontSize: '12px', 
                     fontWeight: '500', 
-                    color: '#374151' 
+                    color: 'var(--text-primary)' 
                   }}>
                     {ROUTINE_UI_LABELS.GROUP_LABEL}
                   </label>
@@ -154,10 +154,11 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                     style={{
                       width: '100%',
                       padding: '6px 8px',
-                      border: '1px solid #d1d5db',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
                       fontSize: '12px',
-                      backgroundColor: 'white'
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)'
                     }}
                   >
                     <option value={1}>Grupo 1</option>
@@ -211,8 +212,8 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 <button
                   onClick={() => setIsEditing(true)}
                   style={{
-                    background: '#3b82f6',
-                    color: 'white',
+                    background: 'var(--accent-primary)',
+                    color: 'var(--text-on-primary)',
                     border: 'none',
                     borderRadius: '4px',
                     padding: '6px 12px',
@@ -227,8 +228,8 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 <button
                   onClick={() => onRemove(exercise.exercise_id)}
                   style={{
-                    background: '#dc2626',
-                    color: 'white',
+                    background: 'var(--error-color)',
+                    color: 'var(--text-on-primary)',
                     border: 'none',
                     borderRadius: '4px',
                     padding: '6px 12px',
@@ -246,8 +247,8 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 <button
                   onClick={handleSave}
                   style={{
-                    background: '#10b981',
-                    color: 'white',
+                    background: 'var(--success-color)',
+                    color: 'var(--text-on-primary)',
                     border: 'none',
                     borderRadius: '4px',
                     padding: '6px 12px',
@@ -261,8 +262,8 @@ const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
                 <button
                   onClick={handleCancel}
                   style={{
-                    background: '#6b7280',
-                    color: 'white',
+                    background: 'var(--text-secondary)',
+                    color: 'var(--text-on-primary)',
                     border: 'none',
                     borderRadius: '4px',
                     padding: '6px 12px',
@@ -598,23 +599,24 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       overflow: 'hidden'
     }}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         borderRadius: '12px',
         width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        border: '1px solid var(--border-light)'
       }}>
         {/* Header */}
         <div style={{
           padding: '20px',
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid var(--border-light)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h2 style={{ margin: 0, color: '#1f2937' }}>🏋️ Gestor de Rutinas</h2>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>🏋️ Gestor de Rutinas</h2>
           {onClose && (
             <button
               onClick={onClose}
@@ -623,7 +625,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 border: 'none',
                 fontSize: '24px',
                 cursor: 'pointer',
-                color: '#6b7280'
+                color: 'var(--text-secondary)'
               }}
             >
               ×
@@ -636,12 +638,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
           {/* Left Panel - Routines List */}
           <div style={{
             width: '400px',
-            borderRight: '1px solid #e5e7eb',
+            borderRight: '1px solid var(--border-light)',
             display: 'flex',
             flexDirection: 'column'
           }}>
             {/* Search and Create */}
-            <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border-light)' }}>
               <Input
                 label=""
                 placeholder={ROUTINE_UI_LABELS.SEARCH_PLACEHOLDER}
@@ -662,11 +664,11 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             {/* Routines List */}
             <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
               {loading ? (
-                <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   {ROUTINE_ERROR_MESSAGES.LOADING_ROUTINES}
                 </div>
               ) : routines.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   {ROUTINE_ERROR_MESSAGES.NO_ROUTINES_AVAILABLE}
                 </div>
               ) : (
@@ -676,18 +678,18 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                     onClick={() => loadRoutineWithExercises(routine.id!)}
                     style={{
                       padding: '12px',
-                      backgroundColor: selectedRoutine?.id === routine.id ? '#eff6ff' : '#f8fafc',
+                      backgroundColor: selectedRoutine?.id === routine.id ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
                       borderRadius: '8px',
-                      border: selectedRoutine?.id === routine.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                      border: selectedRoutine?.id === routine.id ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
                       marginBottom: '8px',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontWeight: '600', color: '#1f2937' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                       {routine.name}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                       {routine.code}
                     </div>
                     <button
@@ -696,8 +698,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                         handleDeleteRoutine(routine.id!, routine.name);
                       }}
                       style={{
-                        background: '#dc2626',
-                        color: 'white',
+                        background: 'var(--error-color)',
+                        color: 'var(--text-on-primary)',
                         border: 'none',
                         borderRadius: '4px',
                         padding: '4px 8px',
@@ -721,12 +723,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 {/* Routine Header */}
                 <div style={{
                   padding: '20px',
-                  borderBottom: '1px solid #e5e7eb'
+                  borderBottom: '1px solid var(--border-light)'
                 }}>
-                  <h3 style={{ margin: 0, color: '#1f2937' }}>
+                  <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>
                     {selectedRoutine.name} ({selectedRoutine.code})
                   </h3>
-                  <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>
+                  <p style={{ margin: '8px 0 0 0', color: 'var(--text-secondary)' }}>
                     {selectedRoutine.exercises.length} ejercicios
                   </p>
                   <Button
@@ -743,7 +745,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   {selectedRoutine.exercises.length === 0 ? (
                     <div style={{
                       textAlign: 'center',
-                      color: '#6b7280',
+                      color: 'var(--text-secondary)',
                       padding: '40px'
                     }}>
                       {ROUTINE_ERROR_MESSAGES.NO_EXERCISES_IN_ROUTINE}
@@ -782,7 +784,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                               <div style={{
                                 fontSize: '14px',
                                 fontWeight: '600',
-                                color: '#374151',
+                                color: 'var(--text-primary)',
                                 marginBottom: '8px',
                                 paddingLeft: '4px'
                               }}>
@@ -791,7 +793,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
                               {/* Group Exercises */}
                               <div style={{
-                                border: '1px dashed #d1d5db',
+                                border: '1px dashed var(--border-color)',
                                 borderRadius: '6px',
                                 padding: '8px'
                               }}>
@@ -818,7 +820,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#6b7280'
+                color: 'var(--text-secondary)'
               }}>
                 {ROUTINE_ERROR_MESSAGES.SELECT_ROUTINE_PROMPT}
               </div>
@@ -840,12 +842,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             justifyContent: 'center'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--bg-primary)',
               borderRadius: '8px',
               padding: '24px',
               width: '400px'
             }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}</h3>
+              <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)' }}>{ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}</h3>
               
               <Input
                 label={ROUTINE_UI_LABELS.NAME_LABEL}
@@ -905,12 +907,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
             justifyContent: 'center'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--bg-primary)',
               borderRadius: '8px',
               padding: '24px',
               width: '500px'
             }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>{ROUTINE_UI_LABELS.ADD_EXERCISE_TITLE}</h3>
+              <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)' }}>{ROUTINE_UI_LABELS.ADD_EXERCISE_TITLE}</h3>
               
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
@@ -930,7 +932,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   marginBottom: '8px', 
                   fontSize: '14px', 
                   fontWeight: '500', 
-                  color: '#374151' 
+                  color: 'var(--text-primary)' 
                 }}>
                   {ROUTINE_UI_LABELS.GROUP_LABEL}
                 </label>
@@ -940,10 +942,11 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    backgroundColor: 'white'
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)'
                   }}
                 >
                   <option value={1}>Grupo 1</option>
@@ -954,7 +957,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 </select>
                 <div style={{ 
                   fontSize: '12px', 
-                  color: '#6b7280', 
+                  color: 'var(--text-secondary)', 
                   marginTop: '4px' 
                 }}>
                   {ROUTINE_UI_LABELS.GROUP_DESCRIPTION}

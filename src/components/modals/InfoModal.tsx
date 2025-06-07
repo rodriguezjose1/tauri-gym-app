@@ -1,58 +1,56 @@
 import React from 'react';
 
-export interface InfoModalProps {
+interface InfoModalProps {
   isOpen: boolean;
   title?: string;
   message: string;
-  buttonText?: string;
-  onClose: () => void;
   type?: 'info' | 'success' | 'warning' | 'error';
+  onClose: () => void;
 }
 
 export const InfoModal: React.FC<InfoModalProps> = ({
   isOpen,
   title,
   message,
-  buttonText = "Aceptar",
-  onClose,
-  type = 'info'
+  type = 'info',
+  onClose
 }) => {
   if (!isOpen) return null;
 
-  const getTypeStyles = () => {
-    switch (type) {
-      case 'success':
-        return {
-          backgroundColor: '#dcfce7',
-          color: '#16a34a',
-          icon: '✅',
-          defaultTitle: 'Éxito'
-        };
-      case 'warning':
-        return {
-          backgroundColor: '#fef3c7',
-          color: '#d97706',
-          icon: '⚠️',
-          defaultTitle: 'Advertencia'
-        };
-      case 'error':
-        return {
-          backgroundColor: '#fee2e2',
-          color: '#dc2626',
-          icon: '❌',
-          defaultTitle: 'Error'
-        };
-      default: // info
-        return {
-          backgroundColor: '#dbeafe',
-          color: '#1d4ed8',
-          icon: 'ℹ️',
-          defaultTitle: 'Información'
-        };
+  const typeStyles = {
+    info: {
+      backgroundColor: 'var(--info-color)',
+      color: 'white',
+      icon: 'ℹ️',
+      defaultTitle: 'Información'
+    },
+    success: {
+      backgroundColor: 'var(--success-color)',
+      color: 'white',
+      icon: '✅',
+      defaultTitle: 'Éxito'
+    },
+    warning: {
+      backgroundColor: 'var(--warning-color)',
+      color: 'white',
+      icon: '⚠️',
+      defaultTitle: 'Advertencia'
+    },
+    error: {
+      backgroundColor: 'var(--error-color)',
+      color: 'white',
+      icon: '❌',
+      defaultTitle: 'Error'
     }
   };
 
-  const typeStyles = getTypeStyles();
+  const currentTypeStyle = typeStyles[type];
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   return (
     <div style={{
@@ -66,14 +64,15 @@ export const InfoModal: React.FC<InfoModalProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000
-    }}>
+    }} onClick={handleOverlayClick}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         borderRadius: '12px',
         padding: '24px',
         maxWidth: '400px',
         width: '90%',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        boxShadow: '0 20px 25px -5px var(--shadow-medium), 0 10px 10px -5px var(--shadow-light)',
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{
           display: 'flex',
@@ -84,29 +83,29 @@ export const InfoModal: React.FC<InfoModalProps> = ({
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: typeStyles.backgroundColor,
+            backgroundColor: currentTypeStyle.backgroundColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: '16px'
           }}>
-            <span style={{ fontSize: '24px', color: typeStyles.color }}>{typeStyles.icon}</span>
+            <span style={{ fontSize: '24px', color: currentTypeStyle.color }}>{currentTypeStyle.icon}</span>
           </div>
           <div>
             <h3 style={{
               margin: 0,
               fontSize: '18px',
               fontWeight: '600',
-              color: '#1f2937'
+              color: 'var(--text-primary)'
             }}>
-              {title || typeStyles.defaultTitle}
+              {title || currentTypeStyle.defaultTitle}
             </h3>
           </div>
         </div>
         
         <p style={{
           margin: '0 0 24px 0',
-          color: '#6b7280',
+          color: 'var(--text-secondary)',
           lineHeight: '1.5'
         }}>
           {message}
@@ -120,16 +119,17 @@ export const InfoModal: React.FC<InfoModalProps> = ({
             onClick={onClose}
             style={{
               padding: '8px 16px',
+              backgroundColor: 'var(--accent-primary)',
+              border: '1px solid var(--accent-primary)',
               borderRadius: '6px',
-              border: 'none',
-              backgroundColor: '#3b82f6',
               color: 'white',
+              cursor: 'pointer',
               fontSize: '14px',
               fontWeight: '500',
-              cursor: 'pointer'
+              transition: 'all 0.2s'
             }}
           >
-            {buttonText}
+            Entendido
           </button>
         </div>
       </div>

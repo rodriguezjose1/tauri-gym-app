@@ -27,9 +27,9 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
       alignItems: 'center',
       marginBottom: '20px',
       padding: '16px',
-      backgroundColor: '#f8fafc',
+      backgroundColor: 'var(--bg-tertiary)',
       borderRadius: '8px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid var(--border-light)'
     }}>
       {/* Navigation Controls */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -64,7 +64,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
       {/* Date Range Title */}
       <div style={{
         fontWeight: '600',
-        color: '#1f2937',
+        color: 'var(--text-primary)',
         fontSize: '16px',
         textAlign: 'center',
         flex: 1
@@ -79,7 +79,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
           alignItems: 'center',
           gap: '8px',
           fontSize: '14px',
-          color: '#374151',
+          color: 'var(--text-primary)',
           cursor: 'pointer'
         }}>
           <input

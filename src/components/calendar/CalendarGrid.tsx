@@ -64,18 +64,18 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         
         return (
           <div key={weekIndex} style={{ 
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--border-light)',
             borderRadius: '8px',
             overflow: 'hidden'
           }}>
             {/* Week Header */}
             <div style={{ 
               padding: '12px 16px',
-              backgroundColor: '#f8fafc',
-              borderBottom: '1px solid #e5e7eb',
+              backgroundColor: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-light)',
               fontWeight: '600',
               fontSize: '14px',
-              color: '#374151'
+              color: 'var(--text-primary)'
             }}>
               Semana {weekNumber}: {formatWeekRange(weekStart)}
             </div>
@@ -87,7 +87,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 ? 'repeat(7, 1fr)' 
                 : 'repeat(5, 1fr)', 
               gap: '1px',
-              backgroundColor: '#e5e7eb',
+              backgroundColor: 'var(--border-light)',
               width: '100%'
             }}>
               {week.map((day, dayIndex) => {
@@ -104,12 +104,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                   <div
                     key={dayIndex}
                     style={{
-                      backgroundColor: isToday ? '#eff6ff' : isPastDay ? '#f9fafb' : 'white',
+                      backgroundColor: isToday ? 'var(--accent-bg)' : isPastDay ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
                       padding: '8px',
                       minHeight: '120px',
                       display: 'flex',
                       flexDirection: 'column',
-                      border: isToday ? '2px solid #3b82f6' : 'none',
+                      border: isToday ? '2px solid var(--accent-primary)' : 'none',
                       overflow: 'hidden'
                     }}
                     onContextMenu={(e) => onDayRightClick(e, dayDateString)}
@@ -119,12 +119,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                       textAlign: 'center', 
                       marginBottom: '8px',
                       paddingBottom: '6px',
-                      borderBottom: '1px solid #e5e7eb'
+                      borderBottom: '1px solid var(--border-light)'
                     }}>
                       <div style={{ 
                         fontSize: '11px', 
                         fontWeight: '600', 
-                        color: isToday ? '#3b82f6' : '#6b7280',
+                        color: isToday ? 'var(--accent-primary)' : 'var(--text-secondary)',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
@@ -133,7 +133,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                       <div style={{ 
                         fontSize: '16px', 
                         fontWeight: 'bold', 
-                        color: isToday ? '#3b82f6' : '#1f2937'
+                        color: isToday ? 'var(--accent-primary)' : 'var(--text-primary)'
                       }}>
                         {day.getDate()}
                       </div>
@@ -152,7 +152,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#9ca3af',
+                          color: 'var(--text-muted)',
                           fontSize: '11px',
                           textAlign: 'center',
                           minHeight: '60px'
@@ -196,21 +196,21 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                           width: '100%',
                           padding: '4px 6px',
                           backgroundColor: 'transparent',
-                          border: '1px dashed #9ca3af',
+                          border: '1px dashed var(--text-muted)',
                           borderRadius: '4px',
-                          color: '#6b7280',
+                          color: 'var(--text-secondary)',
                           fontSize: '10px',
                           cursor: 'pointer',
                           transition: 'all 0.2s'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = '#3b82f6';
-                          e.currentTarget.style.color = '#3b82f6';
-                          e.currentTarget.style.backgroundColor = '#f0f9ff';
+                          e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                          e.currentTarget.style.color = 'var(--accent-primary)';
+                          e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = '#9ca3af';
-                          e.currentTarget.style.color = '#6b7280';
+                          e.currentTarget.style.borderColor = 'var(--text-muted)';
+                          e.currentTarget.style.color = 'var(--text-secondary)';
                           e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                       >

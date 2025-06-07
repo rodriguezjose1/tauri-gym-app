@@ -43,32 +43,32 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
     switch (notification.type) {
       case 'success':
         return {
-          backgroundColor: '#10b981',
-          borderColor: '#059669',
+          backgroundColor: 'var(--success-color)',
+          borderColor: 'var(--success-color)',
           icon: '✓'
         };
       case 'error':
         return {
-          backgroundColor: '#ef4444',
-          borderColor: '#dc2626',
+          backgroundColor: 'var(--error-color)',
+          borderColor: 'var(--error-color)',
           icon: '✕'
         };
       case 'warning':
         return {
-          backgroundColor: '#f59e0b',
-          borderColor: '#d97706',
+          backgroundColor: 'var(--warning-color)',
+          borderColor: 'var(--warning-color)',
           icon: '⚠'
         };
       case 'info':
         return {
-          backgroundColor: '#3b82f6',
-          borderColor: '#2563eb',
+          backgroundColor: 'var(--info-color)',
+          borderColor: 'var(--info-color)',
           icon: 'ℹ'
         };
       default:
         return {
-          backgroundColor: '#6b7280',
-          borderColor: '#4b5563',
+          backgroundColor: 'var(--text-secondary)',
+          borderColor: 'var(--text-secondary)',
           icon: 'ℹ'
         };
     }
@@ -103,7 +103,7 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
         <div
           style={{
             backgroundColor: typeStyles.backgroundColor,
-            color: 'white',
+            color: 'var(--text-primary)',
             borderRadius: '50%',
             width: '24px',
             height: '24px',
@@ -121,7 +121,7 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
           <p style={{
             margin: 0,
             fontSize: '14px',
-            color: '#1f2937',
+            color: 'var(--text-primary)',
             lineHeight: '1.4',
             wordBreak: 'break-word'
           }}>
@@ -136,7 +136,7 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
           style={{
             background: 'none',
             border: 'none',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: '16px',
             padding: '0',

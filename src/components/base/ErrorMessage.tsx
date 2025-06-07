@@ -20,10 +20,10 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
       className={className}
       style={{
         padding: '8px 12px',
-        backgroundColor: '#fef2f2',
-        border: '1px solid #fecaca',
+        backgroundColor: 'var(--error-bg)',
+        border: '1px solid var(--error-border)',
         borderRadius: '6px',
-        color: '#dc2626',
+        color: 'var(--error-color)',
         fontSize: '14px',
         marginBottom: '16px',
         display: 'flex',
@@ -39,7 +39,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: '#dc2626',
+            color: 'var(--error-color)',
             cursor: 'pointer',
             fontSize: '16px',
             padding: '0 4px',
