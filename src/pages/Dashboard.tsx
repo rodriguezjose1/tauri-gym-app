@@ -20,6 +20,7 @@ import {
   DASHBOARD_UI_LABELS 
 } from '../constants/errorMessages';
 import { WorkoutService } from '../services/workoutService';
+import '../styles/Dashboard.css';
 
 export default function Dashboard() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(() => {
@@ -379,164 +380,118 @@ export default function Dashboard() {
   };
 
   const updateSessionExercise = (index: number, field: keyof WorkoutEntryForm, value: any) => {
-    console.log(`Updating session exercise ${index}, field: ${field}, value:`, value);
-    const newExercises = [...sessionForm.exercises];
-    newExercises[index] = { ...newExercises[index], [field]: value };
-    setSessionForm({ exercises: newExercises });
-    console.log("Updated session form:", { exercises: newExercises });
+    const updatedExercises = [...sessionForm.exercises];
+    updatedExercises[index] = { ...updatedExercises[index], [field]: value };
+    setSessionForm({ exercises: updatedExercises });
   };
 
   const deleteSessionExercise = (index: number) => {
-    console.log(`Deleting session exercise at index ${index}`);
-    const newExercises = sessionForm.exercises.filter((_, i) => i !== index);
-    setSessionForm({ exercises: newExercises });
+    const updatedExercises = sessionForm.exercises.filter((_, i) => i !== index);
+    setSessionForm({ exercises: updatedExercises });
   };
 
   const updateWorkoutForm = (field: keyof WorkoutEntryForm, value: any) => {
-    console.log("=== UPDATE WORKOUT FORM ===");
-    console.log("Field:", field);
-    console.log("Value:", value);
-    console.log("Current workoutForm:", workoutForm);
-    const newForm = { ...workoutForm, [field]: value };
-    console.log("New workoutForm:", newForm);
-    setWorkoutForm(newForm);
+    setWorkoutForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSaveWorkoutEntry = async () => {
-    if (!selectedPerson) {
-      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "error");
+    if (!selectedPerson || !selectedDate || workoutForm.exercise_id === 0) {
+      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_WORKOUT_ENTRY, 'error');
       return;
     }
 
-    if (!workoutForm.exercise_id) {
-      showToast(DASHBOARD_ERROR_MESSAGES.EXERCISE_REQUIRED, "error");
-      return;
-    }
-
-    if (!selectedDate) {
-      showToast(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, "error");
-      return;
-    }
-
+    setSavingWorkout(true);
     try {
       const workoutEntry = {
         person_id: selectedPerson.id!,
         exercise_id: workoutForm.exercise_id,
         date: selectedDate,
-        sets: workoutForm.sets || 0,
-        reps: workoutForm.reps || 0,
-        weight: workoutForm.weight || 0,
-        notes: workoutForm.notes || "",
-        order: workoutForm.order || 0,
-        group_number: workoutForm.group_number || 1
+        sets: workoutForm.sets,
+        reps: workoutForm.reps,
+        weight: workoutForm.weight,
+        notes: workoutForm.notes,
+        order: workoutForm.order,
+        group_number: workoutForm.group_number
       };
 
-      console.log("Sending single workoutEntry:", workoutEntry);
-      await invoke("create_workout_entry", { workoutEntry: workoutEntry });
-      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_SAVED, "success");
+      console.log("Saving workout entry:", workoutEntry);
+      await invoke("create_workout_entry", workoutEntry);
+      
+      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_SAVED, 'success');
       
       // Refresh workout data
       await fetchWorkoutData(selectedPerson.id!);
       
       // Close modal
-      setShowWorkoutModal(false);
+      handleCloseWorkoutModal();
     } catch (error) {
-      console.error(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, "error");
+      console.error("Error saving workout entry:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_ENTRY_FAILED, 'error');
+    } finally {
+      setSavingWorkout(false);
     }
   };
 
   const handleSaveWorkoutSession = async () => {
-    if (!selectedPerson) {
-      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "error");
+    if (!selectedPerson || !selectedDate) {
+      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_WORKOUT_SESSION, 'error');
       return;
     }
 
-    if (!selectedDate) {
-      showToast(DASHBOARD_ERROR_MESSAGES.DATE_REQUIRED, "error");
+    // Validate that all exercises have valid exercise_id
+    const validExercises = sessionForm.exercises.filter(ex => ex.exercise_id > 0);
+    if (validExercises.length === 0) {
+      showToast(DASHBOARD_ERROR_MESSAGES.NO_VALID_EXERCISES, 'error');
       return;
     }
 
-    if (!sessionForm.exercises || sessionForm.exercises.length === 0) {
-      showToast(DASHBOARD_ERROR_MESSAGES.EXERCISES_REQUIRED, "error");
-      return;
-    }
-
-    // Validate that all entries have valid exercises
-    const validEntries = sessionForm.exercises.filter((entry: WorkoutEntryForm) => entry.exercise_id && entry.exercise_id > 0);
-    if (validEntries.length === 0) {
-      showToast(DASHBOARD_WARNING_MESSAGES.NO_VALID_EXERCISES, "warning");
-      return;
-    }
-
+    setSavingSession(true);
     try {
-      setSavingSession(true);
+      console.log("Saving workout session with exercises:", validExercises);
       
-      // Get existing exercises for this date
+      // First, delete existing entries for this date and person
       const existingEntries = workoutData.filter(entry => entry.date === selectedDate);
+      console.log("Existing entries to delete:", existingEntries);
       
-      // Create a map of existing exercises by exercise_id and group_number for efficient lookup
-      const existingExercisesMap = new Map();
-      existingEntries.forEach(entry => {
-        const key = `${entry.exercise_id}-${entry.group_number || 1}`;
-        existingExercisesMap.set(key, entry);
-      });
-      
-      // Prepare arrays for the granular replace operation
-      const idsToDelete: number[] = [];
-      const workoutEntriesToInsert: any[] = [];
-      
-      // Process each valid entry from the session form
-      validEntries.forEach((entry: WorkoutEntryForm, index: number) => {
-        const key = `${entry.exercise_id}-${entry.group_number || 1}`;
-        const existingEntry = existingExercisesMap.get(key);
-        
-        if (existingEntry && existingEntry.id) {
-          // Mark existing entry for deletion (we'll replace it)
-          idsToDelete.push(existingEntry.id);
+      for (const entry of existingEntries) {
+        if (entry.id) {
+          console.log("Deleting existing entry:", entry.id);
+          await invoke("delete_workout_entry", { id: entry.id });
         }
-        
-        // Create new workout entry
+      }
+      
+      // Then create new entries
+      for (let i = 0; i < validExercises.length; i++) {
+        const exercise = validExercises[i];
         const workoutEntry = {
           person_id: selectedPerson.id!,
-          exercise_id: entry.exercise_id,
+          exercise_id: exercise.exercise_id,
           date: selectedDate,
-          sets: entry.sets || 0,
-          reps: entry.reps || 0,
-          weight: entry.weight || 0,
-          notes: entry.notes || "",
-          order: index, // Use the index from the session form for proper ordering
-          group_number: entry.group_number || 1
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          notes: exercise.notes,
+          order: i, // Use index as order
+          group_number: exercise.group_number
         };
-        
-        workoutEntriesToInsert.push(workoutEntry);
-      });
-      
-      console.log("Merge operation:", {
-        idsToDelete,
-        workoutEntriesToInsert,
-        existingEntries: existingEntries.length,
-        newEntries: validEntries.length
-      });
-      
-      // Use the granular replace operation for efficient merge
-      if (idsToDelete.length > 0 || workoutEntriesToInsert.length > 0) {
-        await invoke("replace_workout_session_granular", {
-          idsToDelete: idsToDelete,
-          workoutEntriesToInsert: workoutEntriesToInsert
-        });
-      }
 
-      showToast(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, "success");
+        console.log("Creating workout entry:", workoutEntry);
+        await invoke("create_workout_entry", workoutEntry);
+      }
+      
+      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_SESSION_SAVED, 'success');
       
       // Refresh workout data
       await fetchWorkoutData(selectedPerson.id!);
       
       // Close modal
-      setShowSessionModal(false);
+      handleCloseSessionModal();
     } catch (error) {
-      console.error(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, "error");
+      console.error("Error saving workout session:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_SESSION_FAILED, 'error');
     } finally {
       setSavingSession(false);
     }
@@ -548,22 +503,25 @@ export default function Dashboard() {
   };
 
   const confirmDeleteWorkoutEntry = async () => {
-    if (workoutToDelete && selectedPerson) {
-      try {
-        await invoke("delete_workout_entry", { id: workoutToDelete });
-        
-        // Refresh workout data
+    if (!workoutToDelete) return;
+
+    setDeletingWorkout(true);
+    try {
+      await invoke("delete_workout_entry", { id: workoutToDelete });
+      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_DELETED, 'success');
+      
+      // Refresh workout data
+      if (selectedPerson) {
         await fetchWorkoutData(selectedPerson.id!);
-        
-        // Close modal
-        setShowDeleteModal(false);
-        setWorkoutToDelete(null);
-        
-        showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_DELETED, "success");
-      } catch (error) {
-        console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_DELETE_WORKOUT, error);
-        showToast(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_FAILED, "error");
       }
+      
+      setShowDeleteModal(false);
+      setWorkoutToDelete(null);
+    } catch (error) {
+      console.error("Error deleting workout entry:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_ENTRY_FAILED, 'error');
+    } finally {
+      setDeletingWorkout(false);
     }
   };
 
@@ -573,171 +531,168 @@ export default function Dashboard() {
   };
 
   const handleReorderExercises = async (exerciseOrders: Array<{ id: number; order: number }>) => {
-    if (!selectedPerson) return;
-    
     try {
-      await invoke("reorder_workout_entries", { exercise_orders: exerciseOrders });
+      await WorkoutService.reorderExercises(exerciseOrders);
       
       // Refresh workout data
-      await fetchWorkoutData(selectedPerson.id!);
+      if (selectedPerson) {
+        await fetchWorkoutData(selectedPerson.id!);
+      }
     } catch (error) {
-      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_REORDER_EXERCISES, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, "error");
+      console.error("Error reordering exercises:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, 'error');
     }
   };
 
   const handleLoadRoutine = async (routineId: number) => {
-    if (!selectedPerson) {
-      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "warning");
+    if (!selectedPerson || !selectedDate) {
+      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_ROUTINE_LOAD, 'error');
       return;
     }
 
+    setLoadingRoutine(true);
     try {
-      const routine = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
+      console.log("Loading routine", routineId, "for person", selectedPerson.id, "on date", selectedDate);
       
-      if (routine.exercises && routine.exercises.length > 0) {
-        const exerciseForms: WorkoutEntryForm[] = routine.exercises.map((exercise, index) => ({
-          exercise_id: exercise.exercise_id,
-          sets: exercise.sets || 1,
-          reps: exercise.reps || 1,
-          weight: exercise.weight || 0,
-          notes: exercise.notes || "",
-          order: index,
-          group_number: selectedGroupForRoutine
-        }));
-        
-        setSessionForm({ exercises: exerciseForms });
-        setShowLoadRoutineModal(false);
-        
-        showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED(routine.name, routine.exercises.length, selectedGroupForRoutine), "success");
-      } else {
-        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, "warning");
+      // Get routine with exercises
+      const routineWithExercises = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
+      console.log("Routine with exercises:", routineWithExercises);
+      
+      if (!routineWithExercises.exercises || routineWithExercises.exercises.length === 0) {
+        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, 'warning');
+        return;
       }
+
+      // Convert routine exercises to session form
+      const exerciseForms: WorkoutEntryForm[] = routineWithExercises.exercises.map((routineExercise, index) => ({
+        exercise_id: routineExercise.exercise_id,
+        sets: routineExercise.sets || 1,
+        reps: routineExercise.reps || 1,
+        weight: routineExercise.weight || 0,
+        notes: routineExercise.notes || "",
+        order: index,
+        group_number: routineExercise.group_number || 1
+      }));
+
+      setSessionForm({ exercises: exerciseForms });
+      showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED, 'success');
     } catch (error) {
-      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_LOAD_ROUTINE, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.LOAD_ROUTINE_FAILED, "error");
+      console.error("Error loading routine:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.LOAD_ROUTINE_FAILED, 'error');
+    } finally {
+      setLoadingRoutine(false);
     }
   };
 
   const handleShowLoadRoutineModal = () => {
-    if (!selectedPerson) {
-      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, "warning");
-      return;
-    }
-    
+    setSelectedDateForRoutine(selectedDate);
     setShowLoadRoutineModal(true);
   };
 
   const handleLoadRoutineToDate = async () => {
     if (!selectedPerson || !selectedRoutineForLoad || !selectedDateForRoutine) {
-      showToast(DASHBOARD_ERROR_MESSAGES.REQUIRED_FIELDS, "error");
+      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_ROUTINE_LOAD, 'error');
       return;
     }
 
-    try {
-      const routine = await invoke("get_routine_with_exercises", { id: selectedRoutineForLoad }) as RoutineWithExercises;
-      
-      if (routine.exercises && routine.exercises.length > 0) {
-        // Check if there are existing exercises for the selected date
-        const existingExercises = workoutData.filter(entry => entry.date === selectedDateForRoutine);
-        
-        let shouldProceed = true;
-        if (existingExercises.length > 0) {
-          shouldProceed = await showConfirm(
-            DASHBOARD_WARNING_MESSAGES.REPLACE_EXISTING_EXERCISES,
-            { title: DASHBOARD_UI_LABELS.WARNING_TITLE, type: "warning" }
-          );
-        }
-        
-        if (shouldProceed) {
-          // Delete existing exercises for this date if any
-          if (existingExercises.length > 0) {
-            for (const exercise of existingExercises) {
-              if (exercise.id) {
-                await invoke("delete_workout_entry", { id: exercise.id });
-              }
-            }
-          }
-          
-          // Create new workout entries from routine
-          for (let i = 0; i < routine.exercises.length; i++) {
-            const exercise = routine.exercises[i];
-            const workoutEntry = {
-              person_id: selectedPerson.id!,
-              exercise_id: exercise.exercise_id,
-              date: selectedDateForRoutine,
-              sets: exercise.sets || 1,
-              reps: exercise.reps || 1,
-              weight: exercise.weight || 0,
-              notes: exercise.notes || "",
-              order: i,
-              group_number: selectedGroupForRoutine
-            };
-            
-            console.log("Sending routine workoutEntry:", workoutEntry);
-            await invoke("create_workout_entry", { workoutEntry: workoutEntry });
-          }
-          
-          // Refresh workout data
-          await fetchWorkoutData(selectedPerson.id!);
-          
-          // Close modal and reset form
-          setShowLoadRoutineModal(false);
-          setSelectedRoutineForLoad(null);
-          setSelectedDateForRoutine("");
-          setSelectedGroupForRoutine(1);
-          
-          showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED(routine.name, routine.exercises.length, selectedGroupForRoutine), "success");
-        }
-      } else {
-        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, "warning");
+    const confirmed = await showConfirm(
+      `¿Estás seguro de que quieres aplicar la rutina a la fecha ${new Date(selectedDateForRoutine).toLocaleDateString('es-ES')}? Si ya existen ejercicios para esa fecha, serán reemplazados.`,
+      {
+        title: 'Confirmar aplicación de rutina',
+        confirmText: 'Aplicar rutina',
+        type: 'warning'
       }
+    );
+
+    if (!confirmed) return;
+
+    setLoadingRoutine(true);
+    try {
+      console.log("Loading routine", selectedRoutineForLoad, "for person", selectedPerson.id, "on date", selectedDateForRoutine);
+      
+      // Get routine with exercises
+      const routineWithExercises = await invoke("get_routine_with_exercises", { id: selectedRoutineForLoad }) as RoutineWithExercises;
+      console.log("Routine with exercises:", routineWithExercises);
+      
+      if (!routineWithExercises.exercises || routineWithExercises.exercises.length === 0) {
+        showToast(DASHBOARD_WARNING_MESSAGES.ROUTINE_NO_EXERCISES, 'warning');
+        return;
+      }
+
+      // First, delete existing entries for this date and person
+      const existingEntries = workoutData.filter(entry => entry.date === selectedDateForRoutine);
+      console.log("Existing entries to delete:", existingEntries);
+      
+      for (const entry of existingEntries) {
+        if (entry.id) {
+          console.log("Deleting existing entry:", entry.id);
+          await invoke("delete_workout_entry", { id: entry.id });
+        }
+      }
+
+      // Then create new entries from routine
+      for (let i = 0; i < routineWithExercises.exercises.length; i++) {
+        const routineExercise = routineWithExercises.exercises[i];
+        const workoutEntry = {
+          person_id: selectedPerson.id!,
+          exercise_id: routineExercise.exercise_id,
+          date: selectedDateForRoutine,
+          sets: routineExercise.sets || 1,
+          reps: routineExercise.reps || 1,
+          weight: routineExercise.weight || 0,
+          notes: routineExercise.notes || "",
+          order: i,
+          group_number: selectedGroupForRoutine // Use the selected group
+        };
+
+        console.log("Creating workout entry from routine:", workoutEntry);
+        await invoke("create_workout_entry", workoutEntry);
+      }
+
+      showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED_TO_DATE, 'success');
+      
+      // Refresh workout data
+      await fetchWorkoutData(selectedPerson.id!);
+      
+      // Close modal
+      setShowLoadRoutineModal(false);
+      setSelectedRoutineForLoad(null);
+      setSelectedDateForRoutine("");
+      setSelectedGroupForRoutine(1);
     } catch (error) {
-      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_APPLY_ROUTINE, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_FAILED, "error");
+      console.error("Error applying routine to date:", error);
+      showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_TO_DATE_FAILED, 'error');
+    } finally {
+      setLoadingRoutine(false);
     }
   };
 
-  // Load workout data when selectedPerson is available (including from sessionStorage)
-  useEffect(() => {
-    if (selectedPerson && selectedPerson.id) {
-      // Calculate date range for the last 3 weeks
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 20); // Go back 20 days to cover 3 weeks
-      const endDate = new Date(today);
-      
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-      
-      // Load workout data for the selected person
-      WorkoutService.getWorkoutEntriesByPersonAndDateRange(
-        selectedPerson.id,
-        startDateStr,
-        endDateStr
-      ).then((data) => {
-        setWorkoutData(data);
-      }).catch((error) => {
-        console.error("Error loading workout data:", error);
-        showToast("Error al cargar los datos de entrenamiento", "error");
-      });
-    }
-  }, [selectedPerson]); // This will run when selectedPerson changes or is loaded from sessionStorage
-
+  // Initialize data on component mount
   useEffect(() => {
     const initializeData = async () => {
+      setLoading(true);
       try {
-        await fetchAllExercises();
-        await fetchRoutines();
+        await Promise.all([
+          fetchAllExercises(),
+          fetchRoutines()
+        ]);
+        
+        // If there's a selected person from session storage, fetch their workout data
+        if (selectedPerson?.id) {
+          await fetchWorkoutData(selectedPerson.id);
+        }
       } catch (error) {
-        console.error(DASHBOARD_ERROR_MESSAGES.INITIALIZE_DATA_FAILED, error);
+        console.error("Error initializing dashboard data:", error);
+      } finally {
+        setLoading(false);
+        setInitialLoadDone(true);
       }
     };
 
     initializeData();
   }, []);
 
-  // Save selectedPerson to sessionStorage whenever it changes
+  // Save selected person to session storage when it changes
   useEffect(() => {
     if (selectedPerson) {
       sessionStorage.setItem(DASHBOARD_UI_LABELS.SELECTED_PERSON_KEY, JSON.stringify(selectedPerson));
@@ -757,31 +712,19 @@ export default function Dashboard() {
   }, [sessionForm]);
 
   return (
-    <div style={getDashboardWrapperStyles()}>
-      <div style={{ ...getContainerStyles(), height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          gap: '12px'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+    <div className="dashboard-container" style={getDashboardWrapperStyles()}>
+      <div className="dashboard-wrapper" style={{ ...getContainerStyles() }}>
+        <div className="dashboard-header">
+          <div className="dashboard-header-left">
             {/* Configuraciones button moved to navbar */}
           </div>
           {/* 
           {selectedPerson && (
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div className="dashboard-header-right">
               <Button
                 onClick={handleShowLoadRoutineModal}
                 variant="secondary"
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  fontSize: '14px'
-                }}
+                className="dashboard-load-routine-button"
               >
                 <span>🏋️</span>
                 Cargar desde Rutina
@@ -791,19 +734,21 @@ export default function Dashboard() {
           */}
         </div>
         {/* Weekly Calendar with Embedded Person Search */}
-        <WeeklyCalendar
-          selectedPerson={selectedPerson}
-          workoutData={workoutData}
-          onWorkoutDataChange={setWorkoutData}
-          onReorderExercises={handleReorderExercises}
-          onAddWorkoutClick={handleAddWorkoutClick}
-          onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
-          onDayClick={handleDayClick}
-          onDayRightClick={handleDayRightClick}
-          onSelectedDateChange={setSelectedDate}
-          handlePersonSelect={handlePersonSelect}
-          handleClearSelection={handleClearSelection}
-        />
+        <div className="dashboard-calendar-container">
+          <WeeklyCalendar
+            selectedPerson={selectedPerson}
+            workoutData={workoutData}
+            onWorkoutDataChange={setWorkoutData}
+            onReorderExercises={handleReorderExercises}
+            onAddWorkoutClick={handleAddWorkoutClick}
+            onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
+            onDayClick={handleDayClick}
+            onDayRightClick={handleDayRightClick}
+            onSelectedDateChange={setSelectedDate}
+            handlePersonSelect={handlePersonSelect}
+            handleClearSelection={handleClearSelection}
+          />
+        </div>
       </div>
 
       {/* Workout Modals */}
@@ -861,34 +806,27 @@ export default function Dashboard() {
         title="Cargar Rutina a Fecha Específica"
         size="md"
       >
-        <div style={{ padding: '8px 0' }}>
+        <div className="load-routine-modal-content">
           {selectedPerson && (
-            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px' }}>
-              <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <div className="load-routine-person-info">
+              <div className="load-routine-person-name">
                 {selectedPerson.name} {selectedPerson.last_name}
               </div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              <div className="load-routine-person-subtitle">
                 Aplicar rutina a una fecha específica
               </div>
             </div>
           )}
 
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+          <div className="load-routine-form-grid">
+            <div className="load-routine-form-group">
+              <label className="load-routine-label">
                 Seleccionar Rutina:
               </label>
               <select
                 value={selectedRoutineForLoad || ''}
                 onChange={(e) => setSelectedRoutineForLoad(e.target.value ? parseInt(e.target.value) : null)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  backgroundColor: 'var(--bg-primary)'
-                }}
+                className="load-routine-select"
               >
                 <option value="">-- Seleccionar rutina --</option>
                 {routines.map(routine => (
@@ -899,8 +837,8 @@ export default function Dashboard() {
               </select>
             </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+            <div className="load-routine-form-group">
+              <label className="load-routine-label">
                 Fecha:
               </label>
               <Input
@@ -912,21 +850,14 @@ export default function Dashboard() {
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+            <div className="load-routine-form-group">
+              <label className="load-routine-label">
                 Grupo:
               </label>
               <select
                 value={selectedGroupForRoutine}
                 onChange={(e) => setSelectedGroupForRoutine(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  backgroundColor: 'var(--bg-primary)'
-                }}
+                className="load-routine-select"
               >
                 <option value={1}>Grupo 1</option>
                 <option value={2}>Grupo 2</option>
@@ -934,27 +865,20 @@ export default function Dashboard() {
                 <option value={4}>Grupo 4</option>
                 <option value={5}>Grupo 5</option>
               </select>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              <div className="load-routine-group-help">
                 Todos los ejercicios de la rutina se asignarán a este grupo
               </div>
             </div>
 
             {selectedRoutineForLoad && selectedDateForRoutine && (
-              <div style={{ 
-                padding: '12px', 
-                backgroundColor: 'var(--bg-tertiary)', 
-                borderRadius: '8px', 
-                fontSize: '14px', 
-                color: 'var(--accent-primary)',
-                border: '1px solid var(--border-light)'
-              }}>
+              <div className="load-routine-info-box">
                 ℹ️ La rutina seleccionada se aplicará a la fecha {new Date(selectedDateForRoutine).toLocaleDateString('es-ES')} en el Grupo {selectedGroupForRoutine}. 
                 Si ya existen ejercicios para esa fecha, serán reemplazados.
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
+          <div className="load-routine-actions">
             <Button
               onClick={() => {
                 setShowLoadRoutineModal(false);
