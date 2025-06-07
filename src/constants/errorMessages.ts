@@ -13,6 +13,13 @@ export const ROUTINE_ERROR_MESSAGES = {
   REMOVE_EXERCISE_FAILED: (error: string) => `Error al eliminar ejercicio: ${error}`,
   ADD_EXERCISE_FAILED: (error: string) => `Error al agregar ejercicio: ${error}`,
   
+  // Data loading errors
+  LOAD_ROUTINES_FAILED: "Error al cargar las rutinas",
+  SEARCH_ROUTINES_FAILED: "Error al buscar rutinas",
+  LOAD_ROUTINE_EXERCISES_FAILED: "Error al cargar los ejercicios de la rutina",
+  LOAD_EXERCISES_FAILED: "Error al cargar los ejercicios",
+  REORDER_EXERCISES_FAILED: "Error al reordenar los ejercicios",
+  
   // Loading states
   LOADING_ROUTINES: "Cargando rutinas...",
   NO_ROUTINES_AVAILABLE: "No hay rutinas disponibles",
@@ -59,9 +66,18 @@ export const ROUTINE_UI_LABELS = {
   // Group descriptions
   GROUP_DESCRIPTION: "Los ejercicios del mismo grupo se mostrarán juntos en el calendario",
   
+  // Success messages
+  ROUTINE_CREATED_SUCCESS: "Rutina creada exitosamente",
+  ROUTINE_DELETED_SUCCESS: "Rutina eliminada exitosamente",
+  EXERCISE_ADDED_SUCCESS: "Ejercicio agregado exitosamente",
+  EXERCISE_UPDATED_SUCCESS: "Ejercicio actualizado exitosamente",
+  EXERCISE_REMOVED_SUCCESS: "Ejercicio eliminado exitosamente",
+  EXERCISES_REORDERED_SUCCESS: "Ejercicios reordenados exitosamente",
+  
   // Tooltips
   DRAG_TOOLTIP: "Arrastrar para reordenar",
   EDIT_TOOLTIP: "Editar ejercicio",
+  REMOVE_TOOLTIP: "Eliminar ejercicio",
   DELETE_TOOLTIP: "Eliminar ejercicio",
   CLOSE_ERROR_TOOLTIP: "Cerrar mensaje de error"
 } as const;

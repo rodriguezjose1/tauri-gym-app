@@ -1,6 +1,6 @@
 /* RoutineManager Component Styles */
 
-/* Main Container */
+/* Main Container - Modal Mode */
 .routine-manager-overlay {
   position: fixed;
   top: 0;
@@ -14,6 +14,15 @@
   z-index: 1000;
 }
 
+/* Main Container - Page Mode */
+.routine-manager-page {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
 .routine-manager-container {
   background-color: var(--bg-primary);
   border-radius: 12px;
@@ -23,6 +32,13 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-light);
+}
+
+/* Container for page mode - no border radius or border */
+.routine-manager-container.page-mode {
+  border-radius: 0;
+  border: none;
+  height: calc(100vh - 60px); /* Account for navbar */
 }
 
 /* Header Section */

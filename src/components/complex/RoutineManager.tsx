@@ -253,7 +253,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const loadRoutines = async () => {
     setLoading(true);
     try {
-      const result = await RoutineService.listRoutines(1, 100);
+      const result = await RoutineService.listRoutines();
       setRoutines(result);
     } catch (error) {
       console.error(ROUTINE_ERROR_MESSAGES.LOAD_ROUTINES_FAILED, error);
@@ -265,7 +265,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   const searchRoutines = async (query: string) => {
     setLoading(true);
     try {
-      const result = await RoutineService.searchRoutines(query, 1, 100);
+      const result = await RoutineService.searchRoutines(query);
       setRoutines(result);
     } catch (error) {
       console.error(ROUTINE_ERROR_MESSAGES.SEARCH_ROUTINES_FAILED, error);
@@ -300,10 +300,10 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      const newRoutine = await RoutineService.createRoutine({
-        name: createForm.name.trim(),
-        code: createForm.code.trim()
-      });
+      const newRoutineId = await RoutineService.createRoutine(
+        createForm.name.trim(),
+        createForm.code.trim()
+      );
 
       showToast(ROUTINE_UI_LABELS.ROUTINE_CREATED_SUCCESS, 'success');
       setCreateForm({ name: '', code: '' });
@@ -311,12 +311,12 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       await loadRoutines();
       
       // Auto-select the new routine
-      if (newRoutine.id) {
-        await loadRoutineWithExercises(newRoutine.id);
+      if (newRoutineId) {
+        await loadRoutineWithExercises(newRoutineId);
       }
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED, 'error');
+      console.error('Error creating routine:', error);
+      showToast('Error al crear la rutina', 'error');
     } finally {
       setLoading(false);
     }
@@ -346,8 +346,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       setRoutineToDelete(null);
       setDeleteRoutineName("");
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED, 'error');
+      console.error('Error deleting routine:', error);
+      showToast('Error al eliminar la rutina', 'error');
     } finally {
       setDeletingRoutine(false);
     }
@@ -366,18 +366,17 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     }
 
     try {
-      const routineExercise = {
-        routine_id: selectedRoutine.id!,
-        exercise_id: addExerciseForm.exerciseId,
-        sets: addExerciseForm.sets || undefined,
-        reps: addExerciseForm.reps || undefined,
-        weight: addExerciseForm.weight || undefined,
-        notes: addExerciseForm.notes.trim() || undefined,
-        order: selectedRoutine.exercises.length,
-        group_number: addExerciseForm.group_number || undefined,
-      };
+      await RoutineService.addExerciseToRoutine(
+        selectedRoutine.id!,
+        addExerciseForm.exerciseId,
+        selectedRoutine.exercises.length,
+        addExerciseForm.sets || undefined,
+        addExerciseForm.reps || undefined,
+        addExerciseForm.weight || undefined,
+        addExerciseForm.notes.trim() || undefined,
+        addExerciseForm.group_number || undefined
+      );
 
-      await RoutineService.addExerciseToRoutine(routineExercise);
       showToast(ROUTINE_UI_LABELS.EXERCISE_ADDED_SUCCESS, 'success');
       
       // Reset form
@@ -394,8 +393,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED, 'error');
+      console.error('Error adding exercise:', error);
+      showToast('Error al agregar ejercicio', 'error');
     }
   };
 
@@ -403,21 +402,25 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     if (!selectedRoutine) return;
 
     try {
-      await RoutineService.updateRoutineExercise(exercise.id!, {
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weight: exercise.weight,
-        notes: exercise.notes,
-        group_number: exercise.group_number,
-      });
+      await RoutineService.updateRoutineExercise(
+        exercise.id!,
+        selectedRoutine.id!,
+        exercise.exercise_id!,
+        exercise.order_index || 0,
+        exercise.sets,
+        exercise.reps,
+        exercise.weight,
+        exercise.notes,
+        exercise.group_number
+      );
 
       showToast(ROUTINE_UI_LABELS.EXERCISE_UPDATED_SUCCESS, 'success');
       
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED, 'error');
+      console.error('Error updating exercise:', error);
+      showToast('Error al actualizar ejercicio', 'error');
     }
   };
 
@@ -425,14 +428,14 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
     if (!selectedRoutine) return;
 
     try {
-      await RoutineService.removeExerciseFromRoutine(exerciseId);
+      await RoutineService.removeExerciseFromRoutine(selectedRoutine.id!, exerciseId);
       showToast(ROUTINE_UI_LABELS.EXERCISE_REMOVED_SUCCESS, 'success');
       
       // Reload routine
       await loadRoutineWithExercises(selectedRoutine.id!);
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED, 'error');
+      console.error('Error removing exercise:', error);
+      showToast('Error al eliminar ejercicio', 'error');
     }
   };
 
@@ -458,16 +461,16 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
 
     try {
       // Update order in backend
-      const exerciseOrders = newExercises.map((exercise, index) => ({
-        id: exercise.id!,
-        order: index
-      }));
+      const exerciseOrders: Array<[number, number]> = newExercises.map((exercise, index) => [
+        exercise.id!,
+        index
+      ]);
 
-      await RoutineService.reorderRoutineExercises(exerciseOrders);
+      await RoutineService.reorderRoutineExercises(selectedRoutine.id!, exerciseOrders);
       showToast(ROUTINE_UI_LABELS.EXERCISES_REORDERED_SUCCESS, 'success');
     } catch (error) {
-      console.error(ROUTINE_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, error);
-      showToast(ROUTINE_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, 'error');
+      console.error('Error reordering exercises:', error);
+      showToast('Error al reordenar ejercicios', 'error');
       
       // Revert on error
       await loadRoutineWithExercises(selectedRoutine.id!);
@@ -501,8 +504,8 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
   }, []);
 
   return (
-    <div className="routine-manager-overlay">
-      <div className="routine-manager-container">
+    <div className={onClose ? "routine-manager-overlay" : "routine-manager-page"}>
+      <div className={`routine-manager-container ${!onClose ? 'page-mode' : ''}`}>
         {/* Header */}
         <div className="routine-manager-header">
           <h2 className="routine-manager-title">🏋️ Gestor de Rutinas</h2>
