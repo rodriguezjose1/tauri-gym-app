@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ExerciseService, Exercise } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/base";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
+import "../styles/ExerciseCrud.css";
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -184,16 +185,16 @@ export default function ExerciseCrud() {
   };
 
   return (
-    <div style={getPageWrapperStyles()}>
-      <div style={getContainerStyles()}>
+    <div className="exercise-crud-container" style={getPageWrapperStyles()}>
+      <div className="exercise-crud-wrapper" style={getContainerStyles()}>
         {/* Form */}
-        <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
-          <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
+        <Card variant="elevated" padding="lg" className="exercise-form-card">
+          <Title level={2} variant="default" className="exercise-form-title">
             {editingExercise ? "Editar Ejercicio" : "Agregar Nuevo Ejercicio"}
           </Title>
           
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+            <div className="exercise-form-grid">
               <Input
                 label="Nombre del Ejercicio"
                 placeholder="Ej: Press de banca"
@@ -214,7 +215,7 @@ export default function ExerciseCrud() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="exercise-form-actions">
               <Button
                 type="submit"
                 variant="success"
@@ -239,16 +240,16 @@ export default function ExerciseCrud() {
 
         {/* Exercises List */}
         <Card variant="elevated" padding="lg">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div className="exercise-list-header">
             <Title level={2} variant="default">
               Lista de Ejercicios
             </Title>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>
+            <div className="exercise-list-stats">
+              <span className="exercise-count">
                 {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
               </span>
               {searchTerm.trim() === "" && (
-                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                <span className="exercise-page-info">
                   Página {currentPage}
                 </span>
               )}
@@ -256,8 +257,8 @@ export default function ExerciseCrud() {
           </div>
 
           {/* Search Field */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ position: 'relative', maxWidth: '400px' }}>
+          <div className="exercise-search-container">
+            <div className="exercise-search-wrapper">
               <Input
                 placeholder="🔍 Buscar ejercicios por nombre o código..."
                 value={searchTerm}
@@ -268,22 +269,7 @@ export default function ExerciseCrud() {
               {searchTerm.trim() !== "" && (
                 <button
                   onClick={clearSearch}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  className="exercise-search-clear"
                   title="Limpiar búsqueda"
                 >
                   ✕
@@ -291,31 +277,26 @@ export default function ExerciseCrud() {
               )}
             </div>
             {searchTerm.trim() !== "" && (
-              <p style={{ 
-                fontSize: '14px', 
-                color: 'var(--success-color)', 
-                margin: '8px 0 0 0',
-                fontWeight: '500'
-              }}>
+              <p className="exercise-search-results">
                 Mostrando resultados para: "{searchTerm}"
               </p>
             )}
           </div>
           
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando ejercicios...</p>
+            <div className="exercise-loading-state">
+              <div className="exercise-loading-icon">⏳</div>
+              <p className="exercise-loading-text">Cargando ejercicios...</p>
             </div>
           ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
-            <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+            <div className="exercise-empty-state">
+              <div className="exercise-empty-icon">
                 {searchTerm.trim() !== "" ? '🔍' : '🏋️'}
               </div>
               <Title level={3} variant="secondary" align="center">
                 {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
               </Title>
-              <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
+              <p className="exercise-empty-description">
                 {searchTerm.trim() !== "" 
                   ? `No hay ejercicios que coincidan con "${searchTerm}"`
                   : 'Agrega tu primer ejercicio usando el formulario de arriba'
@@ -323,44 +304,28 @@ export default function ExerciseCrud() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div className="exercise-list-grid">
               {filteredExercises.map((exercise) => (
                 <Card
                   key={exercise.id}
                   variant={editingExercise?.id === exercise.id ? "outlined" : "default"}
                   padding="md"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    border: editingExercise?.id === exercise.id ? '2px solid var(--success-color)' : undefined
-                  }}
+                  className={`exercise-card ${editingExercise?.id === exercise.id ? 'editing' : ''}`}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--success-color)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '16px'
-                  }}>
+                  <div className="exercise-avatar">
                     {exercise.name.charAt(0).toUpperCase()}
                   </div>
                   
-                  <div style={{ flex: 1 }}>
-                    <Title level={4} variant="default" style={{ marginBottom: '4px' }}>
+                  <div className="exercise-info">
+                    <Title level={4} variant="default" className="exercise-name">
                       {exercise.name}
                     </Title>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>
+                    <p className="exercise-code">
                       🏷️ {exercise.code}
                     </p>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="exercise-actions">
                     <Button
                       onClick={() => handleEdit(exercise)}
                       variant="secondary"
@@ -383,14 +348,7 @@ export default function ExerciseCrud() {
 
           {/* Pagination Controls */}
           {!loading && exercises.length > 0 && searchTerm.trim() === "" && (
-            <div style={{ 
-              marginTop: '24px', 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
+            <div className="exercise-pagination">
               <Button
                 onClick={() => goToPage(currentPage - 1)}
                 variant="secondary"
@@ -400,13 +358,7 @@ export default function ExerciseCrud() {
                 ← Anterior
               </Button>
               
-              <span style={{ 
-                padding: '8px 16px', 
-                backgroundColor: 'var(--bg-tertiary)', 
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}>
+              <span className="exercise-page-indicator">
                 Página {currentPage} {totalExercises > 0 && `de ${Math.ceil(totalExercises / ITEMS_PER_PAGE)}`}
               </span>
               
@@ -441,14 +393,14 @@ export default function ExerciseCrud() {
         title="Confirmar Eliminación"
         size="sm"
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <p style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>
+        <div className="delete-confirmation-content">
+          <div className="delete-confirmation-icon">⚠️</div>
+          <p className="delete-confirmation-text">
             ¿Estás seguro de que quieres eliminar el ejercicio <strong>{deleteConfirm.exerciseName}</strong>?
             <br />
             Esta acción no se puede deshacer.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <div className="delete-confirmation-actions">
             <Button
               onClick={() => setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" })}
               variant="secondary"
