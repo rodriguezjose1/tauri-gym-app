@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { PersonService, Person } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/base";
 import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
+import "../styles/PersonCrud.css";
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -127,16 +128,16 @@ export default function PersonCrud() {
   });
 
   return (
-    <div style={getPageWrapperStyles()}>
-      <div style={getContainerStyles()}>
+    <div className="person-crud-container" style={getPageWrapperStyles()}>
+      <div className="person-crud-wrapper" style={getContainerStyles()}>
         {/* Form */}
-        <Card variant="elevated" padding="lg" style={{ marginBottom: '32px' }}>
-          <Title level={2} variant="default" style={{ marginBottom: '24px' }}>
+        <Card variant="elevated" padding="lg" className="person-form-card">
+          <Title level={2} variant="default" className="person-form-title">
             {editingPerson ? "Editar Persona" : "Agregar Nueva Persona"}
           </Title>
           
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+            <div className="person-form-grid">
               <Input
                 label="Nombre Completo"
                 placeholder="Ej: Juan Pérez"
@@ -166,7 +167,7 @@ export default function PersonCrud() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="person-form-actions">
               <Button
                 type="submit"
                 variant="success"
@@ -191,17 +192,17 @@ export default function PersonCrud() {
 
         {/* Persons List */}
         <Card variant="elevated" padding="lg">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div className="person-list-header">
             <Title level={2} variant="default">
               Lista de Personas
             </Title>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>
+            <span className="person-count">
               {filteredPersons.length} de {persons.length} {persons.length === 1 ? 'persona' : 'personas'}
             </span>
           </div>
 
           {/* Search Bar */}
-          <div style={{ marginBottom: '24px' }}>
+          <div className="person-search-container">
             <Input
               label="Buscar personas"
               placeholder="Buscar por nombre, apellido o teléfono..."
@@ -214,19 +215,19 @@ export default function PersonCrud() {
           </div>
           
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Cargando personas...</p>
+            <div className="person-loading-state">
+              <div className="person-loading-icon">⏳</div>
+              <p className="person-loading-text">Cargando personas...</p>
             </div>
           ) : filteredPersons.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px' }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+            <div className="person-empty-state">
+              <div className="person-empty-icon">
                 {searchTerm ? '🔍' : '👥'}
               </div>
               <Title level={3} variant="secondary" align="center">
                 {searchTerm ? 'No se encontraron personas' : 'No hay personas registradas'}
               </Title>
-              <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0' }}>
+              <p className="person-empty-description">
                 {searchTerm 
                   ? `No hay personas que coincidan con "${searchTerm}"`
                   : 'Agrega tu primera persona usando el formulario de arriba'
@@ -237,51 +238,35 @@ export default function PersonCrud() {
                   onClick={() => setSearchTerm("")}
                   variant="secondary"
                   size="sm"
-                  style={{ marginTop: '16px' }}
+                  className="person-clear-search-button"
                 >
                   Limpiar búsqueda
                 </Button>
               )}
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div className="person-list-grid">
               {filteredPersons.map((person) => (
                 <Card
                   key={person.id}
                   variant={editingPerson?.id === person.id ? "outlined" : "default"}
                   padding="md"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    border: editingPerson?.id === person.id ? '2px solid var(--success-color)' : undefined
-                  }}
+                  className={`person-card ${editingPerson?.id === person.id ? 'editing' : ''}`}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--success-color)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '16px'
-                  }}>
+                  <div className="person-avatar">
                     {person.name.charAt(0).toUpperCase()}
                   </div>
                   
-                  <div style={{ flex: 1 }}>
-                    <Title level={4} variant="default" style={{ marginBottom: '4px' }}>
+                  <div className="person-info">
+                    <Title level={4} variant="default" className="person-name">
                       {person.name} {person.last_name}
                     </Title>
-                    <div className="text-sm text-gray-600">
-                      {person.phone && <p>Tel: {person.phone}</p>}
-                    </div>
+                    {person.phone && (
+                      <p className="person-phone">Tel: {person.phone}</p>
+                    )}
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="person-actions">
                     <Button
                       onClick={() => handleEdit(person)}
                       variant="secondary"
@@ -311,14 +296,14 @@ export default function PersonCrud() {
         title="Confirmar Eliminación"
         size="sm"
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <p style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>
+        <div className="delete-confirmation-content">
+          <div className="delete-confirmation-icon">⚠️</div>
+          <p className="delete-confirmation-text">
             ¿Estás seguro de que quieres eliminar a <strong>{deleteConfirm.personName}</strong>?
             <br />
             Esta acción no se puede deshacer.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <div className="delete-confirmation-actions">
             <Button
               onClick={() => setDeleteConfirm({ show: false, personId: null, personName: "" })}
               variant="secondary"

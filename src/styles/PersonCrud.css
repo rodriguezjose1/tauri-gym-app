@@ -1,0 +1,214 @@
+/* PersonCrud Page Styles */
+
+.person-crud-container {
+  /* Uses layout wrapper styles from config */
+}
+
+.person-crud-wrapper {
+  /* Uses container styles from config */
+}
+
+/* Form Section */
+.person-form-card {
+  margin-bottom: 32px;
+}
+
+.person-form-title {
+  margin-bottom: 24px;
+}
+
+.person-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.person-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* List Section */
+.person-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.person-count {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.person-search-container {
+  margin-bottom: 24px;
+}
+
+/* Loading State */
+.person-loading-state {
+  text-align: center;
+  padding: 48px;
+}
+
+.person-loading-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.person-loading-text {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Empty State */
+.person-empty-state {
+  text-align: center;
+  padding: 48px;
+}
+
+.person-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.person-empty-description {
+  color: var(--text-secondary);
+  margin: 8px 0 0 0;
+}
+
+.person-clear-search-button {
+  margin-top: 16px;
+}
+
+/* Person List */
+.person-list-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.person-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.person-card.editing {
+  border: 2px solid var(--success-color);
+}
+
+.person-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--success-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.person-info {
+  flex: 1;
+}
+
+.person-name {
+  margin-bottom: 4px;
+}
+
+.person-phone {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.person-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation-content {
+  text-align: center;
+}
+
+.delete-confirmation-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.delete-confirmation-text {
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+.delete-confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .person-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .person-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .person-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .person-info {
+    width: 100%;
+  }
+  
+  .person-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .person-form-actions {
+    flex-direction: column;
+  }
+  
+  .delete-confirmation-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .person-empty-state,
+  .person-loading-state {
+    padding: 32px 16px;
+  }
+  
+  .person-empty-icon,
+  .person-loading-icon {
+    font-size: 48px;
+  }
+  
+  .person-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .person-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+} 

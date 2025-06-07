@@ -1,0 +1,274 @@
+/* Configuraciones Page Styles */
+
+.configuraciones-container {
+  min-height: calc(100vh - 80px);
+  background-color: var(--bg-secondary);
+  padding: 24px 0;
+}
+
+.configuraciones-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.configuraciones-card {
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px var(--shadow-light);
+  border: 1px solid var(--border-light);
+}
+
+.configuraciones-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.configuraciones-header-icon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--accent-primary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.configuraciones-header-content h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.configuraciones-header-content p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.configuraciones-grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* Main Settings Card */
+.settings-card {
+  padding: 24px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-card:hover {
+  background-color: var(--hover-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-light);
+}
+
+.settings-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.settings-card-icon {
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.settings-card-body {
+  flex: 1;
+}
+
+.settings-card-body h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.settings-card-body p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.settings-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-card-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.3s ease;
+}
+
+/* Coming Soon Cards Grid */
+.coming-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.coming-soon-card {
+  padding: 24px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  opacity: 0.7;
+  position: relative;
+}
+
+.coming-soon-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.coming-soon-card-icon {
+  width: 40px;
+  height: 40px;
+  background-color: var(--text-muted);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.coming-soon-card-body {
+  flex: 1;
+}
+
+.coming-soon-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.coming-soon-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.coming-soon-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--bg-tertiary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.coming-soon-card-body p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .configuraciones-container {
+    padding: 16px 0;
+  }
+  
+  .configuraciones-card {
+    padding: 24px;
+  }
+  
+  .configuraciones-header {
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+  
+  .configuraciones-header-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .configuraciones-header-content h1 {
+    font-size: 24px;
+  }
+  
+  .configuraciones-header-content p {
+    font-size: 14px;
+  }
+  
+  .settings-card {
+    padding: 20px;
+  }
+  
+  .coming-soon-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .coming-soon-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .configuraciones-container {
+    padding: 12px 0;
+  }
+  
+  .configuraciones-card {
+    padding: 20px;
+  }
+  
+  .settings-card-content {
+    gap: 12px;
+  }
+  
+  .settings-card-icon,
+  .coming-soon-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .settings-card-body h3 {
+    font-size: 18px;
+  }
+  
+  .settings-card-body p {
+    font-size: 14px;
+  }
+} 
