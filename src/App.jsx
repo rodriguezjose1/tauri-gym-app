@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import PersonCrud from "./pages/PersonCrud";
 import ExerciseCrud from "./pages/ExerciseCrud";
 import RoutinePage from "./pages/RoutinePage";
+import ConfiguracionesPage from "./pages/ConfiguracionesPage";
 import "./styles/App.css";
 
 function Navigation() {
@@ -54,6 +55,15 @@ function Navigation() {
               Rutinas
             </Link>
           </li>
+          <li>
+            <Link 
+              to="/configuraciones" 
+              className={`nav-link ${location.pathname === '/configuraciones' ? 'active settings' : ''}`}
+            >
+              <span className="nav-link-icon">⚙️</span>
+              Configuraciones
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>
@@ -72,6 +82,7 @@ function App() {
               <Route path="/personas" element={<PersonCrud />} />
               <Route path="/exercises" element={<ExerciseCrud />} />
               <Route path="/routines" element={<RoutinePage />} />
+              <Route path="/configuraciones" element={<ConfiguracionesPage />} />
             </Routes>
           </main>
         </div>

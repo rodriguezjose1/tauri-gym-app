@@ -768,20 +768,9 @@ export default function Dashboard() {
           gap: '12px'
         }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <Button
-              onClick={() => setShowSettingsModal(true)}
-              variant="secondary"
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '14px'
-              }}
-            >
-              <span>⚙️</span>
-              Configuraciones
-            </Button>
+            {/* Configuraciones button moved to navbar */}
           </div>
+          {/* 
           {selectedPerson && (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <Button
@@ -799,6 +788,7 @@ export default function Dashboard() {
               </Button>
             </div>
           )}
+          */}
         </div>
         {/* Weekly Calendar with Embedded Person Search */}
         <WeeklyCalendar
