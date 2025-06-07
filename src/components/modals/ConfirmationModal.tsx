@@ -1,4 +1,5 @@
 import React from 'react';
+import '../../styles/ConfirmationModal.css';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -23,28 +24,20 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   const typeStyles = {
     warning: {
-      backgroundColor: 'var(--warning-color)',
-      color: 'white',
       icon: '⚠️',
       defaultTitle: 'Advertencia'
     },
-    error: {
-      backgroundColor: 'var(--error-color)',
-      color: 'white',
-      icon: '❌',
-      defaultTitle: 'Error'
+    info: {
+      icon: 'ℹ️',
+      defaultTitle: 'Información'
     },
     success: {
-      backgroundColor: 'var(--success-color)',
-      color: 'white',
       icon: '✅',
       defaultTitle: 'Éxito'
     },
-    info: {
-      backgroundColor: 'var(--info-color)',
-      color: 'white',
-      icon: 'ℹ️',
-      defaultTitle: 'Información'
+    error: {
+      icon: '❌',
+      defaultTitle: 'Error'
     }
   };
 
@@ -57,97 +50,35 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }} onClick={handleOverlayClick}>
-      <div style={{
-        backgroundColor: 'var(--bg-primary)',
-        borderRadius: '12px',
-        padding: '24px',
-        maxWidth: '400px',
-        width: '90%',
-        boxShadow: '0 20px 25px -5px var(--shadow-medium), 0 10px 10px -5px var(--shadow-light)',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '16px'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: currentTypeStyle.backgroundColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '16px'
-          }}>
-            <span style={{ fontSize: '24px', color: currentTypeStyle.color }}>{currentTypeStyle.icon}</span>
+    <div className="confirmation-modal-overlay" onClick={handleOverlayClick}>
+      <div className="confirmation-modal-content">
+        <div className="confirmation-modal-header">
+          <div className={`confirmation-modal-icon-container ${type}`}>
+            <span className={`confirmation-modal-icon ${type}`}>
+              {currentTypeStyle.icon}
+            </span>
           </div>
           <div>
-            <h3 style={{
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'var(--text-primary)'
-            }}>
+            <h3 className="confirmation-modal-title">
               {title || currentTypeStyle.defaultTitle}
             </h3>
           </div>
         </div>
         
-        <p style={{
-          margin: '0 0 24px 0',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.5'
-        }}>
+        <p className="confirmation-modal-message">
           {message}
         </p>
         
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-          justifyContent: 'flex-end'
-        }}>
+        <div className="confirmation-modal-actions">
           <button
             onClick={onCancel}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              transition: 'all 0.2s'
-            }}
+            className="confirmation-modal-cancel-button"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: currentTypeStyle.backgroundColor,
-              border: `1px solid ${currentTypeStyle.backgroundColor}`,
-              borderRadius: '6px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s'
-            }}
+            className={`confirmation-modal-confirm-button ${type}`}
           >
             {confirmText}
           </button>

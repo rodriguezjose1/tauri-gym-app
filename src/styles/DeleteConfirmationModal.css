@@ -1,0 +1,133 @@
+/* DeleteConfirmationModal Styles */
+
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.delete-modal-content {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.delete-modal-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.delete-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--error-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.delete-modal-icon-emoji {
+  font-size: 24px;
+  color: var(--error-color);
+}
+
+.delete-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delete-modal-message {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.delete-modal-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.delete-modal-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.delete-modal-cancel {
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.delete-modal-cancel:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+}
+
+.delete-modal-confirm {
+  border: none;
+  background-color: var(--error-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-modal-confirm:hover:not(:disabled) {
+  background-color: var(--error-hover);
+}
+
+.delete-modal-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .delete-modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .delete-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .delete-modal-button {
+    width: 100%;
+    justify-content: center;
+  }
+} 

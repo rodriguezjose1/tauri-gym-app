@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PersonService, Person } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/base";
-import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 import "../styles/PersonCrud.css";
 
 export default function PersonCrud() {
@@ -128,8 +127,8 @@ export default function PersonCrud() {
   });
 
   return (
-    <div className="person-crud-container" style={getPageWrapperStyles()}>
-      <div className="person-crud-wrapper" style={getContainerStyles()}>
+    <div className="person-crud-container">
+      <div className="person-crud-wrapper">
         {/* Form */}
         <Card variant="elevated" padding="lg" className="person-form-card">
           <Title level={2} variant="default" className="person-form-title">

@@ -1,5 +1,6 @@
 import React from 'react';
 import ToastNotificationComponent, { ToastNotification } from './ToastNotification';
+import '../../styles/ToastContainer.css';
 
 interface ToastContainerProps {
   notifications: ToastNotification[];
@@ -12,22 +13,11 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ notifications, onRemove
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        pointerEvents: 'none'
-      }}
-    >
+    <div className="toast-container">
       {notifications.map((notification) => (
         <div
           key={notification.id}
-          style={{ pointerEvents: 'auto' }}
+          className="toast-container-item"
         >
           <ToastNotificationComponent
             notification={notification}

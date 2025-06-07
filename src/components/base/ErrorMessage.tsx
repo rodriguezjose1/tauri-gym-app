@@ -1,4 +1,5 @@
 import React from 'react';
+import '../../styles/ErrorMessage.css';
 
 interface ErrorMessageProps {
   message: string | null;
@@ -15,36 +16,18 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
 }) => {
   if (!message) return null;
 
+  const errorClasses = `error-message ${className || ''}`.trim();
+
   return (
     <div 
-      className={className}
-      style={{
-        padding: '8px 12px',
-        backgroundColor: 'var(--error-bg)',
-        border: '1px solid var(--error-border)',
-        borderRadius: '6px',
-        color: 'var(--error-color)',
-        fontSize: '14px',
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        ...style
-      }}
+      className={errorClasses}
+      style={style}
     >
-      <span>{message}</span>
+      <span className="error-message-text">{message}</span>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--error-color)',
-            cursor: 'pointer',
-            fontSize: '16px',
-            padding: '0 4px',
-            marginLeft: '8px'
-          }}
+          className="error-message-close"
           title="Cerrar mensaje de error"
         >
           ×

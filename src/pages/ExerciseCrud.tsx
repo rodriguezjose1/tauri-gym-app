@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ExerciseService, Exercise } from "../services";
 import { Button, Input, Title, Card, Modal } from "../components/base";
-import { getPageWrapperStyles, getContainerStyles } from "../config/layout";
 import "../styles/ExerciseCrud.css";
 
 export default function ExerciseCrud() {
@@ -185,8 +184,8 @@ export default function ExerciseCrud() {
   };
 
   return (
-    <div className="exercise-crud-container" style={getPageWrapperStyles()}>
-      <div className="exercise-crud-wrapper" style={getContainerStyles()}>
+    <div className="exercise-crud-container">
+      <div className="exercise-crud-wrapper">
         {/* Form */}
         <Card variant="elevated" padding="lg" className="exercise-form-card">
           <Title level={2} variant="default" className="exercise-form-title">

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import '../../styles/ToastNotification.css';
 
 export interface ToastNotification {
   id: string;
@@ -17,20 +18,19 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
   const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
-    // Trigger entrance animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
+    // Show animation
+    const showTimer = setTimeout(() => setIsVisible(true), 10);
     
-    // Auto-remove after duration
-    const duration = notification.duration || 4000;
+    // Auto-remove timer
     const removeTimer = setTimeout(() => {
       handleRemove();
-    }, duration);
+    }, notification.duration || 5000);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(showTimer);
       clearTimeout(removeTimer);
     };
-  }, []);
+  }, [notification.duration]);
 
   const handleRemove = () => {
     setIsRemoving(true);
@@ -39,92 +39,46 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
     }, 300);
   };
 
-  const getTypeStyles = () => {
+  const getTypeIcon = () => {
     switch (notification.type) {
       case 'success':
-        return {
-          backgroundColor: 'var(--success-color)',
-          borderColor: 'var(--success-color)',
-          icon: '✓'
-        };
+        return '✓';
       case 'error':
-        return {
-          backgroundColor: 'var(--error-color)',
-          borderColor: 'var(--error-color)',
-          icon: '✕'
-        };
+        return '✕';
       case 'warning':
-        return {
-          backgroundColor: 'var(--warning-color)',
-          borderColor: 'var(--warning-color)',
-          icon: '⚠'
-        };
+        return '⚠';
       case 'info':
-        return {
-          backgroundColor: 'var(--info-color)',
-          borderColor: 'var(--info-color)',
-          icon: 'ℹ'
-        };
       default:
-        return {
-          backgroundColor: 'var(--text-secondary)',
-          borderColor: 'var(--text-secondary)',
-          icon: 'ℹ'
-        };
+        return 'ℹ';
     }
   };
 
-  const typeStyles = getTypeStyles();
+  const getToastClasses = () => {
+    let classes = 'toast-notification';
+    classes += ` ${notification.type}`;
+    
+    if (isRemoving) {
+      classes += ' removing';
+    } else if (isVisible) {
+      classes += ' visible';
+    } else {
+      classes += ' hidden';
+    }
+    
+    return classes;
+  };
 
   return (
     <div
-      style={{
-        position: 'relative',
-        backgroundColor: 'white',
-        border: `2px solid ${typeStyles.borderColor}`,
-        borderRadius: '8px',
-        padding: '12px 16px',
-        marginBottom: '8px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        minWidth: '300px',
-        maxWidth: '400px',
-        transform: isRemoving 
-          ? 'translateX(100%) scale(0.8)' 
-          : isVisible 
-            ? 'translateX(0) scale(1)' 
-            : 'translateX(100%) scale(0.8)',
-        opacity: isRemoving ? 0 : isVisible ? 1 : 0,
-        transition: 'all 0.3s ease-in-out',
-        cursor: 'pointer'
-      }}
+      className={getToastClasses()}
       onClick={handleRemove}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-        <div
-          style={{
-            backgroundColor: typeStyles.backgroundColor,
-            color: 'var(--text-primary)',
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            flexShrink: 0
-          }}
-        >
-          {typeStyles.icon}
+      <div className="toast-notification-content">
+        <div className={`toast-notification-icon ${notification.type}`}>
+          {getTypeIcon()}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: 'var(--text-primary)',
-            lineHeight: '1.4',
-            wordBreak: 'break-word'
-          }}>
+        <div className="toast-notification-message">
+          <p className="toast-notification-text">
             {notification.message}
           </p>
         </div>
@@ -133,20 +87,7 @@ const ToastNotificationComponent: React.FC<ToastNotificationProps> = ({ notifica
             e.stopPropagation();
             handleRemove();
           }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            fontSize: '16px',
-            padding: '0',
-            width: '20px',
-            height: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
+          className="toast-notification-close"
         >
           ×
         </button>

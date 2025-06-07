@@ -91,6 +91,10 @@ export const DASHBOARD_ERROR_MESSAGES = {
   EXERCISE_REQUIRED: "Por favor, selecciona un ejercicio",
   DATE_REQUIRED: "Por favor, selecciona una fecha",
   EXERCISES_REQUIRED: "Por favor, agrega al menos un ejercicio",
+  INVALID_WORKOUT_ENTRY: "Los datos del ejercicio no son válidos",
+  INVALID_WORKOUT_SESSION: "Los datos de la sesión no son válidos",
+  NO_VALID_EXERCISES: "No hay ejercicios válidos en la sesión",
+  INVALID_ROUTINE_LOAD: "Por favor, selecciona una rutina y fecha válidas",
   
   // Data fetching errors
   FETCH_EXERCISES_FAILED: "Error fetching all exercises:",
@@ -103,13 +107,16 @@ export const DASHBOARD_ERROR_MESSAGES = {
   // Workout operations errors
   SAVE_WORKOUT_ENTRY_FAILED: "Error al guardar la entrada de entrenamiento",
   SAVE_SESSION_FAILED: "Error al guardar la sesión de entrenamiento",
+  SAVE_WORKOUT_SESSION_FAILED: "Error al guardar la sesión de entrenamiento",
   DELETE_WORKOUT_FAILED: "Error al eliminar el ejercicio",
+  DELETE_WORKOUT_ENTRY_FAILED: "Error al eliminar el ejercicio",
   REORDER_EXERCISES_FAILED: "Error al reordenar ejercicios",
   CLEAR_EXERCISES_FAILED: "Error al eliminar los ejercicios",
   
   // Routine operations errors
   LOAD_ROUTINE_FAILED: "Error al cargar la rutina. Por favor, inténtalo de nuevo.",
   APPLY_ROUTINE_FAILED: "Error al aplicar la rutina. Por favor, inténtalo de nuevo.",
+  APPLY_ROUTINE_TO_DATE_FAILED: "Error al aplicar la rutina a la fecha. Por favor, inténtalo de nuevo.",
   
   // Console error messages
   CONSOLE_SAVE_WORKOUT_ENTRY: "Error saving workout entry:",
@@ -125,12 +132,15 @@ export const DASHBOARD_ERROR_MESSAGES = {
 export const DASHBOARD_SUCCESS_MESSAGES = {
   WORKOUT_ENTRY_SAVED: "Entrada de entrenamiento agregada correctamente",
   SESSION_SAVED: "Sesión de entrenamiento guardada correctamente",
+  WORKOUT_SESSION_SAVED: "Sesión de entrenamiento guardada correctamente",
   WORKOUT_DELETED: "Ejercicio eliminado correctamente",
+  WORKOUT_ENTRY_DELETED: "Ejercicio eliminado correctamente",
   EXERCISES_CLEARED: "Todos los ejercicios han sido eliminados correctamente",
   ROUTINE_LOADED: (routineName: string, exerciseCount: number, groupNumber: number) => 
     `Rutina "${routineName}" cargada con ${exerciseCount} ejercicios en el Grupo ${groupNumber}.`,
   ROUTINE_APPLIED: (routineName: string, exerciseCount: number, groupNumber: number) => 
-    `Rutina "${routineName}" aplicada exitosamente con ${exerciseCount} ejercicios en el Grupo ${groupNumber}.`
+    `Rutina "${routineName}" aplicada exitosamente con ${exerciseCount} ejercicios en el Grupo ${groupNumber}.`,
+  ROUTINE_APPLIED_TO_DATE: "Rutina aplicada exitosamente a la fecha seleccionada"
 } as const;
 
 // Warning messages for Dashboard component

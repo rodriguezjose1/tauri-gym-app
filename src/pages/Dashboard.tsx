@@ -398,8 +398,8 @@ export default function Dashboard() {
   };
 
   const handleSaveWorkoutEntry = async () => {
-    if (!selectedPerson || !selectedDate || workoutForm.exercise_id === 0) {
-      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_WORKOUT_ENTRY, 'error');
+    if (!selectedPerson || !selectedDate || !workoutForm.exercise_id) {
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_AND_DATE_REQUIRED, 'error');
       return;
     }
 
@@ -437,14 +437,13 @@ export default function Dashboard() {
 
   const handleSaveWorkoutSession = async () => {
     if (!selectedPerson || !selectedDate) {
-      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_WORKOUT_SESSION, 'error');
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_AND_DATE_REQUIRED, 'error');
       return;
     }
 
-    // Validate that all exercises have valid exercise_id
     const validExercises = sessionForm.exercises.filter(ex => ex.exercise_id > 0);
     if (validExercises.length === 0) {
-      showToast(DASHBOARD_ERROR_MESSAGES.NO_VALID_EXERCISES, 'error');
+      showToast(DASHBOARD_WARNING_MESSAGES.NO_VALID_EXERCISES, 'error');
       return;
     }
 
@@ -482,7 +481,7 @@ export default function Dashboard() {
         await invoke("create_workout_entry", workoutEntry);
       }
       
-      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_SESSION_SAVED, 'success');
+      showToast(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, 'success');
       
       // Refresh workout data
       await fetchWorkoutData(selectedPerson.id!);
@@ -490,8 +489,8 @@ export default function Dashboard() {
       // Close modal
       handleCloseSessionModal();
     } catch (error) {
-      console.error("Error saving workout session:", error);
-      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_WORKOUT_SESSION_FAILED, 'error');
+      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_SAVE_WORKOUT_SESSION, error);
+      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, 'error');
     } finally {
       setSavingSession(false);
     }
@@ -503,23 +502,18 @@ export default function Dashboard() {
   };
 
   const confirmDeleteWorkoutEntry = async () => {
-    if (!workoutToDelete) return;
+    if (!workoutToDelete || !selectedPerson) return;
 
-    setDeletingWorkout(true);
     try {
-      await invoke("delete_workout_entry", { id: workoutToDelete });
-      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_DELETED, 'success');
-      
-      // Refresh workout data
-      if (selectedPerson) {
-        await fetchWorkoutData(selectedPerson.id!);
-      }
-      
+      setDeletingWorkout(true);
+      await WorkoutService.deleteWorkoutEntry(workoutToDelete);
+      await fetchWorkoutData(selectedPerson.id!);
+      showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_DELETED, 'success');
       setShowDeleteModal(false);
       setWorkoutToDelete(null);
     } catch (error) {
-      console.error("Error deleting workout entry:", error);
-      showToast(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_ENTRY_FAILED, 'error');
+      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_DELETE_WORKOUT, error);
+      showToast(DASHBOARD_ERROR_MESSAGES.DELETE_WORKOUT_FAILED, 'error');
     } finally {
       setDeletingWorkout(false);
     }
@@ -545,14 +539,14 @@ export default function Dashboard() {
   };
 
   const handleLoadRoutine = async (routineId: number) => {
-    if (!selectedPerson || !selectedDate) {
-      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_ROUTINE_LOAD, 'error');
+    if (!selectedPerson) {
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, 'error');
       return;
     }
 
     setLoadingRoutine(true);
     try {
-      console.log("Loading routine", routineId, "for person", selectedPerson.id, "on date", selectedDate);
+      console.log("Loading routine", routineId, "for person", selectedPerson.id);
       
       // Get routine with exercises
       const routineWithExercises = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
@@ -575,9 +569,9 @@ export default function Dashboard() {
       }));
 
       setSessionForm({ exercises: exerciseForms });
-      showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED, 'success');
+      showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_LOADED(routineWithExercises.name, routineWithExercises.exercises.length, 1), 'success');
     } catch (error) {
-      console.error("Error loading routine:", error);
+      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_LOAD_ROUTINE, error);
       showToast(DASHBOARD_ERROR_MESSAGES.LOAD_ROUTINE_FAILED, 'error');
     } finally {
       setLoadingRoutine(false);
@@ -590,8 +584,8 @@ export default function Dashboard() {
   };
 
   const handleLoadRoutineToDate = async () => {
-    if (!selectedPerson || !selectedRoutineForLoad || !selectedDateForRoutine) {
-      showToast(DASHBOARD_ERROR_MESSAGES.INVALID_ROUTINE_LOAD, 'error');
+    if (!selectedRoutineForLoad || !selectedDateForRoutine || !selectedPerson) {
+      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_AND_DATE_REQUIRED, 'error');
       return;
     }
 
@@ -660,8 +654,8 @@ export default function Dashboard() {
       setSelectedDateForRoutine("");
       setSelectedGroupForRoutine(1);
     } catch (error) {
-      console.error("Error applying routine to date:", error);
-      showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_TO_DATE_FAILED, 'error');
+      console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_APPLY_ROUTINE, error);
+      showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_FAILED, 'error');
     } finally {
       setLoadingRoutine(false);
     }

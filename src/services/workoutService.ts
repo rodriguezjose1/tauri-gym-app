@@ -151,4 +151,18 @@ export class WorkoutService {
       throw new Error(`Error al actualizar el orden de los ejercicios: ${error}`);
     }
   }
+
+  /**
+   * Reordena ejercicios (alias para updateExerciseOrder para compatibilidad)
+   */
+  static async reorderExercises(exerciseOrders: Array<{ id: number; order: number }>): Promise<void> {
+    try {
+      // Convertir el formato de entrada al formato esperado por updateExerciseOrder
+      const formattedOrders: Array<[number, number]> = exerciseOrders.map(item => [item.id, item.order]);
+      await this.updateExerciseOrder(formattedOrders);
+    } catch (error) {
+      console.error("Error reordering exercises:", error);
+      throw new Error(`Error al reordenar los ejercicios: ${error}`);
+    }
+  }
 } 

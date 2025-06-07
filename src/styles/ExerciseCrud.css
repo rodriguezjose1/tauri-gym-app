@@ -2,10 +2,18 @@
 
 .exercise-crud-container {
   /* Uses layout wrapper styles from config */
+  min-height: calc(100vh - var(--layout-nav-height, 80px));
+  width: 100%;
+  background-color: var(--bg-secondary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .exercise-crud-wrapper {
   /* Uses container styles from config */
+  max-width: none;
+  margin: 0 auto;
+  padding: 24px;
+  width: 100%;
 }
 
 /* Form Section */
