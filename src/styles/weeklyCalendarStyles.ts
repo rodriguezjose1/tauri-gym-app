@@ -6,7 +6,10 @@ export const getCalendarContainerStyles = (): CSSProperties => ({
   borderRadius: '12px',
   boxShadow: '0 1px 3px var(--shadow-light)',
   border: '1px solid var(--border-light)',
-  overflow: 'hidden'
+  overflow: 'hidden',
+  height: 'calc(100vh - 120px)',
+  display: 'flex',
+  flexDirection: 'column'
 });
 
 // Header styles
@@ -310,12 +313,14 @@ export const getCheckboxStyles = (): CSSProperties => ({
 
 export const getCalendarContentStyles = (): CSSProperties => ({
   flex: 1,
-  overflow: 'auto'
+  overflow: 'auto',
+  maxHeight: '100%'
 });
 
 export const getWeeksContainerStyles = (): CSSProperties => ({
   display: 'flex',
-  flexDirection: 'column'
+  flexDirection: 'column',
+  minHeight: 'min-content'
 });
 
 export const getWeekContainerStyles = (): CSSProperties => ({
