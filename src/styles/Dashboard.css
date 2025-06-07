@@ -2,12 +2,23 @@
 
 .dashboard-container {
   /* Uses dashboard wrapper styles from config */
+  height: calc(100vh - var(--layout-nav-height, 80px)); /* Account for navbar height */
+  overflow: hidden; /* Prevent scroll at container level */
+  background-color: var(--bg-secondary);
+  width: 100%;
+  box-sizing: border-box; /* Include padding in height calculation */
 }
 
 .dashboard-wrapper {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Prevent scroll at wrapper level */
+  max-width: none;
+  margin: 0 auto;
+  padding: 24px; /* Only keep padding here */
+  width: 100%;
+  box-sizing: border-box; /* Include any borders in height calculation */
 }
 
 /* Header Section */
@@ -18,6 +29,7 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 12px;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .dashboard-header-left {
@@ -120,6 +132,7 @@
 .dashboard-calendar-container {
   flex: 1;
   min-height: 0; /* Important for flex child to shrink */
+  overflow: hidden; /* Let the calendar handle its own scrolling */
 }
 
 /* Modal Overlays */

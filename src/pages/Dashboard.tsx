@@ -712,8 +712,8 @@ export default function Dashboard() {
   }, [sessionForm]);
 
   return (
-    <div className="dashboard-container" style={getDashboardWrapperStyles()}>
-      <div className="dashboard-wrapper" style={{ ...getContainerStyles() }}>
+    <div className="dashboard-container">
+      <div className="dashboard-wrapper">
         <div className="dashboard-header">
           <div className="dashboard-header-left">
             {/* Configuraciones button moved to navbar */}

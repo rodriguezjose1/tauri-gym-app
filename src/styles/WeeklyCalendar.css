@@ -7,7 +7,7 @@
   box-shadow: 0 1px 3px var(--shadow-light);
   border: 1px solid var(--border-light);
   overflow: hidden;
-  height: calc(100vh - 120px);
+  height: 100%; /* Use full height of parent container */
   display: flex;
   flex-direction: column;
 }
@@ -178,6 +178,11 @@
   text-align: center;
   padding: 60px 20px;
   color: var(--text-muted);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .weekly-calendar-empty-icon {
@@ -228,8 +233,9 @@
 /* Calendar Content */
 .weekly-calendar-content {
   flex: 1;
-  overflow: auto;
-  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Important for flex child to shrink */
 }
 
 .weekly-calendar-weeks-container {
