@@ -14,6 +14,7 @@
   --accent-secondary: #1d4ed8;
   --success-color: #10b981;
   --error-color: #ef4444;
+  --error-hover: #dc2626;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
   --shadow-light: rgba(0, 0, 0, 0.1);
@@ -36,6 +37,7 @@
   --accent-secondary: #1d4ed8;
   --success-color: #10b981;
   --error-color: #ef4444;
+  --error-hover: #dc2626;
   --warning-color: #f59e0b;
   --info-color: #06b6d4;
   --shadow-light: rgba(0, 0, 0, 0.3);

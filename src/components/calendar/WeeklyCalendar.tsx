@@ -23,9 +23,9 @@ const DroppableGroup: React.FC<{
       style={{
         marginBottom: '8px',
         padding: '6px',
-        border: '1px dashed #cbd5e1',
+        border: '1px dashed var(--border-color)',
         borderRadius: '6px',
-        backgroundColor: isOver ? '#e0f2fe' : '#f8fafc',
+        backgroundColor: isOver ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
         position: 'relative',
         transition: 'background-color 0.2s ease',
         minHeight: '40px'
@@ -33,7 +33,7 @@ const DroppableGroup: React.FC<{
     >
       <div style={{
         fontSize: '10px',
-        color: '#64748b',
+        color: 'var(--text-secondary)',
         fontWeight: '500',
         marginBottom: '4px',
         textAlign: 'center'

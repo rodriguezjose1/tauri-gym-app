@@ -38,9 +38,9 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
       <div
         style={{
           padding: '6px 8px',
-          backgroundColor: '#dbeafe',
+          backgroundColor: 'var(--accent-bg)',
           borderRadius: '4px',
-          border: '1px solid #93c5fd',
+          border: '1px solid var(--accent-primary)',
           fontSize: '11px',
           cursor: 'pointer',
           transition: 'all 0.2s',
@@ -50,11 +50,11 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
           minHeight: '32px'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#bfdbfe';
+          e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
           e.currentTarget.style.transform = 'scale(1.02)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#dbeafe';
+          e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
           e.currentTarget.style.transform = 'scale(1)';
         }}
         onClick={() => onDayClick(workout.date)}
@@ -64,7 +64,7 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
           {...listeners}
           style={{
             cursor: 'grab',
-            color: '#6b7280',
+            color: 'var(--text-muted)',
             fontSize: '10px',
             flexShrink: 0
           }}
@@ -76,7 +76,7 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
         {/* Exercise name */}
         <div style={{ 
           fontWeight: '600', 
-          color: '#1e40af',
+          color: 'var(--accent-primary)',
           flex: 1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -94,8 +94,8 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
             }
           }}
           style={{
-            background: '#dc2626',
-            color: 'white',
+            background: 'var(--error-color)',
+            color: 'var(--text-on-primary)',
             border: 'none',
             borderRadius: '50%',
             width: '18px',
@@ -110,11 +110,11 @@ export const SortableWorkoutItem: React.FC<SortableWorkoutItemProps> = ({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.background = '#b91c1c';
+            e.currentTarget.style.background = 'var(--error-hover)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.background = '#dc2626';
+            e.currentTarget.style.background = 'var(--error-color)';
           }}
           title="Eliminar ejercicio"
         >
