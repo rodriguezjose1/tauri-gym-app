@@ -1,0 +1,551 @@
+/* RoutineManager Component Styles */
+
+/* Main Container */
+.routine-manager-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.routine-manager-container {
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+/* Header Section */
+.routine-manager-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.routine-manager-title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.routine-manager-close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.routine-manager-close-button:hover {
+  color: var(--text-primary);
+}
+
+/* Main Content Layout */
+.routine-manager-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Panel - Routines List */
+.routine-manager-left-panel {
+  width: 400px;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+}
+
+.routine-manager-search-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.routine-manager-new-routine-button {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.routine-manager-routines-list {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.routine-manager-loading,
+.routine-manager-empty {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Routine Item */
+.routine-manager-routine-item {
+  padding: 12px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.routine-manager-routine-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.routine-manager-routine-item.selected {
+  background-color: var(--accent-bg);
+  border: 2px solid var(--accent-primary);
+}
+
+.routine-manager-routine-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.routine-manager-routine-code {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.routine-manager-routine-delete {
+  background: var(--error-color);
+  color: var(--text-on-primary);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.routine-manager-routine-delete:hover {
+  background: var(--error-hover);
+}
+
+/* Right Panel - Routine Details */
+.routine-manager-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.routine-manager-routine-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.routine-manager-routine-title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.routine-manager-routine-subtitle {
+  margin: 8px 0 0 0;
+  color: var(--text-secondary);
+}
+
+.routine-manager-add-exercise-button {
+  margin-top: 12px;
+}
+
+.routine-manager-exercises-container {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+.routine-manager-no-exercises {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px;
+}
+
+.routine-manager-no-routine {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+/* Exercise Groups */
+.routine-manager-exercise-group {
+  margin-bottom: 20px;
+}
+
+.routine-manager-group-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.routine-manager-group-container {
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+/* Sortable Exercise Item */
+.routine-manager-exercise-item {
+  padding: 8px 4px;
+  background-color: transparent;
+  border-radius: 4px;
+  border: none;
+  margin-bottom: 4px;
+  transition: all 0.2s;
+}
+
+.routine-manager-exercise-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.routine-manager-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.routine-manager-drag-handle:active {
+  cursor: grabbing;
+}
+
+.routine-manager-exercise-info {
+  flex: 1;
+}
+
+.routine-manager-exercise-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.routine-manager-exercise-details {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.routine-manager-exercise-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.routine-manager-exercise-edit-button,
+.routine-manager-exercise-remove-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.routine-manager-exercise-edit-button {
+  color: var(--accent-primary);
+}
+
+.routine-manager-exercise-edit-button:hover {
+  background-color: var(--accent-bg);
+}
+
+.routine-manager-exercise-remove-button {
+  color: var(--error-color);
+}
+
+.routine-manager-exercise-remove-button:hover {
+  background-color: var(--error-bg);
+}
+
+/* Exercise Edit Form */
+.routine-manager-exercise-edit-form {
+  margin-top: 8px;
+}
+
+.routine-manager-group-selection {
+  margin-bottom: 12px;
+}
+
+.routine-manager-group-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.routine-manager-group-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.routine-manager-exercise-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.routine-manager-exercise-notes {
+  margin-top: 8px;
+}
+
+.routine-manager-exercise-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.routine-manager-save-button,
+.routine-manager-cancel-button {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.routine-manager-save-button {
+  background-color: var(--accent-primary);
+  color: var(--text-on-primary);
+}
+
+.routine-manager-save-button:hover {
+  background-color: var(--accent-hover);
+}
+
+.routine-manager-cancel-button {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.routine-manager-cancel-button:hover {
+  background-color: var(--bg-tertiary);
+}
+
+/* Modal Overlays */
+.routine-manager-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.routine-manager-modal-content {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.routine-manager-create-modal {
+  width: 400px;
+}
+
+.routine-manager-add-exercise-modal {
+  width: 500px;
+}
+
+.routine-manager-modal-title {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+}
+
+.routine-manager-modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.routine-manager-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.routine-manager-modal-button {
+  flex: 1;
+}
+
+/* Group Selection in Modal */
+.routine-manager-modal-group-section {
+  margin-top: 16px;
+}
+
+.routine-manager-modal-group-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.routine-manager-modal-group-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.routine-manager-modal-group-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .routine-manager-left-panel {
+    width: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .routine-manager-content {
+    flex-direction: column;
+  }
+  
+  .routine-manager-left-panel {
+    width: 100%;
+    max-height: 40%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  
+  .routine-manager-routines-list {
+    max-height: 200px;
+  }
+  
+  .routine-manager-modal-content {
+    margin: 16px;
+    width: calc(100% - 32px);
+    max-width: none;
+  }
+  
+  .routine-manager-modal-form-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .routine-manager-exercise-form-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .routine-manager-header {
+    padding: 16px;
+  }
+  
+  .routine-manager-search-section {
+    padding: 12px;
+  }
+  
+  .routine-manager-routines-list {
+    padding: 12px;
+  }
+  
+  .routine-manager-exercises-container {
+    padding: 16px;
+  }
+  
+  .routine-manager-routine-header {
+    padding: 16px;
+  }
+  
+  .routine-manager-modal-content {
+    padding: 16px;
+  }
+  
+  .routine-manager-exercise-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .routine-manager-drag-handle {
+    align-self: flex-end;
+  }
+}
+
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+  .routine-manager-group-select,
+  .routine-manager-modal-group-select {
+    color: var(--text-primary);
+  }
+  
+  .routine-manager-group-select option,
+  .routine-manager-modal-group-select option {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .routine-manager-routine-item {
+    border-width: 2px;
+  }
+  
+  .routine-manager-group-container {
+    border-width: 2px;
+  }
+  
+  .routine-manager-modal-content {
+    border: 2px solid var(--border-color);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .routine-manager-routine-item,
+  .routine-manager-exercise-item {
+    transition: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .routine-manager-modal-overlay,
+  .routine-manager-exercise-actions,
+  .routine-manager-close-button {
+    display: none;
+  }
+  
+  .routine-manager-container {
+    background: white;
+    color: black;
+    border: none;
+  }
+} 
