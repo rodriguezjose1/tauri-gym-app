@@ -1,11 +1,49 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PersonSearch } from "../forms/PersonSearch";
 import { SortableWorkoutItem } from "../lists/SortableWorkoutItem";
 import { useWeeklyCalendar } from "../../hooks/useWeeklyCalendar";
 import * as styles from "../../styles/weeklyCalendarStyles";
 import { WorkoutEntryWithDetails } from '../../services';
+
+// Droppable Group Component
+const DroppableGroup: React.FC<{
+  groupNumber: number;
+  dayDateString: string;
+  children: React.ReactNode;
+}> = ({ groupNumber, dayDateString, children }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `group-${groupNumber}-${dayDateString}`,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        marginBottom: '8px',
+        padding: '6px',
+        border: '1px dashed #cbd5e1',
+        borderRadius: '6px',
+        backgroundColor: isOver ? '#e0f2fe' : '#f8fafc',
+        position: 'relative',
+        transition: 'background-color 0.2s ease',
+        minHeight: '40px'
+      }}
+    >
+      <div style={{
+        fontSize: '10px',
+        color: '#64748b',
+        fontWeight: '500',
+        marginBottom: '4px',
+        textAlign: 'center'
+      }}>
+        Grupo {groupNumber}
+      </div>
+      {children}
+    </div>
+  );
+};
 
 interface WeeklyCalendarProps {
   selectedPerson?: any;
@@ -22,7 +60,7 @@ interface WeeklyCalendarProps {
 }
 
 // Helper function to group workouts by group_number
-const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[]) => {
+const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString?: string, emptyGroups: number[] = []) => {
   console.log("=== GROUPING WORKOUTS ===");
   console.log("Input workouts:", workouts.map(w => ({ id: w.id, exercise_name: w.exercise_name, group_number: w.group_number })));
   
@@ -35,6 +73,13 @@ const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[]) => {
     acc[groupNumber].push(workout);
     return acc;
   }, {} as Record<number, WorkoutEntryWithDetails[]>);
+  
+  // Add empty groups
+  emptyGroups.forEach(groupNumber => {
+    if (!groups[groupNumber]) {
+      groups[groupNumber] = [];
+    }
+  });
   
   console.log("Groups created:", Object.keys(groups).map(key => ({ group: key, count: groups[parseInt(key)].length })));
   
@@ -64,6 +109,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   handleClearSelection,
 }) => {
   const [showWeekends, setShowWeekends] = useState(false);
+  const [emptyGroups, setEmptyGroups] = useState<Record<string, number[]>>({});
   const sensors = useSensors(useSensor(PointerSensor));
   
   const {
@@ -79,6 +125,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     goToNewerWeeks,
     goToOlderWeeks,
     goToCurrentWeeks,
+    createNewGroup,
   } = useWeeklyCalendar({
     selectedPerson,
     workoutData,
@@ -87,6 +134,50 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   });
 
   const threeWeeks = generateThreeWeeks();
+
+  // Local function to create new groups
+  const createNewGroupLocal = (dayDateString: string) => {
+    const dayWorkouts = currentWorkoutData.filter(workout => 
+      formatDateForDB(new Date(workout.date)) === dayDateString
+    );
+    
+    // Find the highest group number for this day
+    const maxGroupNumber = Math.max(...dayWorkouts.map(w => w.group_number || 1), 0);
+    const newGroupNumber = maxGroupNumber + 1;
+    
+    // Add the new empty group to the state
+    setEmptyGroups(prev => ({
+      ...prev,
+      [dayDateString]: [...(prev[dayDateString] || []), newGroupNumber]
+    }));
+  };
+
+  // Clean up empty groups when workouts are moved
+  const cleanupEmptyGroups = (dayDateString: string, currentWorkouts: WorkoutEntryWithDetails[]) => {
+    const dayWorkouts = currentWorkouts.filter(workout => 
+      formatDateForDB(new Date(workout.date)) === dayDateString
+    );
+    
+    const usedGroups = new Set(dayWorkouts.map(w => w.group_number || 1));
+    const emptyGroupsForDay = emptyGroups[dayDateString] || [];
+    
+    // Remove empty groups that now have workouts
+    const stillEmptyGroups = emptyGroupsForDay.filter(groupNum => !usedGroups.has(groupNum));
+    
+    if (stillEmptyGroups.length !== emptyGroupsForDay.length) {
+      setEmptyGroups(prev => ({
+        ...prev,
+        [dayDateString]: stillEmptyGroups
+      }));
+    }
+  };
+
+  // Effect to clean up empty groups when workout data changes
+  useEffect(() => {
+    Object.keys(emptyGroups).forEach(dayDateString => {
+      cleanupEmptyGroups(dayDateString, currentWorkoutData);
+    });
+  }, [currentWorkoutData, emptyGroups]);
 
   if (workoutLoading) {
     return (
@@ -302,26 +393,14 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                 strategy={verticalListSortingStrategy}
                               >
                                 {(() => {
-                                  const workoutGroups = groupWorkoutsByGroup(dayWorkouts);
+                                  const workoutGroups = groupWorkoutsByGroup(dayWorkouts, dayDateString, emptyGroups[dayDateString] || []);
                                   console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
                                   return workoutGroups.map((group, groupIndex) => (
-                                    <div key={`group-${group.groupNumber}`} style={{
-                                      marginBottom: '8px',
-                                      padding: '6px',
-                                      border: '1px dashed #cbd5e1',
-                                      borderRadius: '6px',
-                                      backgroundColor: '#f8fafc',
-                                      position: 'relative'
-                                    }}>
-                                      <div style={{
-                                        fontSize: '10px',
-                                        color: '#64748b',
-                                        fontWeight: '500',
-                                        marginBottom: '4px',
-                                        textAlign: 'center'
-                                      }}>
-                                        Grupo {group.groupNumber}
-                                      </div>
+                                    <DroppableGroup
+                                      key={`group-${group.groupNumber}-${dayDateString}`}
+                                      groupNumber={group.groupNumber}
+                                      dayDateString={dayDateString}
+                                    >
                                       {group.workouts.map((workout, workoutIndex) => (
                                         <div key={workout.id || workoutIndex} style={{ marginBottom: '4px' }}>
                                           <SortableWorkoutItem
@@ -334,11 +413,49 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                           />
                                         </div>
                                       ))}
-                                    </div>
+                                      {group.workouts.length === 0 && (
+                                        <div style={{
+                                          color: '#9ca3af',
+                                          fontSize: '10px',
+                                          fontStyle: 'italic',
+                                          textAlign: 'center',
+                                          padding: '8px'
+                                        }}>
+                                          Arrastra ejercicios aquí
+                                        </div>
+                                      )}
+                                    </DroppableGroup>
                                   ));
                                 })()}
                               </SortableContext>
                             </DndContext>
+                          )}
+                          
+                          {/* New Group Button */}
+                          {dayWorkouts.length > 0 && (
+                            <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => createNewGroupLocal(dayDateString)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: '#e0f2fe',
+                                  border: '1px dashed #0891b2',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  color: '#0891b2',
+                                  cursor: 'pointer',
+                                  fontWeight: '500'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#bae6fd';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#e0f2fe';
+                                }}
+                              >
+                                + Nuevo Grupo
+                              </button>
+                            </div>
                           )}
                         </div>
 

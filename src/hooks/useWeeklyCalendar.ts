@@ -117,7 +117,7 @@ export const useWeeklyCalendar = ({
       return;
     }
 
-    // Find the date for the dragged items
+    // Find the active workout being dragged
     const activeWorkout = currentWorkoutData.find(w => w.id === active.id);
     if (!activeWorkout) return;
 
@@ -126,11 +126,139 @@ export const useWeeklyCalendar = ({
       .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    const oldIndex = dayWorkouts.findIndex(w => w.id === active.id);
-    const newIndex = dayWorkouts.findIndex(w => w.id === over.id);
+    // Check if we're dropping over a group container or another workout
+    const overIdString = String(over.id);
+    
+    if (overIdString.startsWith('group-')) {
+      // Dropping over a group container - change group
+      // Format: group-{groupNumber}-{dayDateString}
+      const parts = overIdString.split('-');
+      if (parts.length >= 2) {
+        const targetGroupNumber = parseInt(parts[1]);
+        handleGroupChange(activeWorkout, targetGroupNumber, dayWorkouts);
+      }
+    } else {
+      // Dropping over another workout - reorder within same group or change group
+      const targetWorkout = currentWorkoutData.find(w => w.id === over.id);
+      if (!targetWorkout) return;
+
+      if (activeWorkout.group_number === targetWorkout.group_number) {
+        // Same group - reorder
+        handleReorderWithinGroup(activeWorkout, targetWorkout, dayWorkouts);
+      } else {
+        // Different group - change group and position
+        handleMoveToGroup(activeWorkout, targetWorkout, dayWorkouts);
+      }
+    }
+  };
+
+  // Handle changing workout group
+  const handleGroupChange = async (workout: WorkoutEntryWithDetails, newGroupNumber: number, dayWorkouts: WorkoutEntryWithDetails[]) => {
+    try {
+      // Calculate new order within the target group
+      const targetGroupWorkouts = dayWorkouts.filter(w => w.group_number === newGroupNumber);
+      const newOrder = targetGroupWorkouts.length; // Add at the end of the group
+
+      // Update the workout with new group and order
+      const updatedWorkout = {
+        ...workout,
+        group_number: newGroupNumber,
+        order: newOrder
+      };
+
+      await WorkoutService.updateWorkoutEntry(updatedWorkout);
+
+      // Refresh data to reflect changes
+      if (selectedPerson && selectedPerson.id) {
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 20);
+        const endDate = new Date(today);
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        const refreshedData = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(
+          selectedPerson.id,
+          startDateStr,
+          endDateStr
+        );
+        
+        if (onWorkoutDataChange) {
+          onWorkoutDataChange(refreshedData);
+        }
+      }
+    } catch (error) {
+      console.error("Error changing workout group:", error);
+    }
+  };
+
+  // Handle moving workout to different group with specific position
+  const handleMoveToGroup = async (activeWorkout: WorkoutEntryWithDetails, targetWorkout: WorkoutEntryWithDetails, dayWorkouts: WorkoutEntryWithDetails[]) => {
+    try {
+      const targetGroupWorkouts = dayWorkouts
+        .filter(w => w.group_number === targetWorkout.group_number)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      const targetIndex = targetGroupWorkouts.findIndex(w => w.id === targetWorkout.id);
+      
+      // Update the active workout with new group and order
+      const updatedWorkout = {
+        ...activeWorkout,
+        group_number: targetWorkout.group_number,
+        order: targetIndex
+      };
+
+      await WorkoutService.updateWorkoutEntry(updatedWorkout);
+
+      // Update orders for other workouts in the target group
+      const exerciseOrders = targetGroupWorkouts
+        .filter(w => w.id !== activeWorkout.id)
+        .map((workout, index) => ({
+          id: workout.id!,
+          order: index >= targetIndex ? index + 1 : index
+        }));
+
+      if (exerciseOrders.length > 0) {
+        onReorderExercises(exerciseOrders);
+      }
+
+      // Refresh data
+      if (selectedPerson && selectedPerson.id) {
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - 20);
+        const endDate = new Date(today);
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        const refreshedData = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(
+          selectedPerson.id,
+          startDateStr,
+          endDateStr
+        );
+        
+        if (onWorkoutDataChange) {
+          onWorkoutDataChange(refreshedData);
+        }
+      }
+    } catch (error) {
+      console.error("Error moving workout to group:", error);
+    }
+  };
+
+  // Handle reordering within the same group
+  const handleReorderWithinGroup = (activeWorkout: WorkoutEntryWithDetails, targetWorkout: WorkoutEntryWithDetails, dayWorkouts: WorkoutEntryWithDetails[]) => {
+    const groupWorkouts = dayWorkouts
+      .filter(w => w.group_number === activeWorkout.group_number)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const oldIndex = groupWorkouts.findIndex(w => w.id === activeWorkout.id);
+    const newIndex = groupWorkouts.findIndex(w => w.id === targetWorkout.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const reorderedWorkouts = arrayMove(dayWorkouts, oldIndex, newIndex);
+      const reorderedWorkouts = arrayMove(groupWorkouts, oldIndex, newIndex);
       
       // Create the order updates
       const exerciseOrders = reorderedWorkouts.map((workout, index) => ({
@@ -143,6 +271,27 @@ export const useWeeklyCalendar = ({
       saveScrollPosition();
 
       onReorderExercises(exerciseOrders);
+    }
+  };
+
+  // Create a new group for a specific day
+  const createNewGroup = (dayDateString: string, currentWorkoutData: WorkoutEntryWithDetails[]) => {
+    const dayWorkouts = currentWorkoutData.filter(workout => 
+      formatDateForDB(new Date(workout.date)) === dayDateString
+    );
+    
+    // Find the highest group number for this day
+    const maxGroupNumber = Math.max(...dayWorkouts.map(w => w.group_number || 1), 0);
+    const newGroupNumber = maxGroupNumber + 1;
+    
+    // Create an empty droppable group by adding it to the groups
+    // This will be handled by the grouping logic in the component
+    console.log(`Creating new group ${newGroupNumber} for day ${dayDateString}`);
+    
+    // For now, we'll just trigger a re-render by updating the workout data
+    // The new group will appear when a workout is dragged to it
+    if (onWorkoutDataChange) {
+      onWorkoutDataChange([...currentWorkoutData]);
     }
   };
 
@@ -269,5 +418,6 @@ export const useWeeklyCalendar = ({
     goToNewerWeeks,
     goToOlderWeeks,
     goToCurrentWeeks,
+    createNewGroup,
   };
 }; 
