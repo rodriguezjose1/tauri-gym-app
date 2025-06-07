@@ -4,8 +4,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { PersonSearch } from "../forms/PersonSearch";
 import { SortableWorkoutItem } from "../lists/SortableWorkoutItem";
 import { useWeeklyCalendar } from "../../hooks/useWeeklyCalendar";
-import * as styles from "../../styles/weeklyCalendarStyles";
 import { WorkoutEntryWithDetails } from '../../services';
+import "../../styles/WeeklyCalendar.css";
 
 // Droppable Group Component
 const DroppableGroup: React.FC<{
@@ -20,24 +20,9 @@ const DroppableGroup: React.FC<{
   return (
     <div
       ref={setNodeRef}
-      style={{
-        marginBottom: '8px',
-        padding: '6px',
-        border: '1px dashed var(--border-color)',
-        borderRadius: '6px',
-        backgroundColor: isOver ? 'var(--accent-bg)' : 'var(--bg-tertiary)',
-        position: 'relative',
-        transition: 'background-color 0.2s ease',
-        minHeight: '40px'
-      }}
+      className={`weekly-calendar-droppable-group ${isOver ? 'is-over' : ''}`}
     >
-      <div style={{
-        fontSize: '10px',
-        color: 'var(--text-secondary)',
-        fontWeight: '500',
-        marginBottom: '4px',
-        textAlign: 'center'
-      }}>
+      <div className="weekly-calendar-group-header">
         Grupo {groupNumber}
       </div>
       {children}
@@ -181,15 +166,15 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
 
   if (workoutLoading) {
     return (
-      <div style={styles.getCalendarContainerStyles()}>
-        <div style={styles.getHeaderStyles()}>
-          <div style={styles.getTitleStyles()}>
+      <div className="weekly-calendar-container">
+        <div className="weekly-calendar-header">
+          <div className="weekly-calendar-title">
             📅 Últimas 3 Semanas de Entrenamientos
           </div>
         </div>
-        <div style={styles.getLoadingStateStyles()}>
-          <div style={styles.getLoadingContentStyles()}>
-            <div style={styles.getLoadingIconStyles()}>⏳</div>
+        <div className="weekly-calendar-loading-state">
+          <div className="weekly-calendar-loading-content">
+            <div className="weekly-calendar-loading-icon">⏳</div>
             <div>Cargando entrenamientos...</div>
           </div>
         </div>
@@ -198,17 +183,17 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   }
 
   return (
-    <div style={styles.getCalendarContainerStyles()}>
+    <div className="weekly-calendar-container">
       {/* Header with Person Search and Navigation */}
-      <div style={styles.getHeaderStyles()}>
+      <div className="weekly-calendar-header">
         {!selectedPerson ? (
           // Person Search Section - Consistent Layout
-          <div style={styles.getHeaderLayoutStyles()}>
-            <div style={styles.getTitleStyles()}>
+          <div className="weekly-calendar-header-layout">
+            <div className="weekly-calendar-title">
               📅 Dashboard de Entrenamientos
             </div>
             
-            <div style={styles.getPersonSearchContainerStyles()}>
+            <div className="weekly-calendar-person-search">
               <PersonSearch
                 selectedPerson={selectedPerson || null}
                 onPersonSelect={handlePersonSelect}
@@ -219,49 +204,40 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
           </div>
         ) : (
           // Selected Person and Navigation Section - Consistent Layout
-          <div style={styles.getHeaderLayoutStyles()}>
+          <div className="weekly-calendar-header-layout">
             {/* Title - Always on the left */}
-            <div style={styles.getTitleStyles()}>
+            <div className="weekly-calendar-title">
               {getDateRangeTitle()}
             </div>
             
             {/* Selected Person Info and Navigation - Always on the right */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="weekly-calendar-header-right">
               {/* Selected Person Info */}
-              <div style={styles.getSelectedPersonContainerStyles()}>
-                <div style={styles.getPersonAvatarStyles()}>
+              <div className="weekly-calendar-selected-person">
+                <div className="weekly-calendar-person-avatar">
                   {selectedPerson.name.charAt(0)}{selectedPerson.last_name.charAt(0)}
                 </div>
-                <div>
-                  <div style={styles.getPersonNameStyles()}>
+                <div className="weekly-calendar-person-info">
+                  <div className="weekly-calendar-person-name">
                     {selectedPerson.name} {selectedPerson.last_name}
                   </div>
-                  <div style={styles.getPersonPhoneStyles()}>
+                  <div className="weekly-calendar-person-phone">
                     📞 {selectedPerson.phone}
                   </div>
                 </div>
                 <button
                   onClick={handleClearSelection}
-                  style={{
-                    padding: '4px 8px',
-                    backgroundColor: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
+                  className="weekly-calendar-change-button"
                 >
                   Cambiar
                 </button>
               </div>
               
               {/* Navigation Controls */}
-              <div style={styles.getNavigationContainerStyles()}>
+              <div className="weekly-calendar-navigation-container">
                 <button
                   onClick={goToOlderWeeks}
-                  style={styles.getNavigationButtonStyles(false)}
-                  onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.getNavigationButtonHoverStyles())}
-                  onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles(false))}
+                  className="weekly-calendar-nav-button"
                   title="Ver semanas anteriores"
                 >
                   ← Anteriores
@@ -270,9 +246,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 {weekOffset > 0 && (
                   <button
                     onClick={goToCurrentWeeks}
-                    style={styles.getCurrentButtonStyles()}
-                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.getCurrentButtonHoverStyles())}
-                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.getCurrentButtonStyles())}
+                    className="weekly-calendar-current-button"
                     title="Volver a las últimas 3 semanas"
                   >
                     Actuales
@@ -282,29 +256,19 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 <button
                   onClick={goToNewerWeeks}
                   disabled={weekOffset === 0}
-                  style={styles.getNavigationButtonStyles(weekOffset === 0)}
-                  onMouseEnter={(e) => {
-                    if (weekOffset > 0) {
-                      Object.assign(e.currentTarget.style, styles.getNavigationButtonHoverStyles());
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (weekOffset > 0) {
-                      Object.assign(e.currentTarget.style, styles.getNavigationButtonStyles(false));
-                    }
-                  }}
+                  className="weekly-calendar-nav-button"
                   title={weekOffset === 0 ? "Ya estás en las semanas más recientes" : "Ver semanas más recientes"}
                 >
                   Recientes →
                 </button>
                 
                 {/* Weekend Toggle */}
-                <label style={styles.getWeekendToggleStyles()}>
+                <label className="weekly-calendar-weekend-toggle">
                   <input
                     type="checkbox"
                     checked={showWeekends}
                     onChange={(e) => setShowWeekends(e.target.checked)}
-                    style={styles.getCheckboxStyles()}
+                    className="weekly-calendar-checkbox"
                   />
                   Mostrar fines de semana
                 </label>
@@ -317,39 +281,39 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       {/* Calendar Grid */}
       <div 
         ref={scrollContainerRef}
-        style={styles.getCalendarContentStyles()}
+        className="weekly-calendar-content"
       >
         {!selectedPerson ? (
           // Empty State - No person selected
-          <div style={styles.getEmptyStateStyles()}>
-            <div style={styles.getEmptyStateIconStyles()}>📋</div>
-            <div style={styles.getEmptyStateTitleStyles()}>
+          <div className="weekly-calendar-empty-state">
+            <div className="weekly-calendar-empty-icon">📋</div>
+            <div className="weekly-calendar-empty-title">
               Selecciona una persona para ver sus entrenamientos
             </div>
-            <p style={styles.getEmptyStateDescriptionStyles()}>
+            <p className="weekly-calendar-empty-description">
               Usa el buscador de arriba para encontrar y seleccionar una persona.
             </p>
           </div>
         ) : workoutLoading ? (
           // Loading State
-          <div style={styles.getLoadingStateStyles()}>
-            <div style={styles.getLoadingContentStyles()}>
-              <div style={styles.getLoadingIconStyles()}>⏳</div>
+          <div className="weekly-calendar-loading-state">
+            <div className="weekly-calendar-loading-content">
+              <div className="weekly-calendar-loading-icon">⏳</div>
               <div>Cargando entrenamientos...</div>
             </div>
           </div>
         ) : (
           // Calendar Content
-          <div style={styles.getWeeksContainerStyles()}>
+          <div className="weekly-calendar-weeks-container">
             {threeWeeks.map((week, weekIndex) => (
-              <div key={weekIndex} style={styles.getWeekContainerStyles()}>
+              <div key={weekIndex} className="weekly-calendar-week-container">
                 {/* Week Header */}
-                <div style={styles.getWeekHeaderStyles()}>
+                <div className="weekly-calendar-week-header">
                   Semana {week.weekNumber}: {formatWeekRange(week.weekStart)}
                 </div>
                 
                 {/* Week Days Grid */}
-                <div style={styles.getWeekGridStyles(showWeekends)}>
+                <div className={`weekly-calendar-week-grid ${showWeekends ? 'show-weekends' : 'hide-weekends'}`}>
                   {week.days.map((day, dayIndex) => {
                     const dayDateString = formatDateForDB(day);
                     const dayWorkouts = currentWorkoutData.filter(workout => 
@@ -363,23 +327,23 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                     return (
                       <div
                         key={dayIndex}
-                        style={styles.getDayContainerStyles(isToday, isPastDay)}
+                        className={`weekly-calendar-day ${isToday ? 'today' : ''} ${isPastDay ? 'past' : ''}`}
                         onContextMenu={(e) => onDayRightClick(e, dayDateString)}
                       >
                         {/* Day Header */}
-                        <div style={styles.getDayHeaderStyles()}>
-                          <div style={styles.getDayWeekdayStyles(isToday)}>
+                        <div className="weekly-calendar-day-header">
+                          <div className={`weekly-calendar-day-weekday ${isToday ? 'today' : ''}`}>
                             {day.toLocaleDateString('es-ES', { weekday: 'short' })}
                           </div>
-                          <div style={styles.getDayNumberStyles(isToday)}>
+                          <div className={`weekly-calendar-day-number ${isToday ? 'today' : ''}`}>
                             {day.getDate()}
                           </div>
                         </div>
 
                         {/* Workouts */}
-                        <div style={styles.getWorkoutsContainerStyles()}>
+                        <div className="weekly-calendar-workouts">
                           {dayWorkouts.length === 0 ? (
-                            <div style={styles.getNoWorkoutsStyles()}>
+                            <div className="weekly-calendar-no-workouts">
                               Sin entrenamientos
                             </div>
                           ) : (
@@ -402,7 +366,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                       dayDateString={dayDateString}
                                     >
                                       {group.workouts.map((workout, workoutIndex) => (
-                                        <div key={workout.id || workoutIndex} style={{ marginBottom: '4px' }}>
+                                        <div key={workout.id || workoutIndex} className="weekly-calendar-workout-item">
                                           <SortableWorkoutItem
                                             workout={workout}
                                             onDayClick={(date) => {
@@ -414,13 +378,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                         </div>
                                       ))}
                                       {group.workouts.length === 0 && (
-                                        <div style={{
-                                          color: '#9ca3af',
-                                          fontSize: '10px',
-                                          fontStyle: 'italic',
-                                          textAlign: 'center',
-                                          padding: '8px'
-                                        }}>
+                                        <div className="weekly-calendar-group-empty">
                                           Arrastra ejercicios aquí
                                         </div>
                                       )}
@@ -433,25 +391,10 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                           
                           {/* New Group Button */}
                           {dayWorkouts.length > 0 && (
-                            <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                            <div className="weekly-calendar-new-group-container">
                               <button
                                 onClick={() => createNewGroupLocal(dayDateString)}
-                                style={{
-                                  padding: '4px 8px',
-                                  backgroundColor: '#e0f2fe',
-                                  border: '1px dashed #0891b2',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  color: '#0891b2',
-                                  cursor: 'pointer',
-                                  fontWeight: '500'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#bae6fd';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#e0f2fe';
-                                }}
+                                className="weekly-calendar-new-group-button"
                               >
                                 + Nuevo Grupo
                               </button>
@@ -460,15 +403,13 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                         </div>
 
                         {/* Add Workout Button */}
-                        <div style={styles.getAddWorkoutButtonContainerStyles()}>
+                        <div className="weekly-calendar-add-workout-container">
                           <button
                             onClick={() => {
                               onSelectedDateChange?.(dayDateString);
                               onAddWorkoutClick(dayDateString);
                             }}
-                            style={styles.getAddWorkoutButtonStyles()}
-                            onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.getAddWorkoutButtonHoverStyles())}
-                            onMouseLeave={(e) => Object.assign(e.currentTarget.style, styles.getAddWorkoutButtonStyles())}
+                            className="weekly-calendar-add-workout-button"
                           >
                             + Agregar
                           </button>
