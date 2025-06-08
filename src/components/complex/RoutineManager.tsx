@@ -694,7 +694,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 }}
                 variant="primary"
                 fullWidth
-                style={{ marginTop: '12px' }}
+                className="routine-manager-input-spacing"
                 placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
               />
               <div className="routine-manager-modal-actions">
@@ -790,7 +790,7 @@ export const RoutineManager: React.FC<RoutineManagerProps> = ({ onClose }) => {
                 onChange={(e) => setAddExerciseForm(prev => ({ ...prev, notes: e.target.value }))}
                 variant="primary"
                 fullWidth
-                style={{ marginTop: '12px' }}
+                className="routine-manager-input-spacing"
               />
 
               <div className="routine-manager-modal-actions">

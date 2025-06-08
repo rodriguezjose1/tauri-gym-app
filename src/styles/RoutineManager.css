@@ -1,5 +1,10 @@
 /* RoutineManager Component Styles */
 
+/* Utility Classes */
+.routine-manager-input-spacing {
+  margin-top: 12px;
+}
+
 /* Main Container - Modal Mode */
 .routine-manager-overlay {
   position: fixed;

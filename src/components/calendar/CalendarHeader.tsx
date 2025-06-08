@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '../base';
+import '../../styles/CalendarHeader.css';
 
 interface CalendarHeaderProps {
   dateRangeTitle: string;
@@ -21,18 +22,9 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   workoutLoading
 }) => {
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '20px',
-      padding: '16px',
-      backgroundColor: 'var(--bg-tertiary)',
-      borderRadius: '8px',
-      border: '1px solid var(--border-light)'
-    }}>
+    <div className="calendar-header">
       {/* Navigation Controls */}
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <div className="calendar-header-navigation">
         <Button
           onClick={onGoToOlderWeeks}
           variant="secondary"
@@ -62,35 +54,18 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
       </div>
 
       {/* Date Range Title */}
-      <div style={{
-        fontWeight: '600',
-        color: 'var(--text-primary)',
-        fontSize: '16px',
-        textAlign: 'center',
-        flex: 1
-      }}>
+      <div className="calendar-header-title">
         {dateRangeTitle}
       </div>
 
       {/* View Controls */}
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '14px',
-          color: 'var(--text-primary)',
-          cursor: 'pointer'
-        }}>
+      <div className="calendar-header-controls">
+        <label className="calendar-header-weekend-toggle">
           <input
             type="checkbox"
             checked={showWeekends}
             onChange={onToggleWeekends}
-            style={{
-              width: '16px',
-              height: '16px',
-              cursor: 'pointer'
-            }}
+            className="calendar-header-checkbox"
           />
           Mostrar fines de semana
         </label>

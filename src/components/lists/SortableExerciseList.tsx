@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { SortableExerciseItem } from './SortableExerciseItem';
 import { Exercise, WorkoutEntryForm } from '../../types/dashboard';
+import '../../styles/SortableExerciseList.css';
 
 interface SortableExerciseListProps {
   exercises: Exercise[];
@@ -71,7 +72,7 @@ export const SortableExerciseList: React.FC<SortableExerciseListProps> = ({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <div style={{ marginBottom: '20px' }}>
+        <div className="sortable-exercise-list">
           {formExercises.map((exercise, index) => (
             <SortableExerciseItem
               key={`exercise-${index}`}
