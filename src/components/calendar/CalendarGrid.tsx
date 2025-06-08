@@ -3,6 +3,7 @@ import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { WorkoutEntryWithDetails } from '../../services';
 import { SortableWorkoutItem } from '../lists/SortableWorkoutItem';
+import '../../styles/CalendarGrid.css';
 
 interface CalendarGridProps {
   threeWeeks: Date[][];
@@ -57,39 +58,20 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="calendar-grid-container">
       {threeWeeks.map((week, weekIndex) => {
         const weekStart = week[0];
         const weekNumber = getWeekNumber(weekStart);
         
         return (
-          <div key={weekIndex} style={{ 
-            border: '1px solid var(--border-light)',
-            borderRadius: '8px',
-            overflow: 'hidden'
-          }}>
+          <div key={weekIndex} className="calendar-week-container">
             {/* Week Header */}
-            <div style={{ 
-              padding: '12px 16px',
-              backgroundColor: 'var(--bg-tertiary)',
-              borderBottom: '1px solid var(--border-light)',
-              fontWeight: '600',
-              fontSize: '14px',
-              color: 'var(--text-primary)'
-            }}>
+            <div className="calendar-week-header">
               Semana {weekNumber}: {formatWeekRange(weekStart)}
             </div>
             
             {/* Week Days Grid */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: showWeekends 
-                ? 'repeat(7, 1fr)' 
-                : 'repeat(5, 1fr)', 
-              gap: '1px',
-              backgroundColor: 'var(--border-light)',
-              width: '100%'
-            }}>
+            <div className={`calendar-week-grid ${showWeekends ? 'show-weekends' : 'weekdays-only'}`}>
               {week.map((day, dayIndex) => {
                 const dayDateString = formatDateForDB(day);
                 const dayWorkouts = workoutData.filter(workout => 
@@ -100,63 +82,30 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 
                 console.log(`Day ${dayDateString}: found ${dayWorkouts.length} workouts`);
                 
+                const dayClasses = `calendar-day-cell ${
+                  isToday ? 'today' : isPastDay ? 'past-day' : 'regular-day'
+                }`;
+                
                 return (
                   <div
                     key={dayIndex}
-                    style={{
-                      backgroundColor: isToday ? 'var(--accent-bg)' : isPastDay ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                      padding: '8px',
-                      minHeight: '120px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      border: isToday ? '2px solid var(--accent-primary)' : 'none',
-                      overflow: 'hidden'
-                    }}
+                    className={dayClasses}
                     onContextMenu={(e) => onDayRightClick(e, dayDateString)}
                   >
                     {/* Day Header */}
-                    <div style={{ 
-                      textAlign: 'center', 
-                      marginBottom: '8px',
-                      paddingBottom: '6px',
-                      borderBottom: '1px solid var(--border-light)'
-                    }}>
-                      <div style={{ 
-                        fontSize: '11px', 
-                        fontWeight: '600', 
-                        color: isToday ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
+                    <div className="calendar-day-header">
+                      <div className={`calendar-day-weekday ${isToday ? 'today' : ''}`}>
                         {day.toLocaleDateString('es-ES', { weekday: 'short' })}
                       </div>
-                      <div style={{ 
-                        fontSize: '16px', 
-                        fontWeight: 'bold', 
-                        color: isToday ? 'var(--accent-primary)' : 'var(--text-primary)'
-                      }}>
+                      <div className={`calendar-day-number ${isToday ? 'today' : ''}`}>
                         {day.getDate()}
                       </div>
                     </div>
 
                     {/* Workouts */}
-                    <div style={{ 
-                      flex: 1, 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: '4px'
-                    }}>
+                    <div className="calendar-workouts-container">
                       {dayWorkouts.length === 0 ? (
-                        <div style={{ 
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--text-muted)',
-                          fontSize: '11px',
-                          textAlign: 'center',
-                          minHeight: '60px'
-                        }}>
+                        <div className="calendar-no-workouts">
                           Sin entrenamientos
                         </div>
                       ) : (
@@ -186,33 +135,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                     </div>
 
                     {/* Add Workout Button */}
-                    <div style={{ marginTop: '8px' }}>
+                    <div className="calendar-add-workout-container">
                       <button
                         onClick={() => {
                           onSelectedDateChange?.(dayDateString);
                           onAddWorkoutClick(dayDateString);
                         }}
-                        style={{
-                          width: '100%',
-                          padding: '4px 6px',
-                          backgroundColor: 'transparent',
-                          border: '1px dashed var(--text-muted)',
-                          borderRadius: '4px',
-                          color: 'var(--text-secondary)',
-                          fontSize: '10px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                          e.currentTarget.style.color = 'var(--accent-primary)';
-                          e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--text-muted)';
-                          e.currentTarget.style.color = 'var(--text-secondary)';
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
+                        className="calendar-add-workout-btn"
                       >
                         + Agregar
                       </button>
