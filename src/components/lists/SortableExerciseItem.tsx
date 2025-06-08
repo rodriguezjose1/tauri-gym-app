@@ -1,8 +1,9 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ExerciseAutocomplete } from './ExerciseAutocomplete';
+import { ExerciseAutocomplete } from '../forms/ExerciseAutocomplete';
 import { Exercise, WorkoutEntryForm } from '../../types/dashboard';
+import '../../styles/SortableExerciseItem.css';
 
 interface SortableExerciseItemProps {
   id: string;
@@ -43,46 +44,22 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
       className="sortable-exercise-item"
       {...attributes}
     >
-      <div style={{
-        padding: '16px',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        marginBottom: '12px',
-        boxShadow: isDragging ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}>
+      <div className={`sortable-exercise-item-content ${isDragging ? 'dragging' : ''}`}>
         {/* Drag Handle and Exercise Header */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+        <div className="sortable-exercise-item-header">
           <div
             {...listeners}
-            style={{
-              cursor: 'grab',
-              padding: '4px 8px',
-              marginRight: '12px',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '4px',
-              fontSize: '14px',
-              color: '#6b7280',
-              userSelect: 'none',
-            }}
+            className="sortable-exercise-item-drag-handle"
             title="Arrastra para reordenar"
           >
             ⋮⋮
           </div>
-          <div style={{ flex: 1, fontWeight: '500', color: '#374151' }}>
+          <div className="sortable-exercise-item-title">
             Ejercicio {index + 1}
           </div>
           <button
             onClick={() => onDeleteExercise(index)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              fontSize: '18px',
-              padding: '4px',
-              borderRadius: '4px',
-            }}
+            className="sortable-exercise-item-delete-btn"
             title="Eliminar ejercicio"
           >
             ×
@@ -90,37 +67,25 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
         </div>
 
         {/* Exercise Form Fields */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+        <div className="sortable-exercise-item-form">
           {/* Exercise Selection */}
-          <div>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '4px', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: '#374151'
-            }}>
+          <div className="sortable-exercise-item-field">
+            <label className="sortable-exercise-item-label">
               Ejercicio *
             </label>
             <ExerciseAutocomplete
-              onExerciseSelect={(exercise) => {
-                if (exercise) {
-                  onUpdateExercise(index, 'exercise_id', exercise.id || 0);
+              onExerciseSelect={(selectedExercise: Exercise | null) => {
+                if (selectedExercise) {
+                  onUpdateExercise(index, 'exercise_id', selectedExercise.id || 0);
                 }
               }}
             />
           </div>
 
           {/* Sets, Reps, Weight */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '4px', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#374151'
-              }}>
+          <div className="sortable-exercise-item-grid">
+            <div className="sortable-exercise-item-field">
+              <label className="sortable-exercise-item-label">
                 Series
               </label>
               <input
@@ -128,23 +93,11 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
                 min="1"
                 value={exercise.sets}
                 onChange={(e) => onUpdateExercise(index, 'sets', parseInt(e.target.value) || 1)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                }}
+                className="sortable-exercise-item-input"
               />
             </div>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '4px', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#374151'
-              }}>
+            <div className="sortable-exercise-item-field">
+              <label className="sortable-exercise-item-label">
                 Reps
               </label>
               <input
@@ -152,23 +105,11 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
                 min="1"
                 value={exercise.reps}
                 onChange={(e) => onUpdateExercise(index, 'reps', parseInt(e.target.value) || 1)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                }}
+                className="sortable-exercise-item-input"
               />
             </div>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '4px', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#374151'
-              }}>
+            <div className="sortable-exercise-item-field">
+              <label className="sortable-exercise-item-label">
                 Peso (kg)
               </label>
               <input
@@ -177,26 +118,14 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
                 step="0.5"
                 value={exercise.weight}
                 onChange={(e) => onUpdateExercise(index, 'weight', parseFloat(e.target.value) || 0)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                }}
+                className="sortable-exercise-item-input"
               />
             </div>
           </div>
 
           {/* Notes */}
-          <div>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '4px', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: '#374151'
-            }}>
+          <div className="sortable-exercise-item-field">
+            <label className="sortable-exercise-item-label">
               Notas
             </label>
             <textarea
@@ -204,14 +133,7 @@ export const SortableExerciseItem: React.FC<SortableExerciseItemProps> = ({
               onChange={(e) => onUpdateExercise(index, 'notes', e.target.value)}
               placeholder="Notas adicionales..."
               rows={2}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                resize: 'vertical',
-              }}
+              className="sortable-exercise-item-textarea"
             />
           </div>
         </div>

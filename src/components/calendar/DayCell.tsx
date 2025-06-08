@@ -5,6 +5,7 @@ import {
 } from '@dnd-kit/sortable';
 import { WorkoutEntryWithDetails } from '../../services';
 import { SortableWorkoutItem } from '../lists/SortableWorkoutItem';
+import '../../styles/DayCell.css';
 
 interface DayCellProps {
   day: Date;
@@ -33,44 +34,17 @@ export const DayCell: React.FC<DayCellProps> = ({
 
   const dayDateString = formatDateForDB(day);
 
+  const dayCellClasses = `day-cell ${isToday ? 'today' : ''} ${isPastDay ? 'past-day' : ''}`.trim();
+
   return (
     <div
-      style={{
-        minHeight: '120px',
-        border: '1px solid var(--border-light)',
-        borderRadius: '8px',
-        padding: '8px',
-        backgroundColor: isToday ? 'var(--accent-bg)' : 'var(--bg-primary)',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        opacity: isPastDay ? 0.7 : 1,
-        position: 'relative'
-      }}
-      onMouseEnter={(e) => {
-        if (!isToday) {
-          e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isToday) {
-          e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
-        }
-      }}
+      className={dayCellClasses}
       onClick={() => onDayClick(dayDateString)}
       onContextMenu={(e) => onDayRightClick(e, dayDateString)}
     >
       {/* Day Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '8px'
-      }}>
-        <div style={{
-          fontWeight: isToday ? '700' : '600',
-          color: isToday ? 'var(--accent-primary)' : 'var(--text-primary)',
-          fontSize: '14px'
-        }}>
+      <div className="day-cell-header">
+        <div className={`day-cell-date ${isToday ? 'today' : ''}`}>
           {day.toLocaleDateString('es-ES', { 
             weekday: 'short', 
             day: 'numeric' 
@@ -83,29 +57,7 @@ export const DayCell: React.FC<DayCellProps> = ({
             e.stopPropagation();
             onAddWorkoutClick(dayDateString);
           }}
-          style={{
-            background: 'var(--success-color)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '20px',
-            height: '20px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            opacity: 0.7
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0.7';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
+          className="day-cell-add-btn"
           title="Agregar entrenamiento"
         >
           +
@@ -113,7 +65,7 @@ export const DayCell: React.FC<DayCellProps> = ({
       </div>
 
       {/* Workouts List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div className="day-cell-workouts">
         {dayWorkouts.length > 0 ? (
           <SortableContext
             items={dayWorkouts.map(w => w.id!)}
@@ -129,13 +81,7 @@ export const DayCell: React.FC<DayCellProps> = ({
             ))}
           </SortableContext>
         ) : (
-          <div style={{
-            color: 'var(--text-muted)',
-            fontSize: '11px',
-            fontStyle: 'italic',
-            textAlign: 'center',
-            padding: '8px'
-          }}>
+          <div className="day-cell-no-workouts">
             Sin entrenamientos
           </div>
         )}
