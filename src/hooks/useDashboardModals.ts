@@ -251,6 +251,7 @@ export const useDashboardModals = () => {
     closeLoadRoutineModal,
     showConfirm,
     setShowSettingsModal,
+    setShowConfirmModal,
     
     // Form actions
     updateWorkoutForm,
@@ -261,6 +262,7 @@ export const useDashboardModals = () => {
     setSelectedRoutineForLoad,
     setSelectedDateForRoutine,
     setSelectedGroupForRoutine,
-    setSelectedDate
+    setSelectedDate,
+    setShowLoadRoutineModal
   };
 }; 

@@ -80,7 +80,8 @@ export default function DashboardRefactored() {
     setSelectedRoutineForLoad,
     setSelectedDateForRoutine,
     setSelectedGroupForRoutine,
-    setShowLoadRoutineModal
+    setShowLoadRoutineModal,
+    setShowConfirmModal
   } = useDashboardModals();
 
   // Use custom hooks for workout operations
@@ -352,7 +353,7 @@ export default function DashboardRefactored() {
         setSelectedRoutineForLoad(null);
         setSelectedDateForRoutine("");
         setSelectedGroupForRoutine(1);
-        showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED, 'success');
+        showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED("Rutina", 0, selectedGroupForRoutine), 'success');
       } catch (error) {
         console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_APPLY_ROUTINE, error);
         showToast(DASHBOARD_ERROR_MESSAGES.APPLY_ROUTINE_FAILED, 'error');

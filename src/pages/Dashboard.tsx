@@ -12,7 +12,7 @@ import { Modal } from '../components/base/Modal';
 import { Person, Exercise, WorkoutEntry, WorkoutEntryWithDetails, WorkoutEntryForm, WorkoutSessionForm, RoutineWithExercises, RoutineOption } from '../types/dashboard';
 import { getContainerStyles, getDashboardWrapperStyles } from '../config/layout';
 import { useToastNotifications } from '../hooks/useToastNotifications';
-import { 
+import {
   DASHBOARD_ERROR_MESSAGES, 
   DASHBOARD_SUCCESS_MESSAGES, 
   DASHBOARD_WARNING_MESSAGES, 
@@ -187,7 +187,7 @@ export default function Dashboard() {
     setWorkoutLoading(true);
     try {
       console.log("Fetching workout data for personId:", personId, "startDate:", startDate, "endDate:", endDate);
-      
+
       let result;
       if (startDate && endDate) {
         // Use date range command when dates are provided
@@ -722,15 +722,15 @@ export default function Dashboard() {
         </div>
         {/* Weekly Calendar with Embedded Person Search */}
         <div className="dashboard-calendar-container">
-          <WeeklyCalendar
+        <WeeklyCalendar
             selectedPerson={selectedPerson}
             workoutData={workoutData}
-            onWorkoutDataChange={setWorkoutData}
+          onWorkoutDataChange={setWorkoutData}
             onReorderExercises={handleReorderExercises}
-            onAddWorkoutClick={handleAddWorkoutClick}
+          onAddWorkoutClick={handleAddWorkoutClick}
             onDeleteWorkoutEntry={handleDeleteWorkoutEntry}
-            onDayClick={handleDayClick}
-            onDayRightClick={handleDayRightClick}
+          onDayClick={handleDayClick}
+          onDayRightClick={handleDayRightClick}
             onSelectedDateChange={setSelectedDate}
             handlePersonSelect={handlePersonSelect}
             handleClearSelection={handleClearSelection}
