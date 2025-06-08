@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { PersonSearch } from '../components/forms/PersonSearch';
 import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
 import { WorkoutModals } from '../components/complex/WorkoutModals';
@@ -20,6 +19,8 @@ import {
   DASHBOARD_UI_LABELS 
 } from '../constants/errorMessages';
 import { WorkoutService } from '../services/workoutService';
+import { ExerciseService } from '../services/exerciseService';
+import { RoutineService } from '../services/routineService';
 import '../styles/Dashboard.css';
 
 export default function Dashboard() {
@@ -131,16 +132,16 @@ export default function Dashboard() {
   const fetchAllExercises = async () => {
     try {
       console.log("Fetching exercises...");
-      const result = await invoke("get_exercises");
+      const result = await ExerciseService.getExercises();
       console.log("Exercises fetched:", result);
       setExercises(result as Exercise[]);
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.FETCH_EXERCISES_FAILED, error);
       // Try to fetch with pagination as fallback
       try {
-        const fallbackResult = await invoke("get_exercises_paginated", { page: 1, pageSize: 100 });
+        const fallbackResult = await ExerciseService.getExercisesPaginated(1, 100);
         console.log("Exercises fetched via pagination:", fallbackResult);
-        setExercises(fallbackResult as Exercise[]);
+        setExercises(fallbackResult.exercises);
       } catch (fallbackError) {
         console.error(DASHBOARD_ERROR_MESSAGES.FETCH_EXERCISES_PAGINATION_FAILED, fallbackError);
       }
@@ -150,19 +151,19 @@ export default function Dashboard() {
   const fetchRoutines = async () => {
     try {
       console.log("Fetching routines...");
-      const result = await invoke("list_routines", { page: 1, pageSize: 100 });
+      const result = await RoutineService.listRoutinesPaginated(1, 100);
       console.log("Routines fetched:", result);
       
       // Transform routines to include exercise count
       const routineOptions: RoutineOption[] = await Promise.all(
         (result as any[]).map(async (routine) => {
           try {
-            const routineWithExercises = await invoke("get_routine_with_exercises", { id: routine.id }) as RoutineWithExercises;
+            const routineWithExercises = await RoutineService.getRoutineWithExercises(routine.id) as RoutineWithExercises;
             return {
               id: routine.id,
               name: routine.name,
               code: routine.code,
-              exerciseCount: routineWithExercises.exercises?.length || 0
+              exerciseCount: routineWithExercises?.exercises?.length || 0
             };
           } catch (error) {
             console.error(DASHBOARD_ERROR_MESSAGES.FETCH_ROUTINE_EXERCISES_FAILED(routine.id), error);
@@ -190,16 +191,10 @@ export default function Dashboard() {
       let result;
       if (startDate && endDate) {
         // Use date range command when dates are provided
-        result = await invoke("get_workout_entries_by_person_and_date_range", {
-          personId: personId,
-          startDate: startDate,
-          endDate: endDate
-        });
+        result = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(personId, startDate, endDate);
       } else {
         // Fallback to get all entries for the person
-        result = await invoke("get_workout_entries_by_person", {
-          personId: personId
-        });
+        result = await WorkoutService.getWorkoutEntriesByPerson(personId);
       }
       
       console.log("Workout data result:", result);
@@ -215,9 +210,7 @@ export default function Dashboard() {
       if (startDate && endDate) {
         try {
           console.log("Trying fallback to get_workout_entries_by_person");
-          const fallbackResult = await invoke("get_workout_entries_by_person", {
-            personId: personId
-          });
+          const fallbackResult = await WorkoutService.getWorkoutEntriesByPerson(personId);
           console.log("Fallback result:", fallbackResult);
           setWorkoutData(fallbackResult as WorkoutEntryWithDetails[]);
         } catch (fallbackError) {
@@ -418,7 +411,7 @@ export default function Dashboard() {
       };
 
       console.log("Saving workout entry:", workoutEntry);
-      await invoke("create_workout_entry", workoutEntry);
+      await WorkoutService.createWorkoutEntry(workoutEntry);
       
       showToast(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_ENTRY_SAVED, 'success');
       
@@ -458,7 +451,7 @@ export default function Dashboard() {
       for (const entry of existingEntries) {
         if (entry.id) {
           console.log("Deleting existing entry:", entry.id);
-          await invoke("delete_workout_entry", { id: entry.id });
+          await WorkoutService.deleteWorkoutEntry(entry.id);
         }
       }
       
@@ -478,7 +471,7 @@ export default function Dashboard() {
         };
 
         console.log("Creating workout entry:", workoutEntry);
-        await invoke("create_workout_entry", workoutEntry);
+        await WorkoutService.createWorkoutEntry(workoutEntry);
       }
       
       showToast(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, 'success');
@@ -549,7 +542,7 @@ export default function Dashboard() {
       console.log("Loading routine", routineId, "for person", selectedPerson.id);
       
       // Get routine with exercises
-      const routineWithExercises = await invoke("get_routine_with_exercises", { id: routineId }) as RoutineWithExercises;
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(routineId) as RoutineWithExercises;
       console.log("Routine with exercises:", routineWithExercises);
       
       if (!routineWithExercises.exercises || routineWithExercises.exercises.length === 0) {
@@ -605,7 +598,7 @@ export default function Dashboard() {
       console.log("Loading routine", selectedRoutineForLoad, "for person", selectedPerson.id, "on date", selectedDateForRoutine);
       
       // Get routine with exercises
-      const routineWithExercises = await invoke("get_routine_with_exercises", { id: selectedRoutineForLoad }) as RoutineWithExercises;
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(selectedRoutineForLoad) as RoutineWithExercises;
       console.log("Routine with exercises:", routineWithExercises);
       
       if (!routineWithExercises.exercises || routineWithExercises.exercises.length === 0) {
@@ -620,7 +613,7 @@ export default function Dashboard() {
       for (const entry of existingEntries) {
         if (entry.id) {
           console.log("Deleting existing entry:", entry.id);
-          await invoke("delete_workout_entry", { id: entry.id });
+          await WorkoutService.deleteWorkoutEntry(entry.id);
         }
       }
 
@@ -640,7 +633,7 @@ export default function Dashboard() {
         };
 
         console.log("Creating workout entry from routine:", workoutEntry);
-        await invoke("create_workout_entry", workoutEntry);
+        await WorkoutService.createWorkoutEntry(workoutEntry);
       }
 
       showToast(DASHBOARD_SUCCESS_MESSAGES.ROUTINE_APPLIED_TO_DATE, 'success');

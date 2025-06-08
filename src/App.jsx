@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/DashboardRefactored";
 import PersonCrud from "./pages/PersonCrud";
 import ExerciseCrud from "./pages/ExerciseCrud";
 import RoutinePage from "./pages/RoutinePage";
