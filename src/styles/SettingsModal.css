@@ -1,0 +1,294 @@
+/* SettingsModal Component Styles */
+
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-modal-content {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 10px 25px var(--shadow-medium);
+}
+
+/* Header */
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 16px;
+}
+
+.settings-modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.settings-modal-close:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Content */
+.settings-modal-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Section Cards */
+.settings-section-card {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.settings-section-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.settings-section-label {
+  color: var(--text-secondary);
+}
+
+/* Theme Buttons */
+.settings-theme-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-theme-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-theme-button.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.settings-theme-button:not(.active) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.settings-theme-button:hover:not(.active) {
+  background-color: var(--bg-tertiary);
+}
+
+/* Toggle Switch */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.settings-toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.settings-toggle-slider.active {
+  background-color: var(--accent-primary);
+}
+
+.settings-toggle-slider:not(.active) {
+  background-color: var(--border-color);
+}
+
+.settings-toggle-knob {
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.settings-toggle-knob.active {
+  left: 23px;
+}
+
+.settings-toggle-knob:not(.active) {
+  left: 3px;
+}
+
+/* Select */
+.settings-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+/* Footer */
+.settings-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-reset-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--error-color);
+  background-color: transparent;
+  color: var(--error-color);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-reset-button:hover {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.settings-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-cancel-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-cancel-button:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.settings-save-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-primary);
+  background-color: var(--accent-primary);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-save-button:hover {
+  background-color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .settings-modal-content {
+    width: 95%;
+    padding: 20px;
+    max-height: 90vh;
+  }
+  
+  .settings-modal-title {
+    font-size: 18px;
+  }
+  
+  .settings-section-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .settings-theme-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .settings-theme-button {
+    flex: 1;
+  }
+  
+  .settings-modal-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .settings-footer-actions {
+    justify-content: stretch;
+  }
+  
+  .settings-cancel-button,
+  .settings-save-button {
+    flex: 1;
+  }
+} 

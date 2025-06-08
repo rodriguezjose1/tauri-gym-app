@@ -1,0 +1,123 @@
+/* InfoModal Component Styles */
+
+.info-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.info-modal-content {
+  background-color: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px var(--shadow-medium), 0 10px 10px -5px var(--shadow-light);
+  border: 1px solid var(--border-color);
+}
+
+.info-modal-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.info-modal-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.info-modal-icon-container.info {
+  background-color: var(--info-color);
+}
+
+.info-modal-icon-container.success {
+  background-color: var(--success-color);
+}
+
+.info-modal-icon-container.warning {
+  background-color: var(--warning-color);
+}
+
+.info-modal-icon-container.error {
+  background-color: var(--error-color);
+}
+
+.info-modal-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.info-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.info-modal-message {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.info-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.info-modal-button {
+  padding: 8px 16px;
+  background-color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.info-modal-button:hover {
+  background-color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .info-modal-content {
+    padding: 20px;
+    max-width: 95%;
+  }
+  
+  .info-modal-icon-container {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+  }
+  
+  .info-modal-icon {
+    font-size: 20px;
+  }
+  
+  .info-modal-title {
+    font-size: 16px;
+  }
+  
+  .info-modal-message {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+} 

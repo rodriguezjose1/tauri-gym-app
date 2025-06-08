@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button, Input, Modal } from "../base";
 import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../types/dashboard';
+import '../../styles/WorkoutModals.css';
 
 interface WorkoutModalsProps {
   // Single workout modal
@@ -96,19 +97,19 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
         title="Agregar Entrenamiento"
         size="md"
       >
-        <div style={{ padding: '8px 0' }}>
+        <div className="workout-modal-content">
           {selectedPerson && selectedDate && (
-            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
-              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
+            <div className="workout-modal-person-date-info">
+              <div className="workout-modal-person-name">
                 {selectedPerson.name} {selectedPerson.last_name}
               </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              <div className="workout-modal-date">
                 📅 {formatDate(selectedDate)}
               </div>
             </div>
           )}
 
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div className="workout-modal-form-grid">
             <div>
               <ExerciseAutocomplete
                 onExerciseSelect={(exercise) => {
@@ -131,26 +132,13 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
 
             {/* Group Selection */}
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#374151' 
-              }}>
+              <label className="workout-modal-label">
                 Grupo:
               </label>
               <select
                 value={workoutForm.group_number || 1}
                 onChange={(e) => onUpdateWorkoutForm('group_number', parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  backgroundColor: 'white'
-                }}
+                className="workout-modal-group-select"
               >
                 <option value={1}>Grupo 1</option>
                 <option value={2}>Grupo 2</option>
@@ -158,11 +146,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                 <option value={4}>Grupo 4</option>
                 <option value={5}>Grupo 5</option>
               </select>
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#6b7280', 
-                marginTop: '4px' 
-              }}>
+              <div className="workout-modal-group-help">
                 Los ejercicios del mismo grupo se mostrarán juntos en el calendario
               </div>
             </div>
@@ -212,7 +196,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             */}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
+          <div className="workout-modal-actions">
             <Button
               onClick={onCloseWorkoutModal}
               variant="secondary"
@@ -254,22 +238,22 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
         })()}
         size="lg"
       >
-        <div style={{ padding: '8px 0' }}>
+        <div className="workout-modal-content">
           {selectedPerson && selectedDate && (
-            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
-              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
+            <div className="workout-modal-person-date-info">
+              <div className="workout-modal-person-name">
                 {selectedPerson.name} {selectedPerson.last_name}
               </div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              <div className="workout-modal-date">
                 📅 {formatDate(selectedDate)}
               </div>
             </div>
           )}
 
           {/* Routine Selection Section */}
-          <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h4 style={{ margin: 0, color: '#374151', fontSize: '16px', fontWeight: '600' }}>
+          <div className="workout-modal-routine-section">
+            <div className="workout-modal-routine-header">
+              <h4 className="workout-modal-routine-title">
                 🏋️ Cargar desde Rutina
               </h4>
               <Button
@@ -282,22 +266,15 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             </div>
             
             {showRoutineSelector && (
-              <div style={{ display: 'grid', gap: '12px' }}>
+              <div className="workout-modal-routine-selector">
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label className="workout-modal-label">
                     Seleccionar Rutina:
                   </label>
                   <select
                     value={selectedRoutineId || ''}
                     onChange={(e) => setSelectedRoutineId(e.target.value ? parseInt(e.target.value) : null)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      backgroundColor: 'white'
-                    }}
+                    className="workout-modal-routine-select"
                   >
                     <option value="">-- Seleccionar rutina --</option>
                     {routines.map(routine => (
@@ -308,7 +285,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                   </select>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <div className="workout-modal-routine-actions">
                   <Button
                     onClick={() => {
                       setShowRoutineSelector(false);
@@ -330,18 +307,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                       }
                     }}
                     disabled={!selectedRoutineId || loadingRoutine}
-                    style={{
-                      backgroundColor: selectedRoutineId && !loadingRoutine ? '#007bff' : '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      cursor: selectedRoutineId && !loadingRoutine ? 'pointer' : 'not-allowed',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
+                    className={`workout-modal-load-routine-btn ${(!selectedRoutineId || loadingRoutine) ? 'disabled' : ''}`}
                   >
                     {loadingRoutine ? (
                       <>
@@ -358,14 +324,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                 </div>
                 
                 {sessionForm.exercises.length > 1 && (
-                  <div style={{ 
-                    padding: '8px 12px', 
-                    backgroundColor: '#fef3c7', 
-                    borderRadius: '6px', 
-                    fontSize: '13px', 
-                    color: '#92400e',
-                    border: '1px solid #fbbf24'
-                  }}>
+                  <div className="workout-modal-warning">
                     ⚠️ Los ejercicios actuales serán reemplazados por los de la rutina seleccionada.
                   </div>
                 )}
@@ -373,18 +332,13 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             )}
           </div>
 
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div className="workout-modal-form-grid">
             {/* Exercise Forms */}
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div className="workout-modal-exercise-list">
               {sessionForm.exercises.map((exercise, index) => (
-                <div key={index} style={{ 
-                  padding: '16px', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '8px',
-                  backgroundColor: '#f9fafb'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0, color: '#374151', fontSize: '16px' }}>
+                <div key={index} className="workout-modal-exercise-item">
+                  <div className="workout-modal-exercise-header">
+                    <h4 className="workout-modal-exercise-title">
                       Ejercicio {index + 1}
                     </h4>
                     {sessionForm.exercises.length > 1 && (
@@ -398,7 +352,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                     )}
                   </div>
 
-                  <div style={{ display: 'grid', gap: '16px' }}>
+                  <div className="workout-modal-form-grid">
                     <ExerciseAutocomplete
                       onExerciseSelect={(exercise) => {
                         if (exercise) {
@@ -414,26 +368,13 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
 
                     {/* Group Selection */}
                     <div>
-                      <label style={{ 
-                        display: 'block', 
-                        marginBottom: '8px', 
-                        fontSize: '14px', 
-                        fontWeight: '500', 
-                        color: '#374151' 
-                      }}>
+                      <label className="workout-modal-label">
                         Grupo:
                       </label>
                       <select
                         value={exercise.group_number || 1}
                         onChange={(e) => onUpdateSessionExercise(index, 'group_number', parseInt(e.target.value))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          backgroundColor: 'white'
-                        }}
+                        className="workout-modal-group-select"
                       >
                         <option value={1}>Grupo 1</option>
                         <option value={2}>Grupo 2</option>
@@ -441,11 +382,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                         <option value={4}>Grupo 4</option>
                         <option value={5}>Grupo 5</option>
                       </select>
-                      <div style={{ 
-                        fontSize: '12px', 
-                        color: '#6b7280', 
-                        marginTop: '4px' 
-                      }}>
+                      <div className="workout-modal-group-help">
                         Los ejercicios del mismo grupo se mostrarán juntos en el calendario
                       </div>
                     </div>
@@ -498,7 +435,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="workout-modal-add-exercise">
               <Button
                 onClick={onAddExerciseToSession}
                 variant="secondary"
@@ -509,7 +446,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
+          <div className="workout-modal-actions">
             <Button
               onClick={onCloseSessionModal}
               variant="secondary"

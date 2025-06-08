@@ -1,0 +1,269 @@
+/* WorkoutModals Component Styles */
+
+.workout-modal-content {
+  padding: 8px 0;
+}
+
+/* Person and Date Info */
+.workout-modal-info {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+}
+
+.workout-modal-person-name {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.workout-modal-date {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Form Grid */
+.workout-modal-form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* Group Selection */
+.workout-modal-group-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.workout-modal-group-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.workout-modal-group-help {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Input Grid */
+.workout-modal-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+/* Actions */
+.workout-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+}
+
+/* Routine Section */
+.workout-modal-routine-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.workout-modal-routine-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.workout-modal-routine-title {
+  margin: 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.workout-modal-routine-button {
+  font-size: 14px;
+}
+
+.workout-modal-routine-selector {
+  display: grid;
+  gap: 12px;
+}
+
+.workout-modal-routine-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.workout-modal-routine-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.workout-modal-routine-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.workout-modal-routine-load-button {
+  font-size: 14px;
+}
+
+/* Exercise List */
+.workout-modal-exercise-list {
+  display: grid;
+  gap: 20px;
+}
+
+.workout-modal-exercise-items {
+  display: grid;
+  gap: 16px;
+}
+
+.workout-modal-exercise-item {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.workout-modal-exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.workout-modal-exercise-title {
+  margin: 0;
+  color: #374151;
+  font-size: 16px;
+}
+
+.workout-modal-exercise-form {
+  display: grid;
+  gap: 16px;
+}
+
+.workout-modal-exercise-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.workout-modal-exercise-form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.workout-modal-exercise-form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.workout-modal-exercise-form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.workout-modal-exercise-form-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+/* Add Exercise Button */
+.workout-modal-add-exercise {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.workout-modal-add-exercise-button {
+  align-self: start;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .workout-modal-input-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .workout-modal-exercise-form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .workout-modal-routine-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .workout-modal-actions {
+    flex-direction: column;
+  }
+  
+  .workout-modal-routine-actions {
+    flex-direction: column;
+  }
+  
+  .workout-modal-add-exercise {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .workout-modal-content {
+    padding: 4px 0;
+  }
+  
+  .workout-modal-info {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .workout-modal-routine-section {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .workout-modal-exercise-item {
+    padding: 12px;
+  }
+  
+  .workout-modal-actions {
+    margin-top: 24px;
+  }
+} 
