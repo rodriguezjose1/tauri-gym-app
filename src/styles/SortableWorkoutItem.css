@@ -1,0 +1,116 @@
+/* SortableWorkoutItem Component Styles */
+
+.sortable-workout-item {
+  /* Transform and transition styles are handled by the component */
+}
+
+.sortable-workout-item-content {
+  padding: 6px 8px;
+  background-color: var(--accent-bg);
+  border-radius: 4px;
+  border: 1px solid var(--accent-primary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.sortable-workout-item-content:hover {
+  background-color: var(--hover-bg);
+  transform: scale(1.02);
+}
+
+.sortable-workout-item-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.sortable-workout-item-drag-handle:active {
+  cursor: grabbing;
+}
+
+.sortable-workout-item-name {
+  font-weight: 600;
+  color: var(--accent-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sortable-workout-item-delete-btn {
+  background: var(--error-color);
+  color: var(--text-on-primary);
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.sortable-workout-item-delete-btn:hover {
+  transform: scale(1.1);
+  background: var(--error-hover);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sortable-workout-item-content {
+    padding: 5px 6px;
+    gap: 6px;
+    min-height: 28px;
+    font-size: 10px;
+  }
+  
+  .sortable-workout-item-drag-handle {
+    font-size: 9px;
+  }
+  
+  .sortable-workout-item-name {
+    font-size: 10px;
+  }
+  
+  .sortable-workout-item-delete-btn {
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sortable-workout-item-content {
+    padding: 4px 5px;
+    gap: 5px;
+    min-height: 24px;
+    font-size: 9px;
+  }
+  
+  .sortable-workout-item-content:hover {
+    transform: scale(1.01);
+  }
+  
+  .sortable-workout-item-drag-handle {
+    font-size: 8px;
+  }
+  
+  .sortable-workout-item-name {
+    font-size: 9px;
+  }
+  
+  .sortable-workout-item-delete-btn {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+  }
+} 

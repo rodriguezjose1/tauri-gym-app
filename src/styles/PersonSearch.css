@@ -1,0 +1,202 @@
+/* PersonSearch Component Styles */
+
+.person-search-container {
+  position: relative;
+}
+
+.person-search-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #0ea5e9;
+  margin-bottom: 12px;
+}
+
+.person-search-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.person-search-info {
+  flex: 1;
+}
+
+.person-search-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.person-search-phone {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.person-search-input-container {
+  position: relative;
+}
+
+.person-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.person-search-message {
+  padding: 12px 16px;
+  color: #6b7280;
+  text-align: center;
+  font-size: 14px;
+}
+
+.person-search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.person-search-loading-icon {
+  font-size: 16px;
+}
+
+.person-search-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+  background-color: white;
+}
+
+.person-search-item:hover {
+  background-color: #f9fafb;
+}
+
+.person-search-item:last-child {
+  border-bottom: none;
+}
+
+.person-search-item-name {
+  font-weight: 500;
+  color: #111827;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.person-search-item-phone {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.person-search-load-more {
+  padding: 10px 16px;
+  cursor: pointer;
+  text-align: center;
+  color: #3b82f6;
+  font-weight: 500;
+  border-top: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+  font-size: 14px;
+  background-color: white;
+}
+
+.person-search-load-more:hover {
+  background-color: #f0f9ff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .person-search-selected {
+    padding: 6px 10px;
+    gap: 10px;
+  }
+  
+  .person-search-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+  
+  .person-search-name {
+    font-size: 13px;
+  }
+  
+  .person-search-phone {
+    font-size: 11px;
+  }
+  
+  .person-search-dropdown {
+    max-height: 150px;
+  }
+  
+  .person-search-item {
+    padding: 8px 12px;
+  }
+  
+  .person-search-item-name {
+    font-size: 13px;
+  }
+  
+  .person-search-item-phone {
+    font-size: 11px;
+  }
+  
+  .person-search-load-more {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .person-search-selected {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+  
+  .person-search-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  
+  .person-search-name {
+    font-size: 12px;
+  }
+  
+  .person-search-phone {
+    font-size: 10px;
+  }
+  
+  .person-search-item {
+    padding: 6px 10px;
+  }
+  
+  .person-search-item-name {
+    font-size: 12px;
+  }
+  
+  .person-search-item-phone {
+    font-size: 10px;
+  }
+} 

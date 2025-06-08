@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Exercise, ExerciseService } from "../../services";
+import '../../styles/ExerciseAutocomplete.css';
 
 interface ExerciseAutocompleteProps {
   onExerciseSelect: (exercise: Exercise | null) => void;
@@ -173,8 +174,8 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   }, []);
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative' }}>
-      <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
+    <div ref={dropdownRef} className="exercise-autocomplete-container">
+      <label className="exercise-autocomplete-label">
         Ejercicio *
       </label>
       <input
@@ -185,38 +186,17 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
         onBlur={handleInputBlur}
         placeholder={placeholder}
         disabled={disabled}
-        style={{
-          width: '100%',
-          padding: '12px',
-          border: '1px solid #d1d5db',
-          borderRadius: '8px',
-          fontSize: '14px',
-          backgroundColor: disabled ? '#f9fafb' : 'white',
-          color: '#111827',
-          cursor: disabled ? 'not-allowed' : 'text'
-        }}
+        className="exercise-autocomplete-input"
       />
       
       {showDropdown && !disabled && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          backgroundColor: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          maxHeight: '200px',
-          overflowY: 'auto'
-        }}>
+        <div className="exercise-autocomplete-dropdown">
           {searchTerm.length < 2 ? (
-            <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>
+            <div className="exercise-autocomplete-message">
               Escribe al menos 2 caracteres para buscar
             </div>
           ) : loading && exercises.length === 0 ? (
-            <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>
+            <div className="exercise-autocomplete-message">
               Buscando ejercicios...
             </div>
           ) : exercises.length > 0 ? (
@@ -229,20 +209,12 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
                     isSelectingRef.current = true;
                   }}
                   onClick={() => handleExerciseSelect(exercise)}
-                  style={{
-                    padding: '12px 16px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #f3f4f6',
-                    transition: 'background-color 0.2s',
-                    backgroundColor: 'white'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                  className="exercise-autocomplete-item"
                 >
-                  <div style={{ fontWeight: '500', color: '#111827' }}>
+                  <div className="exercise-autocomplete-item-name">
                     {exercise.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  <div className="exercise-autocomplete-item-code">
                     Código: {exercise.code}
                   </div>
                 </div>
@@ -250,21 +222,14 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
               {hasMore && (
                 <div 
                   onClick={loadMoreExercises}
-                  style={{ 
-                    padding: '12px 16px', 
-                    color: '#2563eb', 
-                    fontStyle: 'italic', 
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    borderTop: '1px solid #f3f4f6'
-                  }}
+                  className="exercise-autocomplete-load-more"
                 >
                   {loading ? 'Cargando más...' : 'Cargar más ejercicios'}
                 </div>
               )}
             </>
           ) : searchTerm.length >= 2 && !loading ? (
-            <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>
+            <div className="exercise-autocomplete-message">
               No se encontraron ejercicios para "{searchTerm}"
             </div>
           ) : null}
