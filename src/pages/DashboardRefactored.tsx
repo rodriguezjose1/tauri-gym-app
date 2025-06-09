@@ -8,75 +8,215 @@ import ToastContainer from '../components/notifications/ToastContainer';
 import { Button } from '../components/base/Button';
 import { Input } from '../components/base/Input';
 import { Modal } from '../components/base/Modal';
-import { useDashboardController } from '../hooks/useDashboardController';
+
+// Individual hooks - Clean separation of concerns
+import { useDashboardData } from '../hooks/useDashboardData';
+import { useDashboardModals } from '../hooks/useDashboardModals';
+import { useWorkoutOperations } from '../hooks/useWorkoutOperations';
+import { useRoutineOperations } from '../hooks/useRoutineOperations';
+import { useToastNotifications } from '../hooks/useToastNotifications';
+
+// Atomic hooks by domain
+import { useDayClick } from '../hooks/calendar/useDayClick';
+import { useAddWorkout } from '../hooks/calendar/useAddWorkout';
+import { useDayRightClick } from '../hooks/calendar/useDayRightClick';
+import { useSaveWorkoutEntry } from '../hooks/workout/useSaveWorkoutEntry';
+import { useSaveWorkoutSession } from '../hooks/workout/useSaveWorkoutSession';
+import { useLoadRoutine } from '../hooks/routine/useLoadRoutine';
+import { useApplyRoutineToDate } from '../hooks/routine/useApplyRoutineToDate';
+import { useDeleteEventHandlers } from '../hooks/useDeleteEventHandlers';
+
 import '../styles/Dashboard.css';
 
 export default function DashboardRefactored() {
+  // 1. Data Layer - Manages all data fetching and state
   const {
-    // Data
     selectedPerson,
     workoutData,
     exercises,
     routines,
-    
-    // Modal states
+    selectedDate,
+    handlePersonSelect,
+    refreshWorkoutData,
+    setWorkoutData,
+    setSelectedPerson,
+    setSelectedDate
+  } = useDashboardData();
+
+  // 2. UI Layer - Manages modal states and forms
+  const {
     showWorkoutModal,
     showSessionModal,
     showDeleteModal,
     showLoadRoutineModal,
     showConfirmModal,
     showSettingsModal,
-    
-    // Form states
     workoutForm,
     sessionForm,
-    selectedDate,
     workoutToDelete,
     selectedRoutineForLoad,
     selectedDateForRoutine,
     selectedGroupForRoutine,
     confirmModalData,
-    
-    // Loading states
-    savingWorkout,
-    savingSession,
-    deletingWorkout,
-    loadingRoutine,
-    
-    // Event handlers
-    handlePersonSelect,
-    handleClearSelection,
-    handleDayClick,
-    handleAddWorkoutClick,
-    handleDayRightClick,
-    handleCloseWorkoutModal,
-    handleCloseSessionModal,
-    handleSaveWorkoutEntry,
-    handleSaveWorkoutSession,
-    handleDeleteWorkoutEntry,
-    confirmDeleteWorkoutEntry,
-    cancelDeleteWorkoutEntry,
-    handleReorderExercises,
-    handleLoadRoutine,
-    handleShowLoadRoutineModal,
-    handleLoadRoutineToDate,
+    openWorkoutModal,
+    closeWorkoutModal,
+    openSessionModal,
+    closeSessionModal,
+    openDeleteModal,
+    closeDeleteModal,
+    showConfirm,
     updateWorkoutForm,
     updateSessionExercise,
     addExerciseToSession,
     deleteSessionExercise,
+    loadRoutineToSessionForm,
     setSelectedRoutineForLoad,
     setSelectedDateForRoutine,
     setSelectedGroupForRoutine,
     setShowLoadRoutineModal,
     setShowConfirmModal,
-    setShowSettingsModal,
-    setWorkoutData,
+    setShowSettingsModal
+  } = useDashboardModals();
+
+  // 3. Notification Layer - Manages toast notifications
+  const { notifications, addNotification, removeNotification } = useToastNotifications();
+
+  // Helper function for notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    addNotification(message, type);
+  };
+
+  // 4. Operations Layer - Manages workout CRUD operations
+  const {
+    saveWorkoutEntry,
+    saveWorkoutSession,
+    deleteWorkoutEntry,
+    reorderExercises,
+    savingWorkout,
+    savingSession,
+    deletingWorkout
+  } = useWorkoutOperations({
+    selectedPerson,
+    workoutData,
+    refreshWorkoutData,
+    showToast
+  });
+
+  // 5. Routine Operations Layer - Manages routine operations
+  const {
+    loadRoutineToSession,
+    applyRoutineToDate
+  } = useRoutineOperations({
+    selectedPerson,
+    workoutData,
+    refreshWorkoutData,
+    showToast,
+    showConfirm
+  });
+
+  // 6. Atomic Event Handlers - Ultra-specific functionality
+  
+  // Person management
+  const handleClearSelection = () => {
+    setSelectedPerson(null);
+    setWorkoutData([]);
+  };
+
+  // Calendar atomic events
+  const { handleDayClick } = useDayClick({
+    selectedPerson,
+    workoutData,
     setSelectedDate,
-    
-    // Toast notifications
-    notifications,
-    removeNotification
-  } = useDashboardController();
+    openSessionModal,
+    loadRoutineToSessionForm
+  });
+
+  const { handleAddWorkoutClick } = useAddWorkout({
+    selectedPerson,
+    setSelectedDate,
+    openSessionModal,
+    loadRoutineToSessionForm
+  });
+
+  const { handleDayRightClick } = useDayRightClick({
+    selectedPerson,
+    setSelectedDate,
+    openWorkoutModal,
+    updateWorkoutForm
+  });
+
+  // Workout atomic events
+  const { handleSaveWorkoutEntry } = useSaveWorkoutEntry({
+    selectedPerson,
+    selectedDate,
+    workoutForm,
+    saveWorkoutEntry,
+    closeWorkoutModal,
+    setSelectedDate,
+    showToast
+  });
+
+  const { handleSaveWorkoutSession } = useSaveWorkoutSession({
+    selectedPerson,
+    selectedDate,
+    sessionForm,
+    saveWorkoutSession,
+    closeSessionModal,
+    setSelectedDate,
+    showToast
+  });
+
+  // Routine atomic events
+  const { handleLoadRoutine, loadingRoutine } = useLoadRoutine({
+    loadRoutineToSession,
+    loadRoutineToSessionForm
+  });
+
+  const { handleLoadRoutineToDate, loadingApply } = useApplyRoutineToDate({
+    selectedRoutineForLoad,
+    selectedDateForRoutine,
+    selectedGroupForRoutine,
+    applyRoutineToDate,
+    setShowLoadRoutineModal,
+    setSelectedRoutineForLoad,
+    setSelectedDateForRoutine,
+    setSelectedGroupForRoutine,
+    showConfirm,
+    showToast
+  });
+
+  // Delete events (keeping the existing one as it's already focused)
+  const {
+    handleDeleteWorkoutEntry,
+    confirmDeleteWorkoutEntry,
+    cancelDeleteWorkoutEntry
+  } = useDeleteEventHandlers({
+    workoutToDelete,
+    deleteWorkoutEntry,
+    openDeleteModal,
+    closeDeleteModal
+  });
+
+  // Modal close handlers (simple wrappers)
+  const handleCloseWorkoutModal = () => {
+    closeWorkoutModal();
+    setSelectedDate("");
+  };
+
+  const handleCloseSessionModal = () => {
+    closeSessionModal();
+    setSelectedDate("");
+  };
+
+  // Reorder events (simple wrapper)
+  const handleReorderExercises = async (exerciseOrders: Array<{ id: number; order: number }>) => {
+    try {
+      await reorderExercises(exerciseOrders);
+    } catch (error) {
+      console.error("Error reordering exercises:", error);
+      showToast("Error al reordenar ejercicios", 'error');
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -237,17 +377,17 @@ export default function DashboardRefactored() {
                 setSelectedGroupForRoutine(1);
               }}
               variant="secondary"
-              disabled={loadingRoutine}
+              disabled={loadingApply}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleLoadRoutineToDate}
               variant="primary"
-              disabled={!selectedRoutineForLoad || !selectedDateForRoutine || loadingRoutine}
-              loading={loadingRoutine}
+              disabled={!selectedRoutineForLoad || !selectedDateForRoutine || loadingApply}
+              loading={loadingApply}
             >
-              {loadingRoutine ? "Aplicando..." : "Aplicar Rutina"}
+              {loadingApply ? "Aplicando..." : "Aplicar Rutina"}
             </Button>
           </div>
         </div>
