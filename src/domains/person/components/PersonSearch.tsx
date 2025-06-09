@@ -1,7 +1,7 @@
-import { PersonService, Person } from "../../services";
+import { PersonService, Person } from "../../../services";
 import React, { useState, useEffect, useRef } from "react";
-import { Input, Button } from "../../shared/components/base";
-import '../../styles/PersonSearch.css';
+import { Input, Button } from "../../../shared/components/base";
+import '../../../styles/PersonSearch.css';
 
 interface PersonSearchProps {
   selectedPerson: Person | null;

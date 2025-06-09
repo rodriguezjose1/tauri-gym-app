@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Button, Input, Modal } from "../../shared/components/base";
-import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
-import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../types/dashboard';
-import '../../styles/WorkoutModals.css';
+import { Button, Input, Modal } from "../../../shared/components/base";
+import { ExerciseAutocomplete } from "../../exercise/components";
+import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
+import '../../../styles/WorkoutModals.css';
 
 interface WorkoutModalsProps {
   // Single workout modal

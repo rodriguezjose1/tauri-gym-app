@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Exercise, ExerciseService } from "../../services";
-import '../../styles/ExerciseAutocomplete.css';
+import { Exercise, ExerciseService } from "../../../services";
+import '../../../styles/ExerciseAutocomplete.css';
 
 interface ExerciseAutocompleteProps {
   onExerciseSelect: (exercise: Exercise | null) => void;

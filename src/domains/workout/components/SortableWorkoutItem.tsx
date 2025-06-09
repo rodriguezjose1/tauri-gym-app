@@ -1,8 +1,8 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { WorkoutEntryWithDetails } from '../../services';
-import '../../styles/SortableWorkoutItem.css';
+import { WorkoutEntryWithDetails } from '../../../services';
+import '../../../styles/SortableWorkoutItem.css';
 
 interface SortableWorkoutItemProps {
   workout: WorkoutEntryWithDetails;

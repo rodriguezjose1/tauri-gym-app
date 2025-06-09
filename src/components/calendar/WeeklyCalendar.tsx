@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { PersonSearch } from "../forms/PersonSearch";
-import { SortableWorkoutItem } from "../lists/SortableWorkoutItem";
+import { PersonSearch } from "../../domains/person/components";
+import { SortableWorkoutItem } from "../../domains/workout/components";
 import { useWeeklyCalendar } from "../../shared/hooks/useWeeklyCalendar";
 import { WorkoutEntryWithDetails } from '../../services';
 import "../../styles/WeeklyCalendar.css";

@@ -15,8 +15,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableExerciseItem } from './SortableExerciseItem';
-import { Exercise, WorkoutEntryForm } from '../../types/dashboard';
-import '../../styles/SortableExerciseList.css';
+import { Exercise, WorkoutEntryForm } from '../../../shared/types/dashboard';
+import '../../../styles/SortableExerciseList.css';
 
 interface SortableExerciseListProps {
   exercises: Exercise[];

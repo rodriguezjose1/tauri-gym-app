@@ -1,10 +1,10 @@
 import React from 'react';
 import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
-import { WorkoutModals } from '../components/complex/WorkoutModals';
+import { WorkoutModals } from '../domains/workout/components';
 import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
 import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 import { SettingsModal } from '../components/settings/SettingsModal';
-import { LoadRoutineModal } from '../components/modals/LoadRoutineModal';
+import { LoadRoutineModal } from '../domains/routine/components';
 import ToastContainer from '../components/notifications/ToastContainer';
 import { useDashboardController } from '../shared/hooks/useDashboardController';
 import '../styles/Dashboard.css';

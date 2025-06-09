@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ExerciseAutocomplete } from '../forms/ExerciseAutocomplete';
-import { Exercise, WorkoutEntryForm } from '../../types/dashboard';
-import '../../styles/SortableExerciseItem.css';
+import { ExerciseAutocomplete } from './ExerciseAutocomplete';
+import { Exercise, WorkoutEntryForm } from '../../../shared/types/dashboard';
+import '../../../styles/SortableExerciseItem.css';
 
 interface SortableExerciseItemProps {
   id: string;

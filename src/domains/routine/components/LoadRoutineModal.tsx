@@ -1,8 +1,8 @@
 import React from 'react';
-import { Modal } from '../../shared/components/base/Modal';
-import { Button } from '../../shared/components/base/Button';
-import { Input } from '../../shared/components/base/Input';
-import { Person, RoutineOption } from '../../types/dashboard';
+import { Modal } from '../../../shared/components/base/Modal';
+import { Button } from '../../../shared/components/base/Button';
+import { Input } from '../../../shared/components/base/Input';
+import { Person, RoutineOption } from '../../../shared/types/dashboard';
 
 interface LoadRoutineModalProps {
   isOpen: boolean;

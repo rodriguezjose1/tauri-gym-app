@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { RoutineService, ExerciseService, Routine, RoutineWithExercises, RoutineExerciseWithDetails, Exercise } from "../../services";
+import { RoutineService, ExerciseService, Routine, RoutineWithExercises, RoutineExerciseWithDetails, Exercise } from "../../../services";
 import {
   DndContext,
   closestCenter,
@@ -19,16 +19,16 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input, Button, ErrorMessage } from "../../shared/components/base";
-import { DeleteConfirmationModal } from "../modals";
-import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
-import ToastContainer from "../notifications/ToastContainer";
-import { useToastNotifications } from "../../shared/hooks/useToastNotifications";
+import { Input, Button, ErrorMessage } from "../../../shared/components/base";
+import { DeleteConfirmationModal } from "../../../components/modals";
+import { ExerciseAutocomplete } from "../../exercise/components";
+import ToastContainer from "../../../components/notifications/ToastContainer";
+import { useToastNotifications } from "../../../shared/hooks/useToastNotifications";
 import {
   RoutineForm,
-} from "../../shared/types/dashboard";
-import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../constants/errorMessages";
-import "../../styles/RoutineManager.css";
+} from "../../../shared/types/dashboard";
+import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../../constants/errorMessages";
+import "../../../styles/RoutineManager.css";
 
 interface RoutineManagerProps {
   onClose?: () => void;
