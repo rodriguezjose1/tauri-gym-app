@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { WorkoutService, Person, WorkoutEntryWithDetails } from "../services";
+import { WorkoutService, Person, WorkoutEntryWithDetails } from "../../services";
 
 interface UseWeeklyCalendarProps {
   selectedPerson?: Person | null;

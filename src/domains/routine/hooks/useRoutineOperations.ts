@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Person, WorkoutEntry, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineWithExercises } from '../shared/types/dashboard';
-import { RoutineService, WorkoutService } from '../services';
+import { Person, WorkoutEntry, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineWithExercises } from '../../../shared/types/dashboard';
+import { RoutineService, WorkoutService } from '../../../services';
 import { 
   DASHBOARD_ERROR_MESSAGES, 
   DASHBOARD_SUCCESS_MESSAGES, 
   DASHBOARD_WARNING_MESSAGES 
-} from '../constants/errorMessages';
+} from '../../../constants/errorMessages';
 
 interface UseRoutineOperationsProps {
   selectedPerson: Person | null;

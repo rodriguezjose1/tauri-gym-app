@@ -6,7 +6,7 @@ import { ConfirmationModal } from '../components/modals/ConfirmationModal';
 import { SettingsModal } from '../components/settings/SettingsModal';
 import { LoadRoutineModal } from '../components/modals/LoadRoutineModal';
 import ToastContainer from '../components/notifications/ToastContainer';
-import { useDashboardController } from '../hooks/dashboard/useDashboardController';
+import { useDashboardController } from '../shared/hooks/useDashboardController';
 import '../styles/Dashboard.css';
 
 export default function DashboardRefactored() {

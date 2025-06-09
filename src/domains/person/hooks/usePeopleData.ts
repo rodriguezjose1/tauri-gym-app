@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Person } from '../../shared/types/dashboard';
-import { PersonService } from '../../services';
-import { DASHBOARD_UI_LABELS } from '../../constants/errorMessages';
+import { Person } from '../../../shared/types/dashboard';
+import { PersonService } from '../../../services';
+import { DASHBOARD_UI_LABELS } from '../../../constants/errorMessages';
 
 export const usePeopleData = () => {
   // Initialize selectedPerson from sessionStorage

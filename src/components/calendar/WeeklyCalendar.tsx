@@ -3,7 +3,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PersonSearch } from "../forms/PersonSearch";
 import { SortableWorkoutItem } from "../lists/SortableWorkoutItem";
-import { useWeeklyCalendar } from "../../hooks/useWeeklyCalendar";
+import { useWeeklyCalendar } from "../../shared/hooks/useWeeklyCalendar";
 import { WorkoutEntryWithDetails } from '../../services';
 import "../../styles/WeeklyCalendar.css";
 

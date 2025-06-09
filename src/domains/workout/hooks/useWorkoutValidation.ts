@@ -1,5 +1,5 @@
-import { Person, WorkoutEntryForm } from '../../types/dashboard';
-import { DASHBOARD_ERROR_MESSAGES } from '../../constants/errorMessages';
+import { Person, WorkoutEntryForm } from '../../../shared/types/dashboard';
+import { DASHBOARD_ERROR_MESSAGES } from '../../../constants/errorMessages';
 
 interface UseWorkoutValidationProps {
   showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;

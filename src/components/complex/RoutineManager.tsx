@@ -23,7 +23,7 @@ import { Input, Button, ErrorMessage } from "../../shared/components/base";
 import { DeleteConfirmationModal } from "../modals";
 import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import ToastContainer from "../notifications/ToastContainer";
-import { useToastNotifications } from "../../hooks/useToastNotifications";
+import { useToastNotifications } from "../../shared/hooks/useToastNotifications";
 import {
   RoutineForm,
 } from "../../shared/types/dashboard";

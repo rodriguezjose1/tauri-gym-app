@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { RoutineOption } from '../../shared/types/dashboard';
-import { RoutineService } from '../../services';
+import { RoutineOption } from '../../../shared/types/dashboard';
+import { RoutineService } from '../../../services';
 
 export const useRoutinesData = () => {
   const [routines, setRoutines] = useState<RoutineOption[]>([]);
