@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ExerciseService, Exercise } from "../services";
-import { Button, Input, Title, Card, Modal } from "../shared/components/base";
-import "../styles/ExerciseCrud.css";
+import { ExerciseService } from "../services";
+import { Exercise } from "../../../shared/types/dashboard";
+import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
+import "../../../styles/ExerciseCrud.css";
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);

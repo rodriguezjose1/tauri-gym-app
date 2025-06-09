@@ -21,13 +21,13 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Input, Button, ErrorMessage } from "../../../shared/components/base";
 import { DeleteConfirmationModal } from "../../../components/modals";
-import { ExerciseAutocomplete } from "../../exercise/components";
+import { ExerciseAutocomplete } from "../../exercise";
 import ToastContainer from "../../../components/notifications/ToastContainer";
 import { useToastNotifications } from "../../../shared/hooks/useToastNotifications";
 import {
   RoutineForm,
 } from "../../../shared/types/dashboard";
-import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../../constants/errorMessages";
+import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../../shared/constants";
 import "../../../styles/RoutineManager.css";
 
 interface RoutineManagerProps {

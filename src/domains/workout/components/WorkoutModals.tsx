@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, Input, Modal } from "../../../shared/components/base";
-import { ExerciseAutocomplete } from "../../exercise/components";
+import { ExerciseAutocomplete } from "../../exercise";
 import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
 import '../../../styles/WorkoutModals.css';
 

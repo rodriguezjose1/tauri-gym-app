@@ -1,13 +1,13 @@
 import React from 'react';
-import { WeeklyCalendar } from '../components/calendar/WeeklyCalendar';
-import { WorkoutModals } from '../domains/workout/components';
-import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
-import { ConfirmationModal } from '../components/modals/ConfirmationModal';
-import { SettingsModal } from '../components/settings/SettingsModal';
-import { LoadRoutineModal } from '../domains/routine/components';
-import ToastContainer from '../components/notifications/ToastContainer';
-import { useDashboardController } from '../shared/hooks/useDashboardController';
-import '../styles/Dashboard.css';
+import { WeeklyCalendar } from '../../components/calendar/WeeklyCalendar';
+import { WorkoutModals } from '../../domains/workout';
+import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
+import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
+import { SettingsModal } from '../../components/settings/SettingsModal';
+import { LoadRoutineModal } from '../../domains/routine';
+import ToastContainer from '../../components/notifications/ToastContainer';
+import { useDashboardController } from '../../shared/hooks/useDashboardController';
+import '../../styles/Dashboard.css';
 
 export default function DashboardRefactored() {
   // Single controller hook that orchestrates everything

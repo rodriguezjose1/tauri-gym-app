@@ -1,10 +1,11 @@
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import Dashboard from "./pages/Dashboard";
-import PersonCrud from "./pages/PersonCrud";
-import ExerciseCrud from "./pages/ExerciseCrud";
-import RoutinePage from "./pages/RoutinePage";
-import ConfiguracionesPage from "./pages/ConfiguracionesPage";
+import { Dashboard, ConfiguracionesPage } from "./shared/pages";
+import { ExerciseCrud } from "./domains/exercise";
+import { PersonCrud } from "./domains/person";
+import { RoutinePage } from "./domains/routine";
+import { ConfigProvider } from './shared/contexts';
 import "./styles/App.css";
 
 function Navigation() {

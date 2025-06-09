@@ -1,5 +1,5 @@
 import { WorkoutEntryForm } from '../../../shared/types/dashboard';
-import { DASHBOARD_ERROR_MESSAGES } from '../../../constants/errorMessages';
+import { DASHBOARD_ERROR_MESSAGES } from "../../../shared/constants";
 
 interface UseSaveWorkoutEntryProps {
   selectedPerson: any;

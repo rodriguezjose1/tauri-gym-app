@@ -1,5 +1,5 @@
 import React from 'react';
-import { useConfig } from '../../contexts/ConfigContext';
+import { useConfig } from '../../shared/contexts';
 import '../../styles/SettingsModal.css';
 
 interface SettingsModalProps {

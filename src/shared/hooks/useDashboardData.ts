@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Person, Exercise, Routine, WorkoutEntryWithDetails, RoutineOption } from '../shared/types/dashboard';
 import { PersonService, ExerciseService, RoutineService, WorkoutService } from '../services';
-import { DASHBOARD_UI_LABELS } from '../constants/errorMessages';
+import { DASHBOARD_UI_LABELS } from "../../../shared/constants";
 
 export const useDashboardData = () => {
   // Initialize selectedPerson from sessionStorage (same as original)

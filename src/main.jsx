@@ -1,14 +1,14 @@
-import { StrictMode } from 'react'
+import React from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import './styles/theme.css'
 import App from './App.jsx'
-import { ConfigProvider } from './contexts/ConfigContext'
+import './index.css'
+import { ConfigProvider } from './shared/contexts'
+import './styles/theme.css'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  <React.StrictMode>
     <ConfigProvider>
       <App />
     </ConfigProvider>
-  </StrictMode>,
+  </React.StrictMode>,
 )

@@ -1,4 +1,4 @@
-import { DASHBOARD_ERROR_MESSAGES } from '../../../constants/errorMessages';
+import { DASHBOARD_ERROR_MESSAGES } from "../../../shared/constants";
 
 interface UseSaveWorkoutSessionProps {
   selectedPerson: any;

@@ -5,7 +5,7 @@ import {
   DASHBOARD_ERROR_MESSAGES, 
   DASHBOARD_SUCCESS_MESSAGES, 
   DASHBOARD_WARNING_MESSAGES 
-} from '../../../constants/errorMessages';
+} from "../../../shared/constants";
 
 interface UseRoutineOperationsProps {
   selectedPerson: Person | null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RoutineManager } from '../domains/routine/components';
+import { RoutineManager } from '../components';
 
 const RoutinePage = () => {
   return <RoutineManager />;

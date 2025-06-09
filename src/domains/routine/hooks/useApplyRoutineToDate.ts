@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DASHBOARD_SUCCESS_MESSAGES } from '../../../constants/errorMessages';
+import { DASHBOARD_SUCCESS_MESSAGES } from "../../../shared/constants";
 
 interface UseApplyRoutineToDateProps {
   selectedRoutineForLoad: number | null;
