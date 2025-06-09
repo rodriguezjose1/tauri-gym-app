@@ -1,6 +1,6 @@
 import { PersonService, Person } from "../../services";
 import React, { useState, useEffect, useRef } from "react";
-import { Input, Button } from "../base";
+import { Input, Button } from "../../shared/components/base";
 import '../../styles/PersonSearch.css';
 
 interface PersonSearchProps {

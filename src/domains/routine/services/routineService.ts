@@ -4,7 +4,7 @@ import {
   RoutineWithExercises, 
   RoutineExerciseWithDetails,
   RoutineOption 
-} from "../types/dashboard";
+} from "../../../shared/types/dashboard";
 
 const requestNames = {
   createRoutine: "create_routine",

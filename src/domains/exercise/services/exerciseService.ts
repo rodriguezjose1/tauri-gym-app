@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Exercise, PaginatedExerciseResponse } from "../types/dashboard";
+import { Exercise, PaginatedExerciseResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createExercise: "create_exercise",

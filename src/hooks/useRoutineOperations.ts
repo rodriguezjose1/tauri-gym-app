@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Person, WorkoutEntry, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineWithExercises } from '../types/dashboard';
-import { RoutineService } from '../services/routineService';
-import { WorkoutService } from '../services/workoutService';
+import { Person, WorkoutEntry, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineWithExercises } from '../shared/types/dashboard';
+import { RoutineService, WorkoutService } from '../services';
 import { 
   DASHBOARD_ERROR_MESSAGES, 
   DASHBOARD_SUCCESS_MESSAGES, 

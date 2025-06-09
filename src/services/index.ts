@@ -1,8 +1,8 @@
 // Export all services for easy importing
-export { PersonService } from './personService';
-export { ExerciseService } from './exerciseService';
-export { WorkoutService } from './workoutService';
-export { RoutineService } from './routineService';
+export { PersonService } from '../domains/person/services/personService';
+export { ExerciseService } from '../domains/exercise/services/exerciseService';
+export { WorkoutService } from '../domains/workout/services/workoutService';
+export { RoutineService } from '../domains/routine/services/routineService';
 
 // Re-export types for convenience
 export type {
@@ -16,4 +16,4 @@ export type {
   RoutineWithExercises,
   RoutineExerciseWithDetails,
   RoutineOption
-} from '../types/dashboard'; 
+} from '../shared/types/dashboard'; 

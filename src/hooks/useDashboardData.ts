@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Person, Exercise, Routine, WorkoutEntryWithDetails, RoutineOption } from '../types/dashboard';
-import { PersonService } from '../services/personService';
-import { ExerciseService } from '../services/exerciseService';
-import { RoutineService } from '../services/routineService';
-import { WorkoutService } from '../services/workoutService';
+import { Person, Exercise, Routine, WorkoutEntryWithDetails, RoutineOption } from '../shared/types/dashboard';
+import { PersonService, ExerciseService, RoutineService, WorkoutService } from '../services';
 import { DASHBOARD_UI_LABELS } from '../constants/errorMessages';
 
 export const useDashboardData = () => {

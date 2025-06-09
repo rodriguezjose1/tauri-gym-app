@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PersonService, Person } from "../services";
-import { Button, Input, Title, Card, Modal } from "../components/base";
+import { Button, Input, Title, Card, Modal } from "../shared/components/base";
 import "../styles/PersonCrud.css";
 
 export default function PersonCrud() {

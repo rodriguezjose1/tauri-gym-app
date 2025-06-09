@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { WorkoutEntry, WorkoutEntryWithDetails } from "../types/dashboard";
+import { WorkoutEntry, WorkoutEntryWithDetails } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createWorkoutEntry: "create_workout_entry",

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { WorkoutEntryWithDetails, Person } from '../../types/dashboard';
-import { WorkoutService } from '../../services/workoutService';
+import { WorkoutEntryWithDetails, Person } from '../../shared/types/dashboard';
+import { WorkoutService } from '../../services';
 
 interface UseWorkoutDataProps {
   selectedPerson: Person | null;

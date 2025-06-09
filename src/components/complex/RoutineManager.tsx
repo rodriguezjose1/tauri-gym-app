@@ -19,14 +19,14 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input, Button, ErrorMessage } from "../base";
+import { Input, Button, ErrorMessage } from "../../shared/components/base";
 import { DeleteConfirmationModal } from "../modals";
 import { ExerciseAutocomplete } from "../forms/ExerciseAutocomplete";
 import ToastContainer from "../notifications/ToastContainer";
 import { useToastNotifications } from "../../hooks/useToastNotifications";
 import {
   RoutineForm,
-} from "../../types/dashboard";
+} from "../../shared/types/dashboard";
 import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from "../../constants/errorMessages";
 import "../../styles/RoutineManager.css";
 

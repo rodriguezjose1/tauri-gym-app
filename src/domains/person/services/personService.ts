@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Person } from "../types/dashboard";
+import { Person } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createPerson: "create_person",
