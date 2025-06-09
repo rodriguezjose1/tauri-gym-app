@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import Dashboard from '../pages/Dashboard'
+import Dashboard from '../shared/pages/Dashboard'
 
 // Test wrapper component
 const TestWrapper = ({ children }) => (

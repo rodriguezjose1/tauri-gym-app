@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { SettingsModal } from '../../components/settings/SettingsModal';
-import { getContainerStyles } from '../../config/layout';
-import '../../styles/ConfiguracionesPage.css';
+import { SettingsModal } from '../../../components/settings/SettingsModal';
+import { getContainerStyles } from '../../../config/layout';
+import '../../../styles/ConfiguracionesPage.css';
 
 const ConfiguracionesPage = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);

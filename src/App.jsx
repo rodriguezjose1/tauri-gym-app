@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { Dashboard, ConfiguracionesPage } from "./shared/pages";
+import { Dashboard } from "./shared/pages";
+import { ConfiguracionesPage } from "./domains/settings";
 import { ExerciseCrud } from "./domains/exercise";
 import { PersonCrud } from "./domains/person";
 import { RoutinePage } from "./domains/routine";

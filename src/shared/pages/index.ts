@@ -1,2 +1,1 @@
-export { default as Dashboard } from './Dashboard';
-export { default as ConfiguracionesPage } from './ConfiguracionesPage'; 
+export { default as Dashboard } from './Dashboard'; 

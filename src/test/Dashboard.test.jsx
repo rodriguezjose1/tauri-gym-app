@@ -2,7 +2,7 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import Dashboard from '../pages/Dashboard'
+import Dashboard from '../shared/pages/Dashboard'
 
 // Test wrapper component
 const TestWrapper = ({ children }) => (
