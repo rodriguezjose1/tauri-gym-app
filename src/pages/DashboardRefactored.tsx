@@ -10,7 +10,7 @@ import { Input } from '../components/base/Input';
 import { Modal } from '../components/base/Modal';
 
 // Individual hooks - Clean separation of concerns
-import { useDashboardData } from '../hooks/useDashboardData';
+import { useDashboardDataComposer } from '../hooks/datahook/useDashboardDataComposer';
 import { useWorkoutOperations } from '../hooks/useWorkoutOperations';
 import { useRoutineOperations } from '../hooks/useRoutineOperations';
 import { useToastNotifications } from '../hooks/useToastNotifications';
@@ -48,7 +48,7 @@ export default function DashboardRefactored() {
     setWorkoutData,
     setSelectedPerson,
     setSelectedDate
-  } = useDashboardData();
+  } = useDashboardDataComposer();
 
   // 2. Atomic Modal Layers - Ultra-specific modal management
   const {

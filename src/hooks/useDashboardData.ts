@@ -32,7 +32,7 @@ export const useDashboardData = () => {
     setError(null);
     try {
       const result = await PersonService.getPersonsPaginated(1, 100);
-      setPeople(result.people);
+      setPeople(result);
     } catch (error) {
       console.error('Error loading people:', error);
       setError('Error loading people');
