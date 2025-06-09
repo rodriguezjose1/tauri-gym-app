@@ -11,10 +11,17 @@ import { Modal } from '../components/base/Modal';
 
 // Individual hooks - Clean separation of concerns
 import { useDashboardData } from '../hooks/useDashboardData';
-import { useDashboardModals } from '../hooks/useDashboardModals';
 import { useWorkoutOperations } from '../hooks/useWorkoutOperations';
 import { useRoutineOperations } from '../hooks/useRoutineOperations';
 import { useToastNotifications } from '../hooks/useToastNotifications';
+
+// Atomic modal hooks by domain
+import { useWorkoutModal } from '../hooks/modals/useWorkoutModal';
+import { useSessionModal } from '../hooks/modals/useSessionModal';
+import { useDeleteModal } from '../hooks/modals/useDeleteModal';
+import { useRoutineModal } from '../hooks/modals/useRoutineModal';
+import { useConfirmModal } from '../hooks/modals/useConfirmModal';
+import { useSettingsModal } from '../hooks/modals/useSettingsModal';
 
 // Atomic hooks by domain
 import { useDayClick } from '../hooks/calendar/useDayClick';
@@ -43,40 +50,55 @@ export default function DashboardRefactored() {
     setSelectedDate
   } = useDashboardData();
 
-  // 2. UI Layer - Manages modal states and forms
+  // 2. Atomic Modal Layers - Ultra-specific modal management
   const {
     showWorkoutModal,
-    showSessionModal,
-    showDeleteModal,
-    showLoadRoutineModal,
-    showConfirmModal,
-    showSettingsModal,
     workoutForm,
-    sessionForm,
-    workoutToDelete,
-    selectedRoutineForLoad,
-    selectedDateForRoutine,
-    selectedGroupForRoutine,
-    confirmModalData,
     openWorkoutModal,
     closeWorkoutModal,
+    updateWorkoutForm
+  } = useWorkoutModal();
+
+  const {
+    showSessionModal,
+    sessionForm,
     openSessionModal,
     closeSessionModal,
-    openDeleteModal,
-    closeDeleteModal,
-    showConfirm,
-    updateWorkoutForm,
     updateSessionExercise,
     addExerciseToSession,
     deleteSessionExercise,
-    loadRoutineToSessionForm,
+    loadRoutineToSessionForm
+  } = useSessionModal();
+
+  const {
+    showDeleteModal,
+    workoutToDelete,
+    openDeleteModal,
+    closeDeleteModal
+  } = useDeleteModal();
+
+  const {
+    showLoadRoutineModal,
+    selectedRoutineForLoad,
+    selectedDateForRoutine,
+    selectedGroupForRoutine,
     setSelectedRoutineForLoad,
     setSelectedDateForRoutine,
     setSelectedGroupForRoutine,
-    setShowLoadRoutineModal,
-    setShowConfirmModal,
+    setShowLoadRoutineModal
+  } = useRoutineModal();
+
+  const {
+    showConfirmModal,
+    confirmModalData,
+    showConfirm,
+    setShowConfirmModal
+  } = useConfirmModal();
+
+  const {
+    showSettingsModal,
     setShowSettingsModal
-  } = useDashboardModals();
+  } = useSettingsModal();
 
   // 3. Notification Layer - Manages toast notifications
   const { notifications, addNotification, removeNotification } = useToastNotifications();
