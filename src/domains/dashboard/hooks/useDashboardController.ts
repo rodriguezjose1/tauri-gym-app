@@ -1,14 +1,15 @@
+import { useState, useCallback, useEffect } from 'react';
 import { useDashboardDataComposer } from './useDashboardDataComposer';
 import { useWorkoutOperations } from '../../workout/hooks/useWorkoutOperations';
-import { useRoutineOperations } from '../../routine/hooks/useRoutineOperations';
 import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
+import { useConfirmModal } from '../../../shared/hooks/useConfirmModal';
+import { Person, WorkoutEntry } from '../../../shared/types/dashboard';
 
 // Atomic modal hooks
 import { useWorkoutModal } from '../../../shared/hooks/useWorkoutModal';
 import { useSessionModal } from '../../../shared/hooks/useSessionModal';
 import { useDeleteModal } from '../../../shared/hooks/useDeleteModal';
 import { useRoutineModal } from '../../../shared/hooks/useRoutineModal';
-import { useConfirmModal } from '../../../shared/hooks/useConfirmModal';
 import { useSettingsModal } from '../../../shared/hooks/useSettingsModal';
 
 // Atomic event hooks
@@ -20,6 +21,7 @@ import { useSaveWorkoutSession } from '../../workout/hooks/useSaveWorkoutSession
 import { useLoadRoutine } from '../../routine/hooks/useLoadRoutine';
 import { useApplyRoutineToDate } from '../../routine/hooks/useApplyRoutineToDate';
 import { useDeleteEventHandlers } from '../../../shared/hooks/useDeleteEventHandlers';
+import { useDashboardRoutineOperations } from './useDashboardRoutineOperations';
 
 export const useDashboardController = () => {
   // 1. Data Layer
@@ -48,12 +50,10 @@ export const useDashboardController = () => {
     showToast
   });
 
-  const routineOps = useRoutineOperations({
+  const routineOps = useDashboardRoutineOperations({
     selectedPerson: dataLayer.selectedPerson,
     workoutData: dataLayer.workoutData,
-    refreshWorkoutData: dataLayer.refreshWorkoutData,
-    showToast,
-    showConfirm: confirmModal.showConfirm
+    showToast
   });
 
   // 5. Event Handlers Layer

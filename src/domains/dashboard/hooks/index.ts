@@ -2,4 +2,5 @@
 
 export { useDashboardController } from './useDashboardController';
 export { useDashboardDataComposer } from './useDashboardDataComposer';
-export { useWeeklyCalendar } from './useWeeklyCalendar'; 
+export { useWeeklyCalendar } from './useWeeklyCalendar';
+export { useDashboardRoutineOperations } from './useDashboardRoutineOperations'; 
