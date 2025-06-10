@@ -20,9 +20,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Input, Button, ErrorMessage } from "../../../shared/components/base";
-import { DeleteConfirmationModal } from "../../../components/modals";
+import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import { ExerciseAutocomplete } from "../../exercise";
-import ToastContainer from "../../../components/notifications/ToastContainer";
+import ToastContainer from "../../../shared/components/notifications/ToastContainer";
 import { useToastNotifications } from "../../../shared/hooks/useToastNotifications";
 import {
   RoutineForm,

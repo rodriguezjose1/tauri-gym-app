@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '../base';
-import '../../styles/CalendarHeader.css';
+import { Button } from '../../../shared/components/base';
+import '../../../styles/CalendarHeader.css';
 
 interface CalendarHeaderProps {
   dateRangeTitle: string;

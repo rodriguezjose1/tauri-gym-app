@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/ConfirmationModal.css';
+import '../../../styles/ConfirmationModal.css';
 
 interface ConfirmationModalProps {
   isOpen: boolean;

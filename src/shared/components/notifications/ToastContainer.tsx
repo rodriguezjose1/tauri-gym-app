@@ -1,6 +1,6 @@
 import React from 'react';
 import ToastNotificationComponent, { ToastNotification } from './ToastNotification';
-import '../../styles/ToastContainer.css';
+import '../../../styles/ToastContainer.css';
 
 interface ToastContainerProps {
   notifications: ToastNotification[];

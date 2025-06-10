@@ -1,6 +1,6 @@
 import React from 'react';
-import { useConfig } from '../../shared/contexts';
-import '../../styles/SettingsModal.css';
+import { useConfig } from '../../../shared/contexts';
+import '../../../styles/SettingsModal.css';
 
 interface SettingsModalProps {
   isOpen: boolean;

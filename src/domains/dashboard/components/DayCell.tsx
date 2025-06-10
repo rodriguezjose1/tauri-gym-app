@@ -3,9 +3,9 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { WorkoutEntryWithDetails } from '../../services';
-import { SortableWorkoutItem } from '../lists/SortableWorkoutItem';
-import '../../styles/DayCell.css';
+import { WorkoutEntryWithDetails } from '../../../services';
+import { SortableWorkoutItem } from '../../workout';
+import '../../../styles/DayCell.css';
 
 interface DayCellProps {
   day: Date;

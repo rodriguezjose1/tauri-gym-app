@@ -1,25 +1,25 @@
 import { useDashboardDataComposer } from './useDashboardDataComposer';
-import { useWorkoutOperations } from '../../domains/workout/hooks/useWorkoutOperations';
-import { useRoutineOperations } from '../../domains/routine/hooks/useRoutineOperations';
-import { useToastNotifications } from './useToastNotifications';
+import { useWorkoutOperations } from '../../workout/hooks/useWorkoutOperations';
+import { useRoutineOperations } from '../../routine/hooks/useRoutineOperations';
+import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
 
 // Atomic modal hooks
-import { useWorkoutModal } from './useWorkoutModal';
-import { useSessionModal } from './useSessionModal';
-import { useDeleteModal } from './useDeleteModal';
-import { useRoutineModal } from './useRoutineModal';
-import { useConfirmModal } from './useConfirmModal';
-import { useSettingsModal } from './useSettingsModal';
+import { useWorkoutModal } from '../../../shared/hooks/useWorkoutModal';
+import { useSessionModal } from '../../../shared/hooks/useSessionModal';
+import { useDeleteModal } from '../../../shared/hooks/useDeleteModal';
+import { useRoutineModal } from '../../../shared/hooks/useRoutineModal';
+import { useConfirmModal } from '../../../shared/hooks/useConfirmModal';
+import { useSettingsModal } from '../../../shared/hooks/useSettingsModal';
 
 // Atomic event hooks
-import { useDayClick } from './useDayClick';
-import { useAddWorkout } from './useAddWorkout';
-import { useDayRightClick } from './useDayRightClick';
-import { useSaveWorkoutEntry } from '../../domains/workout/hooks/useSaveWorkoutEntry';
-import { useSaveWorkoutSession } from '../../domains/workout/hooks/useSaveWorkoutSession';
-import { useLoadRoutine } from '../../domains/routine/hooks/useLoadRoutine';
-import { useApplyRoutineToDate } from '../../domains/routine/hooks/useApplyRoutineToDate';
-import { useDeleteEventHandlers } from './useDeleteEventHandlers';
+import { useDayClick } from '../../../shared/hooks/useDayClick';
+import { useAddWorkout } from '../../../shared/hooks/useAddWorkout';
+import { useDayRightClick } from '../../../shared/hooks/useDayRightClick';
+import { useSaveWorkoutEntry } from '../../workout/hooks/useSaveWorkoutEntry';
+import { useSaveWorkoutSession } from '../../workout/hooks/useSaveWorkoutSession';
+import { useLoadRoutine } from '../../routine/hooks/useLoadRoutine';
+import { useApplyRoutineToDate } from '../../routine/hooks/useApplyRoutineToDate';
+import { useDeleteEventHandlers } from '../../../shared/hooks/useDeleteEventHandlers';
 
 export const useDashboardController = () => {
   // 1. Data Layer

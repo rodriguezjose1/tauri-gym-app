@@ -1,9 +1,10 @@
 import React from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove } from '@dnd-kit/sortable';
 import { WorkoutEntryWithDetails } from '../../services';
-import { SortableWorkoutItem } from '../lists/SortableWorkoutItem';
-import '../../styles/CalendarGrid.css';
+import { SortableWorkoutItem } from '../../workout';
+import '../../../styles/CalendarGrid.css';
 
 interface CalendarGridProps {
   threeWeeks: Date[][];

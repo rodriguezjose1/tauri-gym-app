@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../../styles/ToastNotification.css';
+import '../../../styles/ToastNotification.css';
 
 export interface ToastNotification {
   id: string;

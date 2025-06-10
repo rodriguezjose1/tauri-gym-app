@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { usePeopleData } from '../../domains/person/hooks/usePeopleData';
-import { useExercisesData } from '../../domains/exercise/hooks/useExercisesData';
-import { useRoutinesData } from '../../domains/routine/hooks/useRoutinesData';
-import { useWorkoutData } from '../../domains/workout/hooks/useWorkoutData';
+import { usePeopleData } from '../../person/hooks/usePeopleData';
+import { useExercisesData } from '../../exercise/hooks/useExercisesData';
+import { useRoutinesData } from '../../routine/hooks/useRoutinesData';
+import { useWorkoutData } from '../../workout/hooks/useWorkoutData';
 
 export const useDashboardDataComposer = () => {
   // Atomic data hooks

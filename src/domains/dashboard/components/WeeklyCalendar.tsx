@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { PersonSearch } from "../../domains/person";
-import { SortableWorkoutItem } from "../../domains/workout";
-import { useWeeklyCalendar } from "../../shared/hooks/useWeeklyCalendar";
-import { WorkoutEntryWithDetails } from '../../services';
-import "../../styles/WeeklyCalendar.css";
+import { PersonSearch } from "../../person";
+import { SortableWorkoutItem } from "../../workout";
+import { useWeeklyCalendar } from "../hooks/useWeeklyCalendar";
+import { WorkoutEntryWithDetails } from '../../../services';
+import "../../../styles/WeeklyCalendar.css";
 
 // Droppable Group Component
 const DroppableGroup: React.FC<{
