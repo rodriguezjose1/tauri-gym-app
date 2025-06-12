@@ -1,0 +1,242 @@
+/* Select Component Styles */
+
+.ui-select-container {
+  position: relative;
+  display: inline-block;
+}
+
+.ui-select-container--full-width {
+  width: 100%;
+}
+
+.ui-select-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.ui-select-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: left;
+  outline: none;
+}
+
+.ui-select-button:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ui-select-button:hover:not(.ui-select-button--disabled) {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-secondary);
+}
+
+.ui-select-button--disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ui-select-button--error {
+  border-color: var(--error-color);
+}
+
+.ui-select-button--error:focus {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.ui-select-button--open {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Sizes */
+.ui-select-button--sm {
+  padding: 8px 12px;
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.ui-select-button--md {
+  padding: 12px 16px;
+  font-size: 16px;
+  min-height: 48px;
+}
+
+.ui-select-button--lg {
+  padding: 16px 20px;
+  font-size: 18px;
+  min-height: 56px;
+}
+
+/* Variants */
+.ui-select-button--default {
+  /* Uses base styles */
+}
+
+.ui-select-button--primary {
+  border-color: var(--accent-primary);
+}
+
+.ui-select-button--primary:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.ui-select-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.ui-select-value:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+}
+
+.ui-select-arrow {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ui-select-arrow--open {
+  transform: rotate(180deg);
+}
+
+.ui-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px var(--shadow-medium);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.ui-select-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ui-select-option {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ui-select-option:last-child {
+  border-bottom: none;
+}
+
+.ui-select-option:hover:not(.ui-select-option--disabled) {
+  background-color: var(--bg-secondary);
+}
+
+.ui-select-option--selected {
+  background-color: var(--accent-bg);
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.ui-select-option--selected:hover {
+  background-color: var(--accent-bg);
+}
+
+.ui-select-option--disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ui-select-helper {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ui-select-helper--error {
+  color: var(--error-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ui-select-button--lg {
+    padding: 14px 16px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+  
+  .ui-select-button--md {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 44px;
+  }
+  
+  .ui-select-button--sm {
+    padding: 8px 10px;
+    font-size: 14px;
+    min-height: 36px;
+  }
+  
+  .ui-select-dropdown {
+    max-height: 150px;
+  }
+  
+  .ui-select-option {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ui-select-button--lg {
+    padding: 12px 14px;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  
+  .ui-select-button--md {
+    padding: 10px 12px;
+    font-size: 16px;
+    min-height: 40px;
+  }
+  
+  .ui-select-button--sm {
+    padding: 8px 10px;
+    font-size: 14px;
+    min-height: 32px;
+  }
+  
+  .ui-select-option {
+    padding: 8px 10px;
+  }
+  
+  .ui-select-helper {
+    font-size: 11px;
+  }
+} 

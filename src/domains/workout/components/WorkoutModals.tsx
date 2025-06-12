@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Input, Modal } from "../../../shared/components/base";
+import { Button, Input, Modal, Select } from "../../../shared/components/base";
 import { ExerciseAutocomplete } from "../../exercise";
 import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
 import '../../../styles/WorkoutModals.css';
@@ -367,25 +367,23 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                     />
 
                     {/* Group Selection */}
-                    <div>
-                      <label className="workout-modal-label">
-                        Grupo:
-                      </label>
-                      <select
-                        value={exercise.group_number || 1}
-                        onChange={(e) => onUpdateSessionExercise(index, 'group_number', parseInt(e.target.value))}
-                        className="workout-modal-group-select"
-                      >
-                        <option value={1}>Grupo 1</option>
-                        <option value={2}>Grupo 2</option>
-                        <option value={3}>Grupo 3</option>
-                        <option value={4}>Grupo 4</option>
-                        <option value={5}>Grupo 5</option>
-                      </select>
-                      <div className="workout-modal-group-help">
-                        Los ejercicios del mismo grupo se mostrarán juntos en el calendario
-                      </div>
-                    </div>
+                    <Select
+                      label="Grupo:"
+                      options={[
+                        { value: 1, label: "Grupo 1" },
+                        { value: 2, label: "Grupo 2" },
+                        { value: 3, label: "Grupo 3" },
+                        { value: 4, label: "Grupo 4" },
+                        { value: 5, label: "Grupo 5" }
+                      ]}
+                      value={exercise.group_number || 1}
+                      onChange={(value) => onUpdateSessionExercise(index, 'group_number', parseInt(value.toString()))}
+                      placeholder="Seleccionar grupo"
+                      variant="primary"
+                      size="md"
+                      fullWidth
+                      helperText="Los ejercicios del mismo grupo se mostrarán juntos en el calendario"
+                    />
 
                     {/* Temporarily commented out - using default values
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
