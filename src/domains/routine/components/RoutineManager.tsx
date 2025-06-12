@@ -28,6 +28,7 @@ import { useToastNotifications } from '../../../shared/hooks/useToastNotificatio
 import { useExercisesData } from '../../exercise/hooks/useExercisesData';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 import { Exercise } from '../../../shared/types/dashboard';
+import '../../../styles/RoutineManager.css';
 
 export const RoutineManager: React.FC = () => {
   // Hooks específicos
@@ -159,7 +160,7 @@ export const RoutineManager: React.FC = () => {
       </div>
 
       <div className="routine-manager-content">
-        <div className="routine-manager-sidebar">
+        <div className="routine-manager-left-panel">
           <RoutineList
             routines={routineData.routines}
             selectedRoutineId={routineData.selectedRoutineId}
@@ -170,17 +171,17 @@ export const RoutineManager: React.FC = () => {
           />
         </div>
 
-        <div className="routine-manager-main">
+        <div className="routine-manager-right-panel">
           {routineData.selectedRoutine ? (
             <div className="routine-manager-routine-details">
               <div className="routine-manager-routine-header">
                 <div className="routine-manager-routine-info">
-                  <h3 className="routine-manager-routine-name">
+                  <h3 className="routine-manager-routine-title">
                     {routineData.selectedRoutine.name}
                   </h3>
                   {routineData.selectedRoutine.code && (
-                    <span className="routine-manager-routine-code">
-                      {routineData.selectedRoutine.code}
+                    <span className="routine-manager-routine-subtitle">
+                      Código: {routineData.selectedRoutine.code}
                     </span>
                   )}
                 </div>
@@ -189,12 +190,13 @@ export const RoutineManager: React.FC = () => {
                   onClick={routineUI.openExerciseSearch}
                   variant="primary"
                   disabled={routineData.loading || routineExercises.loading}
+                  className="routine-manager-add-exercise-button"
                 >
                   Agregar Ejercicio
                 </Button>
               </div>
 
-              <div className="routine-manager-exercises">
+              <div className="routine-manager-exercises-container">
                 {routineExercises.exercises && routineExercises.exercises.length > 0 ? (
                   <DndContext
                     sensors={sensors}
@@ -226,7 +228,7 @@ export const RoutineManager: React.FC = () => {
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="routine-manager-empty-exercises">
+                  <div className="routine-manager-no-exercises">
                     <p>Esta rutina no tiene ejercicios aún.</p>
                     <p>Haz clic en "Agregar Ejercicio" para comenzar.</p>
                   </div>
@@ -234,7 +236,7 @@ export const RoutineManager: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="routine-manager-empty-selection">
+            <div className="routine-manager-no-routine">
               <p>Selecciona una rutina para ver sus detalles</p>
             </div>
           )}

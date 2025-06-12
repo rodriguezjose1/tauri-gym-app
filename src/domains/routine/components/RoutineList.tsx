@@ -36,22 +36,23 @@ export const RoutineList: React.FC<RoutineListProps> = ({
   }
 
   return (
-    <div className="routine-manager-routine-list">
-      <div className="routine-manager-routine-list-header">
-        <h3 className="routine-manager-routine-list-title">
+    <div className="routine-manager-routines-list">
+      <div className="routine-manager-search-section">
+        <h3 className="routine-manager-title">
           {LOCAL_LABELS.ROUTINES_TITLE}
         </h3>
         <Button
           onClick={onCreateNew}
           variant="primary"
           size="sm"
+          className="routine-manager-new-routine-button"
         >
           {LOCAL_LABELS.CREATE_ROUTINE_BUTTON}
         </Button>
       </div>
 
       {routines.length === 0 ? (
-        <div className="routine-manager-empty-state">
+        <div className="routine-manager-empty">
           <div className="routine-manager-empty-icon">📋</div>
           <p className="routine-manager-empty-message">
             No hay rutinas disponibles
@@ -61,7 +62,7 @@ export const RoutineList: React.FC<RoutineListProps> = ({
           </p>
         </div>
       ) : (
-        <div className="routine-manager-routine-items">
+        <div className="routine-manager-routines-list">
           {routines.map((routine) => (
             <div
               key={routine.id}
@@ -87,7 +88,7 @@ export const RoutineList: React.FC<RoutineListProps> = ({
                     e.stopPropagation();
                     onDeleteRoutine(routine.id!, routine.name);
                   }}
-                  className="routine-manager-routine-delete-button"
+                  className="routine-manager-routine-delete"
                   title={ROUTINE_UI_LABELS.DELETE_TOOLTIP}
                 >
                   🗑️

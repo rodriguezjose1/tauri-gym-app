@@ -60,6 +60,18 @@
   color: var(--text-primary);
 }
 
+.routine-manager-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.routine-manager-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .routine-manager-close-button {
   background: none;
   border: none;
