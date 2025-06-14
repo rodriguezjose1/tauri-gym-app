@@ -108,7 +108,7 @@ export const RoutineManager: React.FC = () => {
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { notifications, removeNotification, showNotification } = useToastNotifications();
+  const { notifications, removeNotification, addNotification } = useToastNotifications();
   const { exercises, exercisesLoading, loadExercises } = useExercisesData();
 
   // Estados locales para UI específica
@@ -184,9 +184,9 @@ export const RoutineManager: React.FC = () => {
     if (deleteConfirmation.routineId) {
       const success = await routineData.deleteRoutine(deleteConfirmation.routineId);
       if (success) {
-        showNotification('Rutina eliminada exitosamente', 'success');
+        addNotification('Rutina eliminada exitosamente', 'success');
       } else {
-        showNotification('Error al eliminar la rutina', 'error');
+        addNotification('Error al eliminar la rutina', 'error');
       }
       setDeleteConfirmation({
         isOpen: false,
@@ -223,7 +223,7 @@ export const RoutineManager: React.FC = () => {
 
   // Manejar grupo vacío
   const handleGroupEmpty = (groupNumber: number) => {
-    showNotification(`El grupo ${groupNumber} está vacío. Puedes arrastrar ejercicios aquí.`, 'info');
+    addNotification(`El grupo ${groupNumber} está vacío. Puedes arrastrar ejercicios aquí.`, 'info');
   };
 
   // Hook para drag and drop

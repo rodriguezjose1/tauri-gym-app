@@ -8,19 +8,7 @@ interface UseRoutineExercisesProps {
   routineId: number | null;
 }
 
-interface UseRoutineExercisesReturn {
-  exercises: RoutineExerciseWithDetails[];
-  loading: boolean;
-  
-  loadExercises: () => Promise<void>;
-  addExercise: (exerciseId: number, orderIndex: number, sets?: number, reps?: number, weight?: number, notes?: string, groupNumber?: number) => Promise<void>;
-  updateExercise: (exerciseId: number, updates: Partial<RoutineExerciseWithDetails>) => Promise<void>;
-  removeExercise: (exerciseId: number) => Promise<void>;
-  reorderExercises: (exerciseOrders: Array<[number, number]>) => Promise<void>;
-  clearExercises: () => void;
-}
-
-export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps): UseRoutineExercisesReturn => {
+export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => {
   const [exercises, setExercises] = useState<RoutineExerciseWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   
@@ -123,19 +111,31 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps): Us
     }
   }, [routineId, exercises, loadExercises, addNotification]);
 
-  const removeExercise = async (exerciseId: number): Promise<void> => {
+  const removeExercise = useCallback(async (exerciseId: number) => {
+    if (!routineId) return;
+
     try {
       setLoading(true);
-      await RoutineService.deleteRoutineExercise(exerciseId);
+      
+      // Encontrar el ejercicio actual para obtener el exercise_id
+      const currentExercise = exercises.find(ex => ex.id === exerciseId);
+      if (!currentExercise) throw new Error('Exercise not found');
+      
+      // Actualizar estado local inmediatamente
       setExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+      
+      await RoutineService.removeExerciseFromRoutine(routineId, currentExercise.exercise_id);
+      
       addNotification(ROUTINE_UI_LABELS.EXERCISE_REMOVED_SUCCESS, 'success');
     } catch (error) {
-      console.error('Error removing exercise:', error);
+      console.error('Error removing exercise from routine:', error);
+      // Recargar en caso de error
+      await loadExercises();
       addNotification(ROUTINE_ERROR_MESSAGES.REMOVE_EXERCISE_FAILED(String(error)), 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [routineId, exercises, loadExercises, addNotification]);
 
   const reorderExercises = useCallback(async (exerciseOrders: Array<[number, number]>) => {
     if (!routineId) return;
