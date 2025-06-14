@@ -38,8 +38,9 @@ export const useDragAndDrop = ({
     if (!activeExercise) return;
 
     // Si el destino es un grupo
-    if (over.id.toString().startsWith('routine-group-')) {
-      const groupNumber = parseInt(over.id.toString().split('-')[2]);
+    const overId = String(over.id);
+    if (overId.startsWith('routine-group-')) {
+      const groupNumber = parseInt(overId.split('-')[2]);
       if (activeExercise.group_number !== groupNumber) {
         onUpdateExercise(activeExercise.id!, { group_number: groupNumber });
       }
@@ -63,11 +64,12 @@ export const useDragAndDrop = ({
         return;
       }
 
-      const overId = over.id as string;
+      const overId = String(over.id);
       const isOverGroup = overId.startsWith('routine-group-');
       
       if (isOverGroup) {
-        const [_, groupNumber] = overId.split('-').map(Number);
+        const [_, __, groupNumber] = overId.split('-');
+        const targetGroupNumber = parseInt(groupNumber);
         
         // Verificar si es el último ejercicio del grupo actual
         const currentGroupExercises = exercises.filter(ex => ex.group_number === activeExercise.group_number);
@@ -79,18 +81,23 @@ export const useDragAndDrop = ({
         // Actualizar el grupo del ejercicio
         await onUpdateExercise(activeExercise.id, {
           ...activeExercise,
-          group_number: groupNumber
+          group_number: targetGroupNumber
         });
       } else {
         // Reordenar ejercicios dentro del mismo grupo
         const overExercise = exercises.find(ex => ex.id === over.id);
         if (!overExercise || overExercise.group_number !== activeExercise.group_number) return;
 
-        const oldIndex = exercises.findIndex(ex => ex.id === active.id);
-        const newIndex = exercises.findIndex(ex => ex.id === over.id);
+        // Filtrar ejercicios del mismo grupo y ordenarlos por order_index
+        const groupExercises = exercises
+          .filter(ex => ex.group_number === activeExercise.group_number)
+          .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+        const oldIndex = groupExercises.findIndex(ex => ex.id === active.id);
+        const newIndex = groupExercises.findIndex(ex => ex.id === over.id);
 
         if (oldIndex !== newIndex) {
-          const reorderedExercises = arrayMove(exercises, oldIndex, newIndex);
+          const reorderedExercises = arrayMove(groupExercises, oldIndex, newIndex);
           const orderUpdates: Array<[number, number]> = reorderedExercises
             .filter(exercise => exercise.id !== undefined)
             .map((exercise, index) => [
