@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Input } from '../../../shared/components/base';
+import { Select } from '../../../shared/components/base';
 import { RoutineExerciseWithDetails } from '../../../services';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 
@@ -18,10 +18,6 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    sets: exercise.sets || 0,
-    reps: exercise.reps || 0,
-    weight: exercise.weight || 0,
-    notes: exercise.notes || '',
     group_number: exercise.group_number || 1,
   });
 
@@ -40,14 +36,18 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const groupOptions = [
+    { value: 1, label: "Grupo 1" },
+    { value: 2, label: "Grupo 2" },
+    { value: 3, label: "Grupo 3" },
+    { value: 4, label: "Grupo 4" },
+    { value: 5, label: "Grupo 5" }
+  ];
+
   const handleSave = () => {
     const updatedExercise: RoutineExerciseWithDetails = {
       ...exercise,
-      sets: editForm.sets || undefined,
-      reps: editForm.reps || undefined,
-      weight: editForm.weight || undefined,
-      notes: editForm.notes.trim() || undefined,
-      group_number: editForm.group_number || undefined,
+      group_number: editForm.group_number,
     };
     onUpdate(updatedExercise);
     setIsEditing(false);
@@ -55,10 +55,6 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
 
   const handleCancel = () => {
     setEditForm({
-      sets: exercise.sets || 0,
-      reps: exercise.reps || 0,
-      weight: exercise.weight || 0,
-      notes: exercise.notes || '',
       group_number: exercise.group_number || 1,
     });
     setIsEditing(false);
@@ -66,10 +62,6 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
 
   const handleEdit = () => {
     setEditForm({
-      sets: exercise.sets || 0,
-      reps: exercise.reps || 0,
-      weight: exercise.weight || 0,
-      notes: exercise.notes || '',
       group_number: exercise.group_number || 1,
     });
     setIsEditing(true);
@@ -100,24 +92,9 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
           
           {!isEditing ? (
             <div className="routine-manager-exercise-details">
-              {exercise.sets && exercise.reps && (
-                <span className="routine-manager-exercise-detail">
-                  {exercise.sets} series × {exercise.reps} reps
-                </span>
-              )}
-              {exercise.weight && (
-                <span className="routine-manager-exercise-detail">
-                  {exercise.weight} kg
-                </span>
-              )}
               {exercise.group_number && exercise.group_number > 1 && (
                 <span className="routine-manager-exercise-detail">
                   Grupo {exercise.group_number}
-                </span>
-              )}
-              {exercise.notes && (
-                <span className="routine-manager-exercise-notes">
-                  {exercise.notes}
                 </span>
               )}
             </div>
@@ -125,55 +102,18 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
             <div className="routine-manager-exercise-edit-form">
               {/* Group Selection */}
               <div className="routine-manager-group-selection">
-                <label className="routine-manager-group-label">
-                  {ROUTINE_UI_LABELS.GROUP_LABEL}
-                </label>
-                <select
+                <Select
+                  label={ROUTINE_UI_LABELS.GROUP_LABEL}
+                  options={groupOptions}
                   value={editForm.group_number}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, group_number: parseInt(e.target.value) }))}
-                  className="routine-manager-group-select"
-                >
-                  <option value={1}>Grupo 1</option>
-                  <option value={2}>Grupo 2</option>
-                  <option value={3}>Grupo 3</option>
-                  <option value={4}>Grupo 4</option>
-                  <option value={5}>Grupo 5</option>
-                </select>
+                  onChange={(value) => setEditForm(prev => ({ ...prev, group_number: parseInt(value.toString()) }))}
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  helperText="Los ejercicios del mismo grupo se mostrarán juntos"
+                />
               </div>
               
-              <div className="routine-manager-exercise-form-grid">
-                <Input
-                  label={ROUTINE_UI_LABELS.SETS_LABEL}
-                  type="number"
-                  value={editForm.sets.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-                <Input
-                  label={ROUTINE_UI_LABELS.REPS_LABEL}
-                  type="number"
-                  value={editForm.reps.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-                <Input
-                  label={ROUTINE_UI_LABELS.WEIGHT_LABEL}
-                  type="number"
-                  step="0.5"
-                  value={editForm.weight.toString()}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                  variant="primary"
-                />
-              </div>
-              <div className="routine-manager-exercise-notes">
-                <Input
-                  label={ROUTINE_UI_LABELS.NOTES_LABEL}
-                  value={editForm.notes}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                  variant="primary"
-                  fullWidth
-                />
-              </div>
               <div className="routine-manager-exercise-form-actions">
                 <button
                   onClick={handleSave}

@@ -19,42 +19,54 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   onClose
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
 
-  // Filtrar ejercicios basado en búsqueda y categoría
+  // Filtrar ejercicios basado en búsqueda
   const filteredExercises = useMemo(() => {
     return exercises.filter(exercise => {
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (exercise.code && exercise.code.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesCategory = selectedCategory === 'all' || 
-                             exercise.code?.toLowerCase() === selectedCategory.toLowerCase();
+      // Excluir ejercicios ya seleccionados
+      const isNotSelected = !selectedExercises.some(e => e.id === exercise.id);
       
-      return matchesSearch && matchesCategory;
+      return matchesSearch && isNotSelected;
     });
-  }, [exercises, searchTerm, selectedCategory]);
+  }, [exercises, searchTerm, selectedExercises]);
 
-  // Obtener categorías únicas basadas en códigos de ejercicios
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(exercises.map(ex => ex.code).filter(Boolean))];
-    return uniqueCategories.sort();
-  }, [exercises]);
+  const handleToggleExercise = (exercise: Exercise) => {
+    setSelectedExercises(prev => {
+      const isSelected = prev.some(e => e.id === exercise.id);
+      if (isSelected) {
+        return prev.filter(e => e.id !== exercise.id);
+      } else {
+        return [...prev, exercise];
+      }
+    });
+  };
 
-  const handleAddExercise = (exercise: Exercise) => {
-    onAddExercise(exercise);
+  const handleRemoveSelected = (exerciseId: number) => {
+    setSelectedExercises(prev => prev.filter(e => e.id !== exerciseId));
+  };
+
+  const handleAddSelectedExercises = () => {
+    selectedExercises.forEach(exercise => {
+      onAddExercise(exercise);
+    });
+    setSelectedExercises([]);
     setSearchTerm('');
   };
 
   const handleClose = () => {
     setSearchTerm('');
-    setSelectedCategory('all');
+    setSelectedExercises([]);
     onClose();
   };
 
   useEffect(() => {
     if (isOpen) {
       setSearchTerm('');
-      setSelectedCategory('all');
+      setSelectedExercises([]);
     }
   }, [isOpen]);
 
@@ -88,71 +100,96 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
               placeholder="Buscar por nombre o código..."
             />
           </div>
+        </div>
 
-          <div className="exercise-search-field">
-            <label className="exercise-search-label">Categoría</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="exercise-search-select"
-            >
-              <option value="all">Todas las categorías</option>
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+        <div className="exercise-search-content">
+          {/* Sección de ejercicios seleccionados */}
+          {selectedExercises.length > 0 && (
+            <div className="exercise-search-selected-section">
+              <h4 className="exercise-search-section-title">Ejercicios seleccionados</h4>
+              <div className="exercise-search-selected-list">
+                {selectedExercises.map(exercise => (
+                  <div key={exercise.id} className="exercise-search-selected-item">
+                    <div className="exercise-search-selected-info">
+                      <span className="exercise-search-selected-name">{exercise.name}</span>
+                      {exercise.code && (
+                        <span className="exercise-search-selected-code">{exercise.code}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveSelected(exercise.id!)}
+                      className="exercise-search-remove-button"
+                      title="Quitar ejercicio"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sección de resultados de búsqueda */}
+          <div className="exercise-search-results">
+            {loading ? (
+              <div className="exercise-search-loading">
+                <div className="exercise-search-spinner"></div>
+                <p>Cargando ejercicios...</p>
+              </div>
+            ) : filteredExercises.length === 0 ? (
+              <div className="exercise-search-empty">
+                <p>No se encontraron ejercicios</p>
+                {searchTerm && (
+                  <p className="exercise-search-empty-hint">
+                    Intenta con otros términos de búsqueda
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="exercise-search-list">
+                {filteredExercises.map(exercise => (
+                  <div 
+                    key={exercise.id} 
+                    className="exercise-search-item"
+                    onClick={() => handleToggleExercise(exercise)}
+                  >
+                    <div className="exercise-search-item-info">
+                      <h4 className="exercise-search-item-name">{exercise.name}</h4>
+                      {exercise.code && (
+                        <span className="exercise-search-item-category">
+                          {exercise.code}
+                        </span>
+                      )}
+                    </div>
+                    <div className="exercise-search-item-checkbox">
+                      +
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="exercise-search-results">
-          {loading ? (
-            <div className="exercise-search-loading">
-              <div className="exercise-search-spinner"></div>
-              <p>Cargando ejercicios...</p>
-            </div>
-          ) : filteredExercises.length === 0 ? (
-            <div className="exercise-search-empty">
-              <p>No se encontraron ejercicios</p>
-              {searchTerm && (
-                <p className="exercise-search-empty-hint">
-                  Intenta con otros términos de búsqueda
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="exercise-search-list">
-              {filteredExercises.map(exercise => (
-                <div key={exercise.id} className="exercise-search-item">
-                  <div className="exercise-search-item-info">
-                    <h4 className="exercise-search-item-name">{exercise.name}</h4>
-                    {exercise.code && (
-                      <span className="exercise-search-item-category">
-                        {exercise.code}
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => handleAddExercise(exercise)}
-                    variant="primary"
-                    size="sm"
-                  >
-                    Agregar
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="exercise-search-actions">
-          <Button
-            onClick={handleClose}
-            variant="secondary"
-          >
-            Cerrar
-          </Button>
+          <div className="exercise-search-selected-count">
+            {selectedExercises.length} ejercicios seleccionados
+          </div>
+          <div className="exercise-search-buttons">
+            <Button
+              onClick={handleClose}
+              variant="secondary"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddSelectedExercises}
+              variant="primary"
+              disabled={selectedExercises.length === 0}
+            >
+              Agregar Seleccionados
+            </Button>
+          </div>
         </div>
       </div>
     </div>

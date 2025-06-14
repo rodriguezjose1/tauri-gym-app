@@ -19,7 +19,7 @@ interface UseRoutineDataReturn {
   loadRoutines: () => Promise<void>;
   selectRoutine: (routineId: number) => Promise<void>;
   createRoutine: (form: RoutineForm) => Promise<boolean>;
-  deleteRoutine: (routineId: number) => Promise<void>;
+  deleteRoutine: (routineId: number) => Promise<boolean>;
   searchRoutines: (searchTerm: string) => Promise<void>;
   clearSelection: () => void;
 }
@@ -83,25 +83,30 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     }
   }, [addNotification]);
 
-  const deleteRoutine = useCallback(async (routineId: number) => {
+  const deleteRoutine = async (routineId: number): Promise<boolean> => {
     try {
       setLoading(true);
       await RoutineService.deleteRoutine(routineId);
-      setRoutines(prev => prev.filter(r => r.id !== routineId));
       
+      // Limpiar la selección actual si estamos eliminando la rutina seleccionada
       if (selectedRoutineId === routineId) {
         setSelectedRoutine(null);
         setSelectedRoutineId(null);
       }
       
+      // Actualizar la lista de rutinas
+      setRoutines(prev => prev.filter(r => r.id !== routineId));
+      
       addNotification(ROUTINE_SUCCESS_MESSAGES.DELETED, 'success');
+      return true;
     } catch (error) {
       console.error('Error deleting routine:', error);
       addNotification(ROUTINE_ERROR_MESSAGES.DELETE_ROUTINE_FAILED(String(error)), 'error');
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [selectedRoutineId, addNotification]);
+  };
 
   const searchRoutines = useCallback(async (searchTerm: string) => {
     try {
