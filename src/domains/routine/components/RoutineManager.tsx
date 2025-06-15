@@ -26,7 +26,7 @@ import { ExerciseSearch } from './ExerciseSearch';
 import { useRoutineData } from '../hooks/useRoutineData';
 import { useRoutineExercises } from '../hooks/useRoutineExercises';
 import { useRoutineUI } from '../hooks/useRoutineUI';
-import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
+import { useToast } from '../../../shared/contexts/ToastContext';
 import { useExercisesData } from '../../exercise/hooks/useExercisesData';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 import { Exercise } from '../../../shared/types/dashboard';
@@ -108,7 +108,7 @@ export const RoutineManager: React.FC = () => {
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { notifications, removeNotification, addNotification } = useToastNotifications();
+  const { notifications, removeNotification, addNotification } = useToast();
   const { exercises, exercisesLoading, loadExercises } = useExercisesData();
 
   // Estados locales para UI específica

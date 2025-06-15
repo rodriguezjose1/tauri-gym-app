@@ -7,6 +7,7 @@ import { ExerciseCrud } from "./domains/exercise";
 import { PersonCrud } from "./domains/person";
 import { RoutinePage } from "./domains/routine";
 import { ConfigProvider } from './shared/contexts';
+import { ToastProvider } from './shared/contexts/ToastContext';
 import "./styles/App.css";
 
 function Navigation() {
@@ -76,18 +77,20 @@ function App() {
   return (
     <ChakraProvider value={defaultSystem}>
       <BrowserRouter>
-        <div className="app-container">
-          <Navigation />
-          <main className="app-content">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/personas" element={<PersonCrud />} />
-              <Route path="/exercises" element={<ExerciseCrud />} />
-              <Route path="/routines" element={<RoutinePage />} />
-              <Route path="/configuraciones" element={<ConfiguracionesPage />} />
-            </Routes>
-          </main>
-        </div>
+        <ToastProvider>
+          <div className="app-container">
+            <Navigation />
+            <main className="app-content">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/personas" element={<PersonCrud />} />
+                <Route path="/exercises" element={<ExerciseCrud />} />
+                <Route path="/routines" element={<RoutinePage />} />
+                <Route path="/configuraciones" element={<ConfiguracionesPage />} />
+              </Routes>
+            </main>
+          </div>
+        </ToastProvider>
       </BrowserRouter>
     </ChakraProvider>
   );

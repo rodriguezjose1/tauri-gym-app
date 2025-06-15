@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/core';
 import { RoutineExerciseWithDetails } from '../../../services';
 import { arrayMove } from '@dnd-kit/sortable';
-import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
+import { useToast } from '../../../shared/contexts/ToastContext';
 
 interface UseDragAndDropProps {
   exercises: RoutineExerciseWithDetails[];
@@ -20,7 +20,7 @@ export const useDragAndDrop = ({
   const [isDragging, setIsDragging] = useState(false);
   const [activeExercise, setActiveExercise] = useState<RoutineExerciseWithDetails | null>(null);
   const [isValidMove, setIsValidMove] = useState(true);
-  const { addNotification } = useToastNotifications();
+  const { addNotification } = useToast();
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -47,7 +47,6 @@ export const useDragAndDrop = ({
     // Si es el último ejercicio del grupo, no permitir mover
     if (exercisesInCurrentGroup.length === 1) {
       setIsValidMove(false);
-      addNotification('No puedes mover el último ejercicio del grupo', 'warning');
       return;
     }
 
@@ -82,8 +81,9 @@ export const useDragAndDrop = ({
         return;
       }
 
-      // Si el movimiento no es válido, no hacer nada
+      // Si el movimiento no es válido, mostrar notificación y no hacer nada
       if (!isValidMove) {
+        addNotification('No puedes mover el último ejercicio del grupo', 'warning', 3000);
         return;
       }
 
@@ -128,7 +128,7 @@ export const useDragAndDrop = ({
       }
     } catch (error) {
       console.error('Error in drag and drop:', error);
-      addNotification('Error al mover el ejercicio', 'error');
+      addNotification('Error al mover el ejercicio', 'error', 3000);
     } finally {
       setIsDragging(false);
       setActiveExercise(null);
