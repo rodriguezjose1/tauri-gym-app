@@ -19,6 +19,7 @@ export const useDragAndDrop = ({
 }: UseDragAndDropProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [activeExercise, setActiveExercise] = useState<RoutineExerciseWithDetails | null>(null);
+  const [isValidMove, setIsValidMove] = useState(true);
   const { addNotification } = useToastNotifications();
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -27,6 +28,7 @@ export const useDragAndDrop = ({
     if (exercise) {
       setActiveExercise(exercise);
       setIsDragging(true);
+      setIsValidMove(true);
     }
   };
 
@@ -37,9 +39,23 @@ export const useDragAndDrop = ({
     const activeExercise = exercises.find(e => e.id === active.id);
     if (!activeExercise) return;
 
+    // Contar ejercicios en el grupo actual
+    const exercisesInCurrentGroup = exercises.filter(
+      ex => ex.group_number === activeExercise.group_number
+    );
+
+    // Si es el último ejercicio del grupo, no permitir mover
+    if (exercisesInCurrentGroup.length === 1) {
+      setIsValidMove(false);
+      addNotification('No puedes mover el último ejercicio del grupo', 'warning');
+      return;
+    }
+
+    setIsValidMove(true);
+
     // Si el destino es un grupo
     const overId = String(over.id);
-    if (overId.startsWith('routine-group-')) {
+    if (overId.includes('routine-group-')) {
       const groupNumber = parseInt(overId.split('-')[2]);
       if (activeExercise.group_number !== groupNumber) {
         onUpdateExercise(activeExercise.id!, { group_number: groupNumber });
@@ -54,6 +70,7 @@ export const useDragAndDrop = ({
       if (!over || !active.id) {
         setIsDragging(false);
         setActiveExercise(null);
+        setIsValidMove(true);
         return;
       }
 
@@ -61,28 +78,29 @@ export const useDragAndDrop = ({
       if (!activeExercise) {
         setIsDragging(false);
         setActiveExercise(null);
+        setIsValidMove(true);
+        return;
+      }
+
+      // Si el movimiento no es válido, no hacer nada
+      if (!isValidMove) {
         return;
       }
 
       const overId = String(over.id);
-      const isOverGroup = overId.startsWith('routine-group-');
       
-      if (isOverGroup) {
+      // Si el destino es un grupo
+      if (overId.includes('routine-group-')) {
         const [_, __, groupNumber] = overId.split('-');
         const targetGroupNumber = parseInt(groupNumber);
-        
-        // Verificar si es el último ejercicio del grupo actual
-        const currentGroupExercises = exercises.filter(ex => ex.group_number === activeExercise.group_number);
-        if (currentGroupExercises.length === 1) {
-          addNotification('No puedes mover el último ejercicio del grupo', 'warning');
-          return;
-        }
 
-        // Actualizar el grupo del ejercicio
-        await onUpdateExercise(activeExercise.id, {
-          ...activeExercise,
-          group_number: targetGroupNumber
-        });
+        // Verificar si el grupo de destino es diferente al actual
+        if (targetGroupNumber !== activeExercise.group_number) {
+          await onUpdateExercise(activeExercise.id!, {
+            ...activeExercise,
+            group_number: targetGroupNumber
+          });
+        }
       } else {
         // Reordenar ejercicios dentro del mismo grupo
         const overExercise = exercises.find(ex => ex.id === over.id);
@@ -114,6 +132,7 @@ export const useDragAndDrop = ({
     } finally {
       setIsDragging(false);
       setActiveExercise(null);
+      setIsValidMove(true);
     }
   };
 
