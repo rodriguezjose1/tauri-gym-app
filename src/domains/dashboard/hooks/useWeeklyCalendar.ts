@@ -124,7 +124,7 @@ export const useWeeklyCalendar = ({
     const dayDateString = formatDateForDB(new Date(activeWorkout.date));
     const dayWorkouts = currentWorkoutData
       .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
     // Check if we're dropping over a group container or another workout
     const overIdString = String(over.id);
@@ -163,7 +163,7 @@ export const useWeeklyCalendar = ({
       const updatedWorkout = {
         ...workout,
         group_number: newGroupNumber,
-        order: newOrder
+        order_index: newOrder
       };
 
       await WorkoutService.updateWorkoutEntry(updatedWorkout);
@@ -198,7 +198,7 @@ export const useWeeklyCalendar = ({
     try {
       const targetGroupWorkouts = dayWorkouts
         .filter(w => w.group_number === targetWorkout.group_number)
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
       const targetIndex = targetGroupWorkouts.findIndex(w => w.id === targetWorkout.id);
       
@@ -206,7 +206,7 @@ export const useWeeklyCalendar = ({
       const updatedWorkout = {
         ...activeWorkout,
         group_number: targetWorkout.group_number,
-        order: targetIndex
+        order_index: targetIndex
       };
 
       await WorkoutService.updateWorkoutEntry(updatedWorkout);
@@ -250,12 +250,20 @@ export const useWeeklyCalendar = ({
 
   // Handle reordering within the same group
   const handleReorderWithinGroup = (activeWorkout: WorkoutEntryWithDetails, targetWorkout: WorkoutEntryWithDetails, dayWorkouts: WorkoutEntryWithDetails[]) => {
+    console.log('🔄 handleReorderWithinGroup called:', { 
+      activeId: activeWorkout.id, 
+      targetId: targetWorkout.id,
+      activeGroup: activeWorkout.group_number 
+    });
+    
     const groupWorkouts = dayWorkouts
       .filter(w => w.group_number === activeWorkout.group_number)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
     const oldIndex = groupWorkouts.findIndex(w => w.id === activeWorkout.id);
     const newIndex = groupWorkouts.findIndex(w => w.id === targetWorkout.id);
+
+    console.log('📊 Indices:', { oldIndex, newIndex, groupWorkoutsCount: groupWorkouts.length });
 
     if (oldIndex !== -1 && newIndex !== -1) {
       const reorderedWorkouts = arrayMove(groupWorkouts, oldIndex, newIndex);
@@ -266,11 +274,15 @@ export const useWeeklyCalendar = ({
         order: index
       }));
 
+      console.log('📝 Exercise orders to update:', exerciseOrders);
+
       // Mark that we're reordering and save scroll position
       isReordering.current = true;
       saveScrollPosition();
 
       onReorderExercises(exerciseOrders);
+    } else {
+      console.log('❌ Invalid indices for reordering');
     }
   };
 

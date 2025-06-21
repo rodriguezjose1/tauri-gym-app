@@ -9,7 +9,7 @@ export const useWorkoutModal = () => {
     reps: 1,
     weight: 0,
     notes: "",
-    order: 0,
+    order_index: 0,
     group_number: 1
   });
 
@@ -20,7 +20,7 @@ export const useWorkoutModal = () => {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0,
+      order_index: 0,
       group_number: 1
     });
     setShowWorkoutModal(true);
@@ -34,7 +34,7 @@ export const useWorkoutModal = () => {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0,
+      order_index: 0,
       group_number: 1
     });
   };

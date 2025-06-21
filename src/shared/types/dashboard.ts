@@ -20,7 +20,7 @@ export interface WorkoutEntry {
   reps?: number;
   weight?: number;
   notes?: string;
-  order?: number;
+  order_index?: number;
   group_number?: number;
   created_at?: string;
   updated_at?: string;
@@ -53,7 +53,7 @@ export interface WorkoutEntryForm {
   reps: number;
   weight: number;
   notes: string;
-  order?: number;
+  order_index?: number;
   group_number?: number;
 }
 

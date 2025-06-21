@@ -10,7 +10,7 @@ export const useSessionModal = () => {
       reps: 1,
       weight: 0,
       notes: "",
-      order: 0,
+      order_index: 0,
       group_number: 1
     }]
   });
@@ -24,7 +24,7 @@ export const useSessionModal = () => {
         reps: exercise.reps || 1,
         weight: exercise.weight || 0,
         notes: exercise.notes || "",
-        order: exercise.order || 0,
+        order_index: exercise.order_index || 0,
         group_number: exercise.group_number || 1
       }));
       
@@ -38,7 +38,7 @@ export const useSessionModal = () => {
           reps: 1,
           weight: 0,
           notes: "",
-          order: 0,
+          order_index: 0,
           group_number: 1
         }]
       });
@@ -56,7 +56,7 @@ export const useSessionModal = () => {
         reps: 1,
         weight: 0,
         notes: "",
-        order: 0,
+        order_index: 0,
         group_number: 1
       }]
     });
@@ -69,22 +69,27 @@ export const useSessionModal = () => {
   };
 
   const addExerciseToSession = () => {
-    setSessionForm({
-      exercises: [...sessionForm.exercises, {
-        exercise_id: 0,
-        sets: 1,
-        reps: 1,
-        weight: 0,
-        notes: "",
-        order: sessionForm.exercises.length,
-        group_number: 1
-      }]
-    });
+    setSessionForm(prev => ({
+      exercises: [
+        ...prev.exercises,
+        {
+          exercise_id: 0,
+          sets: 1,
+          reps: 1,
+          weight: 0,
+          notes: "",
+          order_index: sessionForm.exercises.length,
+          group_number: 1
+        }
+      ]
+    }));
   };
 
-  const deleteSessionExercise = (index: number) => {
-    const updatedExercises = sessionForm.exercises.filter((_, i) => i !== index);
-    setSessionForm({ exercises: updatedExercises });
+  const deleteExerciseFromSession = (index: number) => {
+    if (sessionForm.exercises.length > 1) {
+      const updatedExercises = sessionForm.exercises.filter((_, i) => i !== index);
+      setSessionForm({ exercises: updatedExercises });
+    }
   };
 
   const loadRoutineToSessionForm = (exerciseForms: WorkoutEntryForm[]) => {
@@ -98,7 +103,7 @@ export const useSessionModal = () => {
     closeSessionModal,
     updateSessionExercise,
     addExerciseToSession,
-    deleteSessionExercise,
+    deleteExerciseFromSession,
     loadRoutineToSessionForm
   };
 }; 

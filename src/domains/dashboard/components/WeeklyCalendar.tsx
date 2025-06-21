@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable, DragOverlay } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PersonSearch } from "../../person";
 import { SortableWorkoutItem } from "../../workout";
 import { useWeeklyCalendar } from "../hooks/useWeeklyCalendar";
-import { WorkoutEntryWithDetails } from '../../../services';
+import { useCalendarDragAndDrop } from "../hooks/useCalendarDragAndDrop";
+import { WorkoutEntryWithDetails, WorkoutService } from '../../../services';
 import "../../../styles/WeeklyCalendar.css";
 
 // Droppable Group Component
@@ -25,7 +26,14 @@ const DroppableGroup: React.FC<{
       <div className="weekly-calendar-group-header">
         Grupo {groupNumber}
       </div>
-      {children}
+      <div className="weekly-calendar-group-container">
+        {children}
+        {React.Children.count(children) === 0 && (
+          <div className="weekly-calendar-group-empty">
+            Arrastra ejercicios aquí
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -47,17 +55,27 @@ interface WeeklyCalendarProps {
 // Helper function to group workouts by group_number
 const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString?: string, emptyGroups: number[] = []) => {
   console.log("=== GROUPING WORKOUTS ===");
-  console.log("Input workouts:", workouts.map(w => ({ id: w.id, exercise_name: w.exercise_name, group_number: w.group_number })));
+  console.log("Input workouts:", workouts.map(w => ({ id: w.id, exercise_name: w.exercise_name, group_number: w.group_number, order_index: w.order_index })));
   
   const groups = workouts.reduce((acc, workout) => {
     const groupNumber = workout.group_number || 1;
-    console.log(`Workout ${workout.id} (${workout.exercise_name}) -> Group ${groupNumber}`);
+    console.log(`Workout ${workout.id} (${workout.exercise_name}) -> Group ${groupNumber}, Order ${workout.order_index}`);
     if (!acc[groupNumber]) {
       acc[groupNumber] = [];
     }
     acc[groupNumber].push(workout);
     return acc;
   }, {} as Record<number, WorkoutEntryWithDetails[]>);
+  
+  // Sort workouts within each group by order_index
+  Object.keys(groups).forEach(groupNumber => {
+    const groupWorkouts = groups[parseInt(groupNumber)];
+    console.log(`Sorting group ${groupNumber}:`, groupWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
+    
+    groupWorkouts.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    
+    console.log(`Group ${groupNumber} after sorting:`, groupWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
+  });
   
   // Add empty groups
   emptyGroups.forEach(groupNumber => {
@@ -76,7 +94,11 @@ const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString
       workouts: groups[parseInt(groupNumber)]
     }));
     
-  console.log("Final grouped result:", result.map(g => ({ groupNumber: g.groupNumber, workoutCount: g.workouts.length })));
+  console.log("Final grouped result:", result.map(g => ({ 
+    groupNumber: g.groupNumber, 
+    workoutCount: g.workouts.length,
+    workouts: g.workouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name }))
+  })));
   return result;
 };
 
@@ -102,7 +124,6 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     weekOffset,
     scrollContainerRef,
     currentWorkoutData,
-    handleDragEnd,
     generateThreeWeeks,
     formatDateForDB,
     formatWeekRange,
@@ -110,12 +131,91 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     goToNewerWeeks,
     goToOlderWeeks,
     goToCurrentWeeks,
-    createNewGroup,
   } = useWeeklyCalendar({
     selectedPerson,
     workoutData,
     onWorkoutDataChange,
     onReorderExercises,
+  });
+
+  // Hook para drag and drop
+  const { 
+    isDragging, 
+    activeWorkout, 
+    handleDragStart, 
+    handleDragOver, 
+    handleDragEnd 
+  } = useCalendarDragAndDrop({
+    workouts: currentWorkoutData,
+    onUpdateWorkout: async (workoutId, updates) => {
+      console.log('🔄 onUpdateWorkout called:', { workoutId, updates });
+      
+      // Find the current workout to get all required fields
+      const currentWorkout = currentWorkoutData.find(w => w.id === workoutId);
+      if (!currentWorkout) {
+        console.error('❌ Workout not found:', workoutId);
+        return;
+      }
+      
+      // Update local state immediately for visual feedback
+      const updatedWorkouts = currentWorkoutData.map(workout => 
+        workout.id === workoutId ? { ...workout, ...updates } : workout
+      );
+      onWorkoutDataChange(updatedWorkouts);
+      
+      // Then update the database with all required fields
+      try {
+        const workoutToUpdate = {
+          ...currentWorkout,
+          ...updates
+        };
+        console.log('📝 Updating workout with:', workoutToUpdate);
+        
+        await WorkoutService.updateWorkoutEntry(workoutToUpdate);
+        console.log('✅ Database update successful');
+      } catch (error) {
+        console.error('❌ Database update failed:', error);
+        // Revert local state on error
+        onWorkoutDataChange(workoutData);
+      }
+    },
+    onReorderWorkouts: async (workoutOrders) => {
+      console.log('🔄 onReorderWorkouts called:', workoutOrders);
+      console.log('📊 Current workout data before update:', currentWorkoutData.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
+      
+      // Update local state immediately for visual feedback
+      const updatedWorkouts = [...currentWorkoutData];
+      workoutOrders.forEach(([id, newOrder]) => {
+        const index = updatedWorkouts.findIndex(w => w.id === id);
+        if (index !== -1) {
+          console.log(`📝 Updating workout ${id} order from ${updatedWorkouts[index].order_index} to ${newOrder}`);
+          updatedWorkouts[index] = { ...updatedWorkouts[index], order_index: newOrder };
+        } else {
+          console.log(`❌ Workout ${id} not found in current data`);
+        }
+      });
+      
+      console.log('📊 Updated workout data:', updatedWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
+      
+      // Update local state first
+      onWorkoutDataChange(updatedWorkouts);
+      console.log('✅ Local state updated');
+      
+      // Then update the database
+      try {
+        console.log('🔄 Calling WorkoutService.updateExerciseOrder with:', workoutOrders);
+        await WorkoutService.updateExerciseOrder(workoutOrders);
+        console.log('✅ Database reorder successful');
+      } catch (error) {
+        console.error('❌ Database reorder failed:', error);
+        // Revert local state on error
+        console.log('🔄 Reverting local state due to database error');
+        onWorkoutDataChange(workoutData);
+      }
+    },
+    onGroupEmpty: (date, groupNumber) => {
+      console.log(`Grupo ${groupNumber} vacío en fecha ${date}`);
+    }
   });
 
   const threeWeeks = generateThreeWeeks();
@@ -163,6 +263,17 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       cleanupEmptyGroups(dayDateString, currentWorkoutData);
     });
   }, [currentWorkoutData, emptyGroups]);
+
+  // Debug effect to track state changes
+  useEffect(() => {
+    console.log('🔄 currentWorkoutData changed:', currentWorkoutData.length, 'workouts');
+    console.log('📊 Sample workouts:', currentWorkoutData.slice(0, 3).map(w => ({ 
+      id: w.id, 
+      name: w.exercise_name, 
+      order: w.order_index, 
+      group: w.group_number 
+    })));
+  }, [currentWorkoutData]);
 
   if (workoutLoading) {
     return (
@@ -350,20 +461,22 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                             <DndContext
                               sensors={sensors}
                               collisionDetection={closestCenter}
-                              onDragEnd={(event) => handleDragEnd(event, currentWorkoutData)}
+                              onDragStart={handleDragStart}
+                              onDragOver={handleDragOver}
+                              onDragEnd={handleDragEnd}
                             >
-                              <SortableContext
-                                items={dayWorkouts.map(w => w.id!)}
-                                strategy={verticalListSortingStrategy}
-                              >
-                                {(() => {
-                                  const workoutGroups = groupWorkoutsByGroup(dayWorkouts, dayDateString, emptyGroups[dayDateString] || []);
-                                  console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
-                                  return workoutGroups.map((group, groupIndex) => (
-                                    <DroppableGroup
-                                      key={`group-${group.groupNumber}-${dayDateString}`}
-                                      groupNumber={group.groupNumber}
-                                      dayDateString={dayDateString}
+                              {(() => {
+                                const workoutGroups = groupWorkoutsByGroup(dayWorkouts, dayDateString, emptyGroups[dayDateString] || []);
+                                console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
+                                return workoutGroups.map((group, groupIndex) => (
+                                  <DroppableGroup
+                                    key={`group-${group.groupNumber}-${dayDateString}`}
+                                    groupNumber={group.groupNumber}
+                                    dayDateString={dayDateString}
+                                  >
+                                    <SortableContext
+                                      items={group.workouts.map(w => w.id!)}
+                                      strategy={verticalListSortingStrategy}
                                     >
                                       {group.workouts.map((workout, workoutIndex) => (
                                         <div key={workout.id || workoutIndex} className="weekly-calendar-workout-item">
@@ -377,15 +490,20 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                           />
                                         </div>
                                       ))}
-                                      {group.workouts.length === 0 && (
-                                        <div className="weekly-calendar-group-empty">
-                                          Arrastra ejercicios aquí
-                                        </div>
-                                      )}
-                                    </DroppableGroup>
-                                  ));
-                                })()}
-                              </SortableContext>
+                                    </SortableContext>
+                                  </DroppableGroup>
+                                ));
+                              })()}
+
+                              <DragOverlay>
+                                {activeWorkout && (
+                                  <SortableWorkoutItem
+                                    workout={activeWorkout}
+                                    onDayClick={() => {}}
+                                    onDeleteWorkoutEntry={() => {}}
+                                  />
+                                )}
+                              </DragOverlay>
                             </DndContext>
                           )}
                           

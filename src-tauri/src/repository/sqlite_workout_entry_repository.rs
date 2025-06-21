@@ -204,7 +204,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 workout_entry.reps,
                 workout_entry.weight,
                 workout_entry.notes,
-                workout_entry.order.unwrap_or(0),
+                workout_entry.order_index.unwrap_or(0),
                 workout_entry.group_number.unwrap_or(1)
             ],
         ).map_err(|e| e.to_string())?;
@@ -237,7 +237,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                     workout_entry.reps,
                     workout_entry.weight,
                     workout_entry.notes,
-                    workout_entry.order.unwrap_or(0),
+                    workout_entry.order_index.unwrap_or(0),
                     workout_entry.group_number.unwrap_or(1)
                 ]).map_err(|e| e.to_string())?;
             }
@@ -267,7 +267,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 reps: row.get(5)?,
                 weight: row.get(6)?,
                 notes: row.get(7)?,
-                order: row.get(8)?,
+                order_index: row.get(8)?,
                 group_number: row.get(9)?,
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
@@ -309,7 +309,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 reps: row.get(5)?,
                 weight: row.get(6)?,
                 notes: row.get(7)?,
-                order: row.get(8)?,
+                order_index: row.get(8)?,
                 group_number: row.get(9)?,
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
@@ -358,7 +358,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 reps: row.get(5)?,
                 weight: row.get(6)?,
                 notes: row.get(7)?,
-                order: row.get(8)?,
+                order_index: row.get(8)?,
                 group_number: row.get(9)?,
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
@@ -390,7 +390,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 workout_entry.reps,
                 workout_entry.weight,
                 workout_entry.notes,
-                workout_entry.order.unwrap_or(0),
+                workout_entry.order_index.unwrap_or(0),
                 workout_entry.group_number.unwrap_or(1),
                 workout_entry.id
             ],
@@ -450,7 +450,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                 reps: row.get(5)?,
                 weight: row.get(6)?,
                 notes: row.get(7)?,
-                order: row.get(8)?,
+                order_index: row.get(8)?,
                 group_number: row.get(9)?,
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
@@ -496,7 +496,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                         workout_entry.reps,
                         workout_entry.weight,
                         workout_entry.notes,
-                        workout_entry.order.unwrap_or(0),
+                        workout_entry.order_index.unwrap_or(0),
                         workout_entry.group_number.unwrap_or(1)
                     ]).map_err(|e| e.to_string())?;
                 }
@@ -541,7 +541,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
                         workout_entry.reps,
                         workout_entry.weight,
                         workout_entry.notes,
-                        workout_entry.order.unwrap_or(0),
+                        workout_entry.order_index.unwrap_or(0),
                         workout_entry.group_number.unwrap_or(1)
                     ]).map_err(|e| e.to_string())?;
                 }
