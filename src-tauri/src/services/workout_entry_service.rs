@@ -52,47 +52,24 @@ impl WorkoutEntryService {
         self.repository.create(workout_entry)
     }
 
+    pub fn create_batch(&self, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+        if workout_entries.is_empty() {
+            return Err("Workout entries list cannot be empty".to_string());
+        }
+
+        // Validate all entries using helper method
+        self.validate_workout_entries(&workout_entries)?;
+
+        self.repository.create_batch(workout_entries)
+    }
+
     pub fn create_workout_session(&self, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
         if workout_entries.is_empty() {
             return Err("Workout session cannot be empty".to_string());
         }
 
-        // Validate all entries before creating any
-        for (index, workout_entry) in workout_entries.iter().enumerate() {
-            if workout_entry.person_id <= 0 {
-                return Err(format!("Invalid person ID in exercise {}", index + 1));
-            }
-
-            if workout_entry.exercise_id <= 0 {
-                return Err(format!("Invalid exercise ID in exercise {}", index + 1));
-            }
-
-            if workout_entry.date.is_empty() {
-                return Err(format!("Date is required in exercise {}", index + 1));
-            }
-
-            if !self.is_valid_date_format(&workout_entry.date) {
-                return Err(format!("Invalid date format in exercise {}. Use YYYY-MM-DD", index + 1));
-            }
-
-            if let Some(sets) = workout_entry.sets {
-                if sets <= 0 {
-                    return Err(format!("Sets must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(reps) = workout_entry.reps {
-                if reps <= 0 {
-                    return Err(format!("Reps must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(weight) = workout_entry.weight {
-                if weight < 0.0 {
-                    return Err(format!("Weight cannot be negative in exercise {}", index + 1));
-                }
-            }
-        }
+        // Validate all entries using helper method
+        self.validate_workout_entries(&workout_entries)?;
 
         // Validate that all entries are for the same person and date
         let first_entry = &workout_entries[0];
@@ -126,7 +103,10 @@ impl WorkoutEntryService {
             return self.repository.replace_session(person_id, date, workout_entries);
         }
 
-        // Validate all entries before creating any
+        // Validate all entries using helper method
+        self.validate_workout_entries(&workout_entries)?;
+
+        // Additional validation for replace session
         for (index, workout_entry) in workout_entries.iter().enumerate() {
             if workout_entry.person_id != person_id {
                 return Err(format!("Person ID mismatch in exercise {}", index + 1));
@@ -134,28 +114,6 @@ impl WorkoutEntryService {
 
             if workout_entry.date != date {
                 return Err(format!("Date mismatch in exercise {}", index + 1));
-            }
-
-            if workout_entry.exercise_id <= 0 {
-                return Err(format!("Invalid exercise ID in exercise {}", index + 1));
-            }
-
-            if let Some(sets) = workout_entry.sets {
-                if sets <= 0 {
-                    return Err(format!("Sets must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(reps) = workout_entry.reps {
-                if reps <= 0 {
-                    return Err(format!("Reps must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(weight) = workout_entry.weight {
-                if weight < 0.0 {
-                    return Err(format!("Weight cannot be negative in exercise {}", index + 1));
-                }
             }
         }
 
@@ -170,41 +128,9 @@ impl WorkoutEntryService {
             }
         }
 
-        // Validate entries to insert
-        for (index, workout_entry) in workout_entries_to_insert.iter().enumerate() {
-            if workout_entry.person_id <= 0 {
-                return Err(format!("Invalid person ID in exercise {}", index + 1));
-            }
-
-            if workout_entry.exercise_id <= 0 {
-                return Err(format!("Invalid exercise ID in exercise {}", index + 1));
-            }
-
-            if workout_entry.date.is_empty() {
-                return Err(format!("Date is required in exercise {}", index + 1));
-            }
-
-            if !self.is_valid_date_format(&workout_entry.date) {
-                return Err(format!("Invalid date format in exercise {}. Use YYYY-MM-DD", index + 1));
-            }
-
-            if let Some(sets) = workout_entry.sets {
-                if sets <= 0 {
-                    return Err(format!("Sets must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(reps) = workout_entry.reps {
-                if reps <= 0 {
-                    return Err(format!("Reps must be greater than 0 in exercise {}", index + 1));
-                }
-            }
-
-            if let Some(weight) = workout_entry.weight {
-                if weight < 0.0 {
-                    return Err(format!("Weight cannot be negative in exercise {}", index + 1));
-                }
-            }
+        // Validate entries to insert using helper method
+        if !workout_entries_to_insert.is_empty() {
+            self.validate_workout_entries(&workout_entries_to_insert)?;
         }
 
         self.repository.replace_session_granular(ids_to_delete, workout_entries_to_insert)
@@ -340,5 +266,44 @@ impl WorkoutEntryService {
         } else {
             false
         }
+    }
+
+    fn validate_workout_entries(&self, workout_entries: &Vec<WorkoutEntry>) -> Result<(), String> {
+        for (index, workout_entry) in workout_entries.iter().enumerate() {
+            if workout_entry.person_id <= 0 {
+                return Err(format!("Invalid person ID in exercise {}", index + 1));
+            }
+
+            if workout_entry.exercise_id <= 0 {
+                return Err(format!("Invalid exercise ID in exercise {}", index + 1));
+            }
+
+            if workout_entry.date.is_empty() {
+                return Err(format!("Date is required in exercise {}", index + 1));
+            }
+
+            if !self.is_valid_date_format(&workout_entry.date) {
+                return Err(format!("Invalid date format in exercise {}. Use YYYY-MM-DD", index + 1));
+            }
+
+            if let Some(sets) = workout_entry.sets {
+                if sets <= 0 {
+                    return Err(format!("Sets must be greater than 0 in exercise {}", index + 1));
+                }
+            }
+
+            if let Some(reps) = workout_entry.reps {
+                if reps <= 0 {
+                    return Err(format!("Reps must be greater than 0 in exercise {}", index + 1));
+                }
+            }
+
+            if let Some(weight) = workout_entry.weight {
+                if weight < 0.0 {
+                    return Err(format!("Weight cannot be negative in exercise {}", index + 1));
+                }
+            }
+        }
+        Ok(())
     }
 } 

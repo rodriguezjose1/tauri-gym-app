@@ -11,11 +11,12 @@ const requestNames = {
   deleteWorkoutEntry: "delete_workout_entry",
   replaceWorkoutSession: "replace_workout_session",
   replaceWorkoutSessionGranular: "replace_workout_session_granular",
-  updateExerciseOrder: "update_exercise_order"
+  updateExerciseOrder: "update_exercise_order",
+  createBatch: "create_batch"
 };
 export class WorkoutService {
   /**
-   * Crea una nueva entrada de entrenamiento
+   * Crea una entrada de entrenamiento individual
    */
   static async createWorkoutEntry(workoutEntry: WorkoutEntry): Promise<void> {
     try {
@@ -23,18 +24,6 @@ export class WorkoutService {
     } catch (error) {
       console.error("Error creating workout entry:", error);
       throw new Error(`Error al crear la entrada de entrenamiento: ${error}`);
-    }
-  }
-
-  /**
-   * Crea una sesión completa de entrenamiento
-   */
-  static async createWorkoutSession(workoutEntries: WorkoutEntry[]): Promise<void> {
-    try {
-      await invoke(requestNames.createWorkoutSession, { workoutEntries: workoutEntries });
-    } catch (error) {
-      console.error("Error creating workout session:", error);
-      throw new Error(`Error al crear la sesión de entrenamiento: ${error}`);
     }
   }
 
@@ -163,6 +152,55 @@ export class WorkoutService {
     } catch (error) {
       console.error("Error reordering exercises:", error);
       throw new Error(`Error al reordenar los ejercicios: ${error}`);
+    }
+  }
+
+  /**
+   * Guarda una sesión de entrenamiento (merge con ejercicios existentes)
+   */
+  static async saveWorkoutSessionMerge(
+    personId: number,
+    date: string,
+    exercises: Array<{
+      exercise_id: number;
+      sets: number;
+      reps: number;
+      weight: number;
+      notes: string;
+      order_index?: number;
+      group_number?: number;
+    }>
+  ): Promise<void> {
+    try {
+      // Primero obtener los ejercicios existentes para calcular el siguiente order_index
+      const existingWorkouts = await this.getWorkoutEntriesByPersonAndDateRange(
+        personId,
+        date,
+        date
+      );
+
+      // Calcular el siguiente order_index y group_number
+      const maxOrderIndex = Math.max(...existingWorkouts.map(w => w.order_index || 0), -1);
+      const maxGroupNumber = Math.max(...existingWorkouts.map(w => w.group_number || 1), 0);
+
+      // Crear los nuevos workout entries con order_index y group_number apropiados
+      const workoutEntries = exercises.map((exercise, index) => ({
+        person_id: personId,
+        exercise_id: exercise.exercise_id,
+        date: date,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        weight: exercise.weight,
+        notes: exercise.notes,
+        order_index: exercise.order_index !== undefined ? exercise.order_index : maxOrderIndex + 1 + index,
+        group_number: exercise.group_number || maxGroupNumber + 1
+      }));
+
+      // Usar create_batch para agregar los nuevos ejercicios sin eliminar los existentes
+      await invoke(requestNames.createBatch, { workoutEntries: workoutEntries });
+    } catch (error) {
+      console.error("Error saving workout session (merge):", error);
+      throw new Error(`Error al guardar la sesión de entrenamiento: ${error}`);
     }
   }
 } 

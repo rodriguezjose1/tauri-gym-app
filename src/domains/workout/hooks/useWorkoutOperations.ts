@@ -51,57 +51,26 @@ export const useWorkoutOperations = ({
   };
 
   const saveWorkoutSession = async (workoutEntries: WorkoutEntry[]) => {
-    if (!selectedPerson) {
-      showToast(DASHBOARD_ERROR_MESSAGES.PERSON_REQUIRED, 'error');
-      return false;
-    }
-
-    const validExercises = workoutEntries.filter(ex => ex.exercise_id > 0);
-    if (validExercises.length === 0) {
-      showToast(DASHBOARD_WARNING_MESSAGES.NO_VALID_EXERCISES, 'error');
-      return false;
-    }
+    if (!selectedPerson) return false;
 
     setSavingSession(true);
     try {
-      console.log("Saving workout session with exercises:", validExercises);
+      await WorkoutService.saveWorkoutSessionMerge(
+        selectedPerson.id!,
+        workoutEntries[0].date,
+        workoutEntries.map(entry => ({
+          exercise_id: entry.exercise_id,
+          sets: entry.sets || 1,
+          reps: entry.reps || 1,
+          weight: entry.weight || 0,
+          notes: entry.notes || "",
+          order_index: entry.order_index,
+          group_number: entry.group_number
+        }))
+      );
       
-      // First, delete existing entries for this date and person
-      const selectedDate = validExercises[0].date;
-      const existingEntries = workoutData.filter(entry => entry.date === selectedDate);
-      console.log("Existing entries to delete:", existingEntries);
-      
-      for (const entry of existingEntries) {
-        if (entry.id) {
-          console.log("Deleting existing entry:", entry.id);
-          await WorkoutService.deleteWorkoutEntry(entry.id);
-        }
-      }
-      
-      // Then create new entries
-      for (let i = 0; i < validExercises.length; i++) {
-        const exercise = validExercises[i];
-        const workoutEntry = {
-          person_id: selectedPerson.id!,
-          exercise_id: exercise.exercise_id,
-          date: selectedDate,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          weight: exercise.weight,
-          notes: exercise.notes,
-          order: i,
-          group_number: exercise.group_number
-        };
-
-        console.log("Creating workout entry:", workoutEntry);
-        await WorkoutService.createWorkoutEntry(workoutEntry);
-      }
-      
-      showToast(DASHBOARD_SUCCESS_MESSAGES.SESSION_SAVED, 'success');
-      
-      // Refresh workout data
       await refreshWorkoutData(selectedPerson.id!);
-      
+      showToast(DASHBOARD_SUCCESS_MESSAGES.SAVE_SESSION_SUCCESS, 'success');
       return true;
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_SAVE_WORKOUT_SESSION, error);
