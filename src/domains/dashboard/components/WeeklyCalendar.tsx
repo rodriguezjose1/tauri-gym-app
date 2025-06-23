@@ -14,9 +14,14 @@ const DroppableGroup: React.FC<{
   dayDateString: string;
   children: React.ReactNode;
 }> = ({ groupNumber, dayDateString, children }) => {
+  console.log(`🎯 DroppableGroup ${groupNumber} rendering for date ${dayDateString}`);
+  
   const { setNodeRef, isOver } = useDroppable({
     id: `group-${groupNumber}-${dayDateString}`,
   });
+
+  // Debug log to see if the hook is working
+  console.log(`🔍 DroppableGroup ${groupNumber}: isOver = ${isOver}`);
 
   return (
     <div
@@ -146,22 +151,22 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     handleDragOver, 
     handleDragEnd 
   } = useCalendarDragAndDrop({
-    workouts: currentWorkoutData,
+    workouts: currentWorkoutData || [],
     onUpdateWorkout: async (workoutId, updates) => {
       console.log('🔄 onUpdateWorkout called:', { workoutId, updates });
       
       // Find the current workout to get all required fields
-      const currentWorkout = currentWorkoutData.find(w => w.id === workoutId);
+      const currentWorkout = (currentWorkoutData || []).find(w => w.id === workoutId);
       if (!currentWorkout) {
         console.error('❌ Workout not found:', workoutId);
         return;
       }
       
       // Update local state immediately for visual feedback
-      const updatedWorkouts = currentWorkoutData.map(workout => 
+      const updatedWorkouts = (currentWorkoutData || []).map(workout => 
         workout.id === workoutId ? { ...workout, ...updates } : workout
       );
-      onWorkoutDataChange(updatedWorkouts);
+      onWorkoutDataChange?.(updatedWorkouts);
       
       // Then update the database with all required fields
       try {
@@ -176,15 +181,15 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       } catch (error) {
         console.error('❌ Database update failed:', error);
         // Revert local state on error
-        onWorkoutDataChange(workoutData);
+        onWorkoutDataChange?.(workoutData || []);
       }
     },
     onReorderWorkouts: async (workoutOrders) => {
       console.log('🔄 onReorderWorkouts called:', workoutOrders);
-      console.log('📊 Current workout data before update:', currentWorkoutData.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
+      console.log('📊 Current workout data before update:', (currentWorkoutData || []).map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
       
       // Update local state immediately for visual feedback
-      const updatedWorkouts = [...currentWorkoutData];
+      const updatedWorkouts = [...(currentWorkoutData || [])];
       workoutOrders.forEach(([id, newOrder]) => {
         const index = updatedWorkouts.findIndex(w => w.id === id);
         if (index !== -1) {
@@ -198,7 +203,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       console.log('📊 Updated workout data:', updatedWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
       
       // Update local state first
-      onWorkoutDataChange(updatedWorkouts);
+      onWorkoutDataChange?.(updatedWorkouts);
       console.log('✅ Local state updated');
       
       // Then update the database
@@ -210,7 +215,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
         console.error('❌ Database reorder failed:', error);
         // Revert local state on error
         console.log('🔄 Reverting local state due to database error');
-        onWorkoutDataChange(workoutData);
+        onWorkoutDataChange?.(workoutData || []);
       }
     },
     onGroupEmpty: (date, groupNumber) => {
@@ -469,29 +474,30 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                                 const workoutGroups = groupWorkoutsByGroup(dayWorkouts, dayDateString, emptyGroups[dayDateString] || []);
                                 console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
                                 return workoutGroups.map((group, groupIndex) => (
-                                  <DroppableGroup
-                                    key={`group-${group.groupNumber}-${dayDateString}`}
-                                    groupNumber={group.groupNumber}
-                                    dayDateString={dayDateString}
-                                  >
-                                    <SortableContext
-                                      items={group.workouts.map(w => w.id!)}
-                                      strategy={verticalListSortingStrategy}
+                                  <div key={`group-${group.groupNumber}-${dayDateString}`}>
+                                    <DroppableGroup
+                                      groupNumber={group.groupNumber}
+                                      dayDateString={dayDateString}
                                     >
-                                      {group.workouts.map((workout, workoutIndex) => (
-                                        <div key={workout.id || workoutIndex} className="weekly-calendar-workout-item">
-                                          <SortableWorkoutItem
-                                            workout={workout}
-                                            onDayClick={(date) => {
-                                              onSelectedDateChange?.(date);
-                                              onDayClick(date);
-                                            }}
-                                            onDeleteWorkoutEntry={onDeleteWorkoutEntry}
-                                          />
-                                        </div>
-                                      ))}
-                                    </SortableContext>
-                                  </DroppableGroup>
+                                      <SortableContext
+                                        items={group.workouts.map(w => w.id!)}
+                                        strategy={verticalListSortingStrategy}
+                                      >
+                                        {group.workouts.map((workout, workoutIndex) => (
+                                          <div key={workout.id || workoutIndex} className="weekly-calendar-workout-item">
+                                            <SortableWorkoutItem
+                                              workout={workout}
+                                              onDayClick={(date) => {
+                                                onSelectedDateChange?.(date);
+                                                onDayClick(date);
+                                              }}
+                                              onDeleteWorkoutEntry={onDeleteWorkoutEntry}
+                                            />
+                                          </div>
+                                        ))}
+                                      </SortableContext>
+                                    </DroppableGroup>
+                                  </div>
                                 ));
                               })()}
 

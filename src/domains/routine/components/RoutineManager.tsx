@@ -51,7 +51,7 @@ const DroppableRoutineGroup: React.FC<{
     >
       <div className="routine-manager-group-header">
         Grupo {groupNumber}
-      </div>
+        </div>
       <div className="routine-manager-group-container">
         {children}
         {React.Children.count(children) === 0 && (
@@ -242,33 +242,33 @@ export const RoutineManager: React.FC = () => {
 
   return (
     <div className="routine-manager">
-      <div className="routine-manager-header">
+        <div className="routine-manager-header">
         <h2 className="routine-manager-title">
           Gestor de Rutinas
         </h2>
         
         <div className="routine-manager-actions">
           <form onSubmit={handleSearch} className="routine-manager-search">
-            <Input
+              <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={ROUTINE_UI_LABELS.SEARCH_PLACEHOLDER}
-              variant="primary"
-            />
+                placeholder={ROUTINE_UI_LABELS.SEARCH_PLACEHOLDER}
+                variant="primary"
+              />
             <Button type="submit" variant="primary">
               Buscar
             </Button>
           </form>
           
-          <Button
+              <Button
             onClick={routineUI.openCreateForm}
-            variant="primary"
+                variant="primary"
             disabled={routineData.loading}
-          >
+              >
             Nueva Rutina
-          </Button>
-        </div>
-      </div>
+              </Button>
+            </div>
+                </div>
 
       <div className="routine-manager-content">
         <div className="routine-manager-left-panel">
@@ -280,12 +280,12 @@ export const RoutineManager: React.FC = () => {
             onDeleteRoutine={handleDeleteClick}
             onCreateNew={routineUI.openCreateForm}
           />
-        </div>
+          </div>
 
-        <div className="routine-manager-right-panel">
+          <div className="routine-manager-right-panel">
           {routineData.selectedRoutine ? (
             <div className="routine-manager-routine-details">
-              <div className="routine-manager-routine-header">
+                <div className="routine-manager-routine-header">
                 <div className="routine-manager-routine-info">
                   <h3 className="routine-manager-routine-title">
                     {routineData.selectedRoutine.name}
@@ -297,28 +297,28 @@ export const RoutineManager: React.FC = () => {
                   )}
                 </div>
                 
-                <Button
+                  <Button
                   onClick={routineUI.openExerciseSearch}
-                  variant="primary"
+                    variant="primary"
                   disabled={routineData.loading || routineExercises.loading}
-                  className="routine-manager-add-exercise-button"
-                >
+                    className="routine-manager-add-exercise-button"
+                  >
                   Agregar Ejercicio
-                </Button>
-              </div>
+                  </Button>
+                </div>
 
               <div className="routine-manager__exercises">
                 {exercisesLoading ? (
                   <div className="routine-manager__loading">
                     Cargando ejercicios...
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
+                    </div>
+                  ) : (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
-                    onDragEnd={handleDragEnd}
+                      onDragEnd={handleDragEnd}
                   >
                     <div className="routine-manager__groups">
                       {(() => {
@@ -328,15 +328,15 @@ export const RoutineManager: React.FC = () => {
                             key={`group-${group.groupNumber}-${routineData.selectedRoutineId}`}
                             groupNumber={group.groupNumber}
                             routineId={routineData.selectedRoutineId!}
-                          >
-                            <SortableContext
+                    >
+                      <SortableContext
                               items={group.exercises.map(ex => ex.id!)}
-                              strategy={verticalListSortingStrategy}
-                            >
+                        strategy={verticalListSortingStrategy}
+                      >
                               {group.exercises.map((exercise) => (
-                                <SortableRoutineExercise
-                                  key={exercise.id}
-                                  exercise={exercise}
+                                  <SortableRoutineExercise
+                                    key={exercise.id}
+                                    exercise={exercise}
                                   onUpdate={(updates) => {
                                     const updatedExercise = {
                                       ...exercise,
@@ -351,12 +351,12 @@ export const RoutineManager: React.FC = () => {
                                     routineExercises.updateExercise(exercise.id!, updatedExercise);
                                   }}
                                   onRemove={() => routineExercises.removeExercise(exercise.id!)}
-                                />
-                              ))}
+                                  />
+                                ))}
                             </SortableContext>
                           </DroppableRoutineGroup>
-                        ));
-                      })()}
+                          ));
+                        })()}
                     </div>
 
                     <DragOverlay>
@@ -368,8 +368,8 @@ export const RoutineManager: React.FC = () => {
                         />
                       )}
                     </DragOverlay>
-                  </DndContext>
-                )}
+                    </DndContext>
+                  )}
 
                 {/* Botón para crear nuevo grupo */}
                 <div className="routine-manager-new-group-container">
@@ -385,10 +385,10 @@ export const RoutineManager: React.FC = () => {
           ) : (
             <div className="routine-manager-no-routine">
               <p>Selecciona una rutina para ver sus detalles</p>
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+                </div>
+              </div>
 
       {/* Modales */}
       <RoutineForm
@@ -424,18 +424,18 @@ export const RoutineManager: React.FC = () => {
         onClose={routineUI.closeExerciseSearch}
       />
 
-      <DeleteConfirmationModal
+        <DeleteConfirmationModal
         isOpen={deleteConfirmation.isOpen}
-        title="Eliminar Rutina"
+          title="Eliminar Rutina"
         message={`¿Estás seguro de que quieres eliminar la rutina "${deleteConfirmation.routineName}"?`}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
-      />
+        />
 
-      <ToastContainer
-        notifications={notifications}
-        onRemoveNotification={removeNotification}
-      />
+        <ToastContainer
+          notifications={notifications}
+          onRemoveNotification={removeNotification}
+        />
     </div>
   );
-};
+}; 
