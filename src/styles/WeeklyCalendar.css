@@ -308,6 +308,12 @@
   font-weight: 600;
 }
 
+.weekly-calendar-day-number-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .weekly-calendar-day-number {
   font-size: 14px;
   font-weight: 600;
@@ -316,6 +322,34 @@
 
 .weekly-calendar-day-number.today {
   color: var(--accent-primary);
+}
+
+.weekly-calendar-add-button {
+  width: 20px;
+  height: 20px;
+  background-color: var(--accent-bg);
+  border: 1px solid var(--accent-primary);
+  border-radius: 4px;
+  color: var(--accent-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.weekly-calendar-add-button:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.weekly-calendar-add-button:active {
+  transform: scale(0.95);
 }
 
 /* Workouts Container */
@@ -590,7 +624,6 @@
 @media (prefers-reduced-motion: reduce) {
   .weekly-calendar-nav-button,
   .weekly-calendar-current-button,
-  .weekly-calendar-add-workout-button,
   .weekly-calendar-new-group-button,
   .weekly-calendar-droppable-group {
     transition: none;
@@ -604,7 +637,6 @@
 /* Print Styles */
 @media print {
   .weekly-calendar-navigation-container,
-  .weekly-calendar-add-workout-button,
   .weekly-calendar-new-group-button,
   .weekly-calendar-change-button {
     display: none;

@@ -411,8 +411,20 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                           <div className={`weekly-calendar-day-weekday ${isToday ? 'today' : ''}`}>
                             {day.toLocaleDateString('es-ES', { weekday: 'short' })}
                           </div>
-                          <div className={`weekly-calendar-day-number ${isToday ? 'today' : ''}`}>
-                            {day.getDate()}
+                          <div className="weekly-calendar-day-number-container">
+                            <button
+                              onClick={() => {
+                                onSelectedDateChange?.(dayDateString);
+                                onAddWorkoutClick(dayDateString);
+                              }}
+                              className="weekly-calendar-add-button"
+                              title="Agregar entrenamiento"
+                            >
+                              +
+                            </button>
+                            <div className={`weekly-calendar-day-number ${isToday ? 'today' : ''}`}>
+                              {day.getDate()}
+                            </div>
                           </div>
                         </div>
 
@@ -483,19 +495,6 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                               </button>
                             </div>
                           )}
-                        </div>
-
-                        {/* Add Workout Button */}
-                        <div className="weekly-calendar-add-workout-container">
-                          <button
-                            onClick={() => {
-                              onSelectedDateChange?.(dayDateString);
-                              onAddWorkoutClick(dayDateString);
-                            }}
-                            className="weekly-calendar-add-workout-button"
-                          >
-                            + Agregar
-                          </button>
                         </div>
                       </div>
                     );
