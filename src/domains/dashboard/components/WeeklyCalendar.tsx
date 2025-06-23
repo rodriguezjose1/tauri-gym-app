@@ -14,14 +14,9 @@ const DroppableGroup: React.FC<{
   dayDateString: string;
   children: React.ReactNode;
 }> = ({ groupNumber, dayDateString, children }) => {
-  console.log(`🎯 DroppableGroup ${groupNumber} rendering for date ${dayDateString}`);
-  
   const { setNodeRef, isOver } = useDroppable({
     id: `group-${groupNumber}-${dayDateString}`,
   });
-
-  // Debug log to see if the hook is working
-  console.log(`🔍 DroppableGroup ${groupNumber}: isOver = ${isOver}`);
 
   return (
     <div
@@ -59,12 +54,8 @@ interface WeeklyCalendarProps {
 
 // Helper function to group workouts by group_number
 const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString?: string, emptyGroups: number[] = []) => {
-  console.log("=== GROUPING WORKOUTS ===");
-  console.log("Input workouts:", workouts.map(w => ({ id: w.id, exercise_name: w.exercise_name, group_number: w.group_number, order_index: w.order_index })));
-  
   const groups = workouts.reduce((acc, workout) => {
     const groupNumber = workout.group_number || 1;
-    console.log(`Workout ${workout.id} (${workout.exercise_name}) -> Group ${groupNumber}, Order ${workout.order_index}`);
     if (!acc[groupNumber]) {
       acc[groupNumber] = [];
     }
@@ -75,11 +66,8 @@ const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString
   // Sort workouts within each group by order_index
   Object.keys(groups).forEach(groupNumber => {
     const groupWorkouts = groups[parseInt(groupNumber)];
-    console.log(`Sorting group ${groupNumber}:`, groupWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
     
     groupWorkouts.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-    
-    console.log(`Group ${groupNumber} after sorting:`, groupWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
   });
   
   // Add empty groups
@@ -89,8 +77,6 @@ const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString
     }
   });
   
-  console.log("Groups created:", Object.keys(groups).map(key => ({ group: key, count: groups[parseInt(key)].length })));
-  
   // Sort groups by group number and return as array
   const result = Object.keys(groups)
     .sort((a, b) => parseInt(a) - parseInt(b))
@@ -98,12 +84,6 @@ const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString
       groupNumber: parseInt(groupNumber),
       workouts: groups[parseInt(groupNumber)]
     }));
-    
-  console.log("Final grouped result:", result.map(g => ({ 
-    groupNumber: g.groupNumber, 
-    workoutCount: g.workouts.length,
-    workouts: g.workouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name }))
-  })));
   return result;
 };
 
@@ -153,12 +133,9 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   } = useCalendarDragAndDrop({
     workouts: currentWorkoutData || [],
     onUpdateWorkout: async (workoutId, updates) => {
-      console.log('🔄 onUpdateWorkout called:', { workoutId, updates });
-      
       // Find the current workout to get all required fields
       const currentWorkout = (currentWorkoutData || []).find(w => w.id === workoutId);
       if (!currentWorkout) {
-        console.error('❌ Workout not found:', workoutId);
         return;
       }
       
@@ -174,52 +151,37 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
           ...currentWorkout,
           ...updates
         };
-        console.log('📝 Updating workout with:', workoutToUpdate);
         
         await WorkoutService.updateWorkoutEntry(workoutToUpdate);
-        console.log('✅ Database update successful');
       } catch (error) {
         console.error('❌ Database update failed:', error);
         // Revert local state on error
-        onWorkoutDataChange?.(workoutData || []);
+        onWorkoutDataChange?.(currentWorkoutData || []);
       }
     },
     onReorderWorkouts: async (workoutOrders) => {
-      console.log('🔄 onReorderWorkouts called:', workoutOrders);
-      console.log('📊 Current workout data before update:', (currentWorkoutData || []).map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
-      
       // Update local state immediately for visual feedback
       const updatedWorkouts = [...(currentWorkoutData || [])];
       workoutOrders.forEach(([id, newOrder]) => {
         const index = updatedWorkouts.findIndex(w => w.id === id);
         if (index !== -1) {
-          console.log(`📝 Updating workout ${id} order from ${updatedWorkouts[index].order_index} to ${newOrder}`);
           updatedWorkouts[index] = { ...updatedWorkouts[index], order_index: newOrder };
-        } else {
-          console.log(`❌ Workout ${id} not found in current data`);
         }
       });
       
-      console.log('📊 Updated workout data:', updatedWorkouts.map(w => ({ id: w.id, order: w.order_index, name: w.exercise_name })));
-      
       // Update local state first
       onWorkoutDataChange?.(updatedWorkouts);
-      console.log('✅ Local state updated');
       
       // Then update the database
       try {
-        console.log('🔄 Calling WorkoutService.updateExerciseOrder with:', workoutOrders);
         await WorkoutService.updateExerciseOrder(workoutOrders);
-        console.log('✅ Database reorder successful');
       } catch (error) {
         console.error('❌ Database reorder failed:', error);
         // Revert local state on error
-        console.log('🔄 Reverting local state due to database error');
-        onWorkoutDataChange?.(workoutData || []);
+        onWorkoutDataChange?.(currentWorkoutData || []);
       }
     },
     onGroupEmpty: (date, groupNumber) => {
-      console.log(`Grupo ${groupNumber} vacío en fecha ${date}`);
     }
   });
 
@@ -438,8 +400,6 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                     const isToday = day.toDateString() === new Date().toDateString();
                     const isPastDay = day < new Date(new Date().setHours(0, 0, 0, 0));
                     
-                    console.log(`Day ${dayDateString}: found ${dayWorkouts.length} workouts`);
-                    
                     return (
                       <div
                         key={dayIndex}
@@ -472,7 +432,6 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                             >
                               {(() => {
                                 const workoutGroups = groupWorkoutsByGroup(dayWorkouts, dayDateString, emptyGroups[dayDateString] || []);
-                                console.log(`Day ${dayDateString}: ${workoutGroups.length} groups found`);
                                 return workoutGroups.map((group, groupIndex) => (
                                   <div key={`group-${group.groupNumber}-${dayDateString}`}>
                                     <DroppableGroup

@@ -10,22 +10,19 @@ export const useExercisesData = () => {
   // Load exercises
   const loadExercises = async () => {
     setExercisesLoading(true);
-    setError(null);
     try {
-      console.log("Fetching exercises...");
       const result = await ExerciseService.getExercises();
-      console.log("Exercises fetched:", result);
-      setExercises(result as Exercise[]);
+      setExercises(result);
     } catch (error) {
       console.error('Error loading exercises:', error);
-      // Try to fetch with pagination as fallback
+      
+      // Fallback: try pagination method
       try {
         const fallbackResult = await ExerciseService.getExercisesPaginated(1, 100);
-        console.log("Exercises fetched via pagination:", fallbackResult);
         setExercises(fallbackResult.exercises);
       } catch (fallbackError) {
-        console.error('Error loading exercises with pagination:', fallbackError);
-        setError('Error loading exercises');
+        console.error('Fallback error:', fallbackError);
+        setExercises([]);
       }
     } finally {
       setExercisesLoading(false);

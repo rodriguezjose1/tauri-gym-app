@@ -10,11 +10,8 @@ export const useRoutinesData = () => {
   // Load routines
   const loadRoutines = async () => {
     setRoutinesLoading(true);
-    setError(null);
     try {
-      console.log("Fetching routines...");
       const result = await RoutineService.listRoutinesPaginated(1, 100);
-      console.log("Routines fetched:", result);
       
       // Transform routines to include exercise count
       const routineOptions: RoutineOption[] = await Promise.all(
@@ -42,7 +39,7 @@ export const useRoutinesData = () => {
       setRoutines(routineOptions);
     } catch (error) {
       console.error('Error loading routines:', error);
-      setError('Error loading routines');
+      setRoutines([]);
     } finally {
       setRoutinesLoading(false);
     }
