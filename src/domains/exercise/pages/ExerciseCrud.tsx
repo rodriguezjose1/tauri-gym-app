@@ -15,6 +15,7 @@ export default function ExerciseCrud() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalExercises, setTotalExercises] = useState(0);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
     exerciseId: null as number | null,
@@ -22,6 +23,15 @@ export default function ExerciseCrud() {
   });
 
   const ITEMS_PER_PAGE = 10;
+
+  // Function to generate code from exercise name
+  const generateCodeFromName = (name: string): string => {
+    return name
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, '') // Remove special characters, keep only letters, numbers, and spaces
+      .trim()
+      .replace(/\s+/g, '_'); // Replace spaces with underscores
+  };
 
   useEffect(() => {
     // Cargar primero todos los ejercicios para obtener el total
@@ -116,6 +126,11 @@ export default function ExerciseCrud() {
           e.id === editingExercise.id ? updatedExercise : e
         ));
         
+        // Actualizar también allExercises para la búsqueda
+        setAllExercises(prev => prev.map(e => 
+          e.id === editingExercise.id ? updatedExercise : e
+        ));
+        
         setEditingExercise(null);
       } else {
         // Crear nuevo ejercicio
@@ -128,10 +143,12 @@ export default function ExerciseCrud() {
         
         // Recargar la lista para obtener el ID asignado
         await loadExercises();
+        await loadAllExercises();
       }
       
-      // Limpiar formulario
+      // Limpiar formulario y cerrar modal
       setForm({ name: "", code: "" });
+      setShowFormModal(false);
       
     } catch (error) {
       console.error("Error saving exercise:", error);
@@ -146,11 +163,19 @@ export default function ExerciseCrud() {
       name: exercise.name,
       code: exercise.code
     });
+    setShowFormModal(true);
   };
 
   const handleCancelEdit = () => {
     setEditingExercise(null);
     setForm({ name: "", code: "" });
+    setShowFormModal(false);
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingExercise(null);
+    setForm({ name: "", code: "" });
+    setShowFormModal(true);
   };
 
   const handleDelete = (exercise: Exercise) => {
@@ -187,61 +212,31 @@ export default function ExerciseCrud() {
   return (
     <div className="exercise-crud-container">
       <div className="exercise-crud-wrapper">
-        {/* Form */}
-        <Card variant="elevated" padding="lg" className="exercise-form-card">
-          <Title level={2} variant="default" className="exercise-form-title">
-            {editingExercise ? "Editar Ejercicio" : "Agregar Nuevo Ejercicio"}
-          </Title>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="exercise-form-grid">
-              <Input
-                label="Nombre del Ejercicio"
-                placeholder="Ej: Press de banca"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                variant="success"
-                fullWidth
-              />
-              
-              <Input
-                label="Código del Ejercicio"
-                placeholder="Ej: PRESS_BANCA"
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                variant="success"
-                rightIcon="🏷️"
-                fullWidth
-              />
+        {/* Header with Create Button */}
+        <Card variant="elevated" padding="lg" className="exercise-header-card">
+          <div className="exercise-header-content">
+            <div className="exercise-header-info">
+              <Title level={2} variant="default">
+                Gestión de Ejercicios
+              </Title>
+              <p className="exercise-header-description">
+                Administra los ejercicios disponibles para tus rutinas y entrenamientos
+              </p>
             </div>
-
-            <div className="exercise-form-actions">
-              <Button
-                type="submit"
-                variant="success"
-                size="md"
-              >
-                {editingExercise ? "Actualizar Ejercicio" : "Agregar Ejercicio"}
-              </Button>
-              
-              {editingExercise && (
-                <Button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  variant="secondary"
-                  size="md"
-                >
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </form>
+            <Button
+              onClick={handleOpenCreateModal}
+              variant="success"
+              size="md"
+            >
+              ➕ Nuevo Ejercicio
+            </Button>
+          </div>
         </Card>
 
         {/* Exercises List */}
         <Card variant="elevated" padding="lg">
           <div className="exercise-list-header">
-            <Title level={2} variant="default">
+            <Title level={3} variant="default">
               Lista de Ejercicios
             </Title>
             <div className="exercise-list-stats">
@@ -290,18 +285,27 @@ export default function ExerciseCrud() {
               <p className="exercise-empty-description">
                 {searchTerm.trim() !== "" 
                   ? `No hay ejercicios que coincidan con "${searchTerm}"`
-                  : 'Agrega tu primer ejercicio usando el formulario de arriba'
+                  : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
                 }
               </p>
+              {searchTerm.trim() === "" && (
+                <Button
+                  onClick={handleOpenCreateModal}
+                  variant="success"
+                  size="md"
+                >
+                  ➕ Crear Primer Ejercicio
+                </Button>
+              )}
             </div>
           ) : (
             <div className="exercise-list-grid">
               {filteredExercises.map((exercise) => (
                 <Card
                   key={exercise.id}
-                  variant={editingExercise?.id === exercise.id ? "outlined" : "default"}
+                  variant="default"
                   padding="md"
-                  className={`exercise-card ${editingExercise?.id === exercise.id ? 'editing' : ''}`}
+                  className="exercise-card"
                 >
                   <div className="exercise-avatar">
                     {exercise.name.charAt(0).toUpperCase()}
@@ -376,6 +380,71 @@ export default function ExerciseCrud() {
           )}
         </Card>
       </div>
+
+      {/* Form Modal */}
+      <Modal
+        isOpen={showFormModal}
+        onClose={handleCancelEdit}
+        title={editingExercise ? "Editar Ejercicio" : "Nuevo Ejercicio"}
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="exercise-form">
+          <div className="exercise-form-grid">
+            <Input
+              label="Nombre del Ejercicio"
+              placeholder="Ej: Press de banca"
+              value={form.name}
+              onChange={(e) => {
+                const newName = e.target.value;
+                setForm(prev => ({ 
+                  ...prev, 
+                  name: newName,
+                  // Only auto-generate code if we're creating a new exercise (not editing)
+                  code: editingExercise ? prev.code : generateCodeFromName(newName)
+                }));
+              }}
+              variant="success"
+              fullWidth
+              required
+              disabled={loading}
+            />
+            
+            <Input
+              label="Código del Ejercicio"
+              placeholder="Ej: PRESS_BANCA"
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+              variant="success"
+              rightIcon="🏷️"
+              fullWidth
+              required
+              disabled={loading}
+              helperText={editingExercise ? "Puedes editar el código manualmente" : "Se genera automáticamente desde el nombre"}
+            />
+          </div>
+
+          <div className="exercise-form-actions">
+            <Button
+              type="submit"
+              variant="success"
+              size="md"
+              disabled={loading || !form.name.trim() || !form.code.trim()}
+            >
+              {loading ? "Guardando..." : (editingExercise ? "Actualizar Ejercicio" : "Crear Ejercicio")}
+            </Button>
+            
+            <Button
+              type="button"
+              onClick={handleCancelEdit}
+              variant="secondary"
+              size="md"
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

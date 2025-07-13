@@ -180,9 +180,11 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
                       <div className="person-search-item-name">
                         {person.name} {person.last_name}
                       </div>
-                      <div className="person-search-item-phone">
-                        📞 {person.phone}
-                      </div>
+                      {person.phone && person.phone !== "0" && (
+                        <div className="person-search-item-phone">
+                          📞 {person.phone}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {hasMore && (
@@ -213,9 +215,11 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
           <div className="person-search-name">
             {selectedPerson.name} {selectedPerson.last_name}
           </div>
-          <div className="person-search-phone">
-            📞 {selectedPerson.phone}
-          </div>
+          {selectedPerson.phone && selectedPerson.phone !== "0" && (
+            <div className="person-search-phone">
+              📞 {selectedPerson.phone}
+            </div>
+          )}
         </div>
         <Button
           onClick={handleChangeUser}

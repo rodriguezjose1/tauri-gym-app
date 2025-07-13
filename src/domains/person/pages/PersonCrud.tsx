@@ -15,6 +15,7 @@ export default function PersonCrud() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
     personId: null as number | null,
@@ -49,9 +50,9 @@ export default function PersonCrud() {
         setPersons(response.persons);
       }
       
-      setCurrentPage(page);
       setTotalPersons(response.total);
-      setHasMore(page < response.total_pages);
+      setHasMore(response.persons.length === ITEMS_PER_PAGE);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error loading persons:", error);
     } finally {
@@ -61,8 +62,8 @@ export default function PersonCrud() {
 
   const loadAllPersons = async () => {
     try {
-      const data = await PersonService.getPersons();
-      setAllPersons(data);
+      const allPersonsData = await PersonService.getAllPersons();
+      setAllPersons(allPersonsData);
     } catch (error) {
       console.error("Error loading all persons:", error);
     }
@@ -75,8 +76,8 @@ export default function PersonCrud() {
   };
 
   const goToPage = (page: number) => {
-    if (page >= 1 && !loading) {
-      loadPersons(page, false);
+    if (page > 0 && page !== currentPage) {
+      loadPersons(page);
     }
   };
 
@@ -93,7 +94,7 @@ export default function PersonCrud() {
           id: editingPerson.id,
           name: form.name.trim(),
           last_name: form.last_name.trim(),
-          phone: form.phone.trim()
+          phone: form.phone.trim() || "0"
         };
         
         await PersonService.updatePerson(updatedPerson);
@@ -103,13 +104,18 @@ export default function PersonCrud() {
           p.id === editingPerson.id ? updatedPerson : p
         ));
         
+        // Actualizar también allPersons para la búsqueda
+        setAllPersons(prev => prev.map(p => 
+          p.id === editingPerson.id ? updatedPerson : p
+        ));
+        
         setEditingPerson(null);
       } else {
         // Crear nueva persona
         const newPerson: Person = {
           name: form.name.trim(),
           last_name: form.last_name.trim(),
-          phone: form.phone.trim()
+          phone: form.phone.trim() || "0"
         };
         
         await PersonService.createPerson(newPerson);
@@ -119,8 +125,9 @@ export default function PersonCrud() {
         await loadAllPersons();
       }
       
-      // Limpiar formulario
+      // Limpiar formulario y cerrar modal
       setForm({ name: "", last_name: "", phone: "" });
+      setShowFormModal(false);
       
     } catch (error) {
       console.error("Error saving person:", error);
@@ -134,13 +141,21 @@ export default function PersonCrud() {
     setForm({
       name: person.name,
       last_name: person.last_name,
-      phone: person.phone || ""
+      phone: person.phone === "0" ? "" : person.phone
     });
+    setShowFormModal(true);
   };
 
   const handleCancelEdit = () => {
     setEditingPerson(null);
     setForm({ name: "", last_name: "", phone: "" });
+    setShowFormModal(false);
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingPerson(null);
+    setForm({ name: "", last_name: "", phone: "" });
+    setShowFormModal(true);
   };
 
   const handleDelete = (person: Person) => {
@@ -157,11 +172,8 @@ export default function PersonCrud() {
     try {
       setLoading(true);
       await PersonService.deletePerson(deleteConfirm.personId);
-      
-      // Recargar datos después de eliminar
-      await loadPersons();
-      await loadAllPersons();
-      
+      setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
+      setAllPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
@@ -185,7 +197,7 @@ export default function PersonCrud() {
         return (
           person.name.toLowerCase().includes(searchLower) ||
           person.last_name.toLowerCase().includes(searchLower) ||
-          (person.phone && person.phone.toLowerCase().includes(searchLower))
+          (person.phone && person.phone !== "0" && person.phone.toLowerCase().includes(searchLower))
         );
       })
     : persons;
@@ -193,73 +205,31 @@ export default function PersonCrud() {
   return (
     <div className="person-crud-container">
       <div className="person-crud-wrapper">
-        {/* Person Form */}
-        <Card variant="elevated" padding="lg">
-          <Title level={2} variant="default">
-            {editingPerson ? "Editar Persona" : "Agregar Nueva Persona"}
-          </Title>
-          
-          <form onSubmit={handleSubmit} className="person-form">
-            <div className="person-form-grid">
-              <Input
-                label="Nombre"
-                placeholder="Ej: Juan"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                variant="primary"
-                fullWidth
-                required
-              />
-              
-              <Input
-                label="Apellido"
-                placeholder="Ej: Pérez"
-                value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                variant="primary"
-                fullWidth
-                required
-              />
-              
-              <Input
-                label="Teléfono"
-                placeholder="Ej: +1 234 567 8900"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                variant="primary"
-                rightIcon="📞"
-                fullWidth
-              />
+        {/* Header with Create Button */}
+        <Card variant="elevated" padding="lg" className="person-header-card">
+          <div className="person-header-content">
+            <div className="person-header-info">
+              <Title level={2} variant="default">
+                Gestión de Personas
+              </Title>
+              <p className="person-header-description">
+                Administra las personas que participan en los entrenamientos
+              </p>
             </div>
-
-            <div className="person-form-actions">
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                disabled={loading}
-              >
-                {editingPerson ? "Actualizar Persona" : "Agregar Persona"}
-              </Button>
-              
-              {editingPerson && (
-                <Button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  variant="secondary"
-                  size="md"
-                >
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </form>
+            <Button
+              onClick={handleOpenCreateModal}
+              variant="primary"
+              size="md"
+            >
+              ➕ Nueva Persona
+            </Button>
+          </div>
         </Card>
 
         {/* Persons List */}
         <Card variant="elevated" padding="lg">
           <div className="person-list-header">
-            <Title level={2} variant="default">
+            <Title level={3} variant="default">
               Lista de Personas
             </Title>
             <div className="person-list-stats">
@@ -308,18 +278,27 @@ export default function PersonCrud() {
               <p className="person-empty-description">
                 {searchTerm.trim() !== "" 
                   ? `No hay personas que coincidan con "${searchTerm}"`
-                  : 'Agrega tu primera persona usando el formulario de arriba'
+                  : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
                 }
               </p>
+              {searchTerm.trim() === "" && (
+                <Button
+                  onClick={handleOpenCreateModal}
+                  variant="primary"
+                  size="md"
+                >
+                  ➕ Crear Primera Persona
+                </Button>
+              )}
             </div>
           ) : (
             <div className="person-list-grid">
               {filteredPersons.map((person) => (
                 <Card
                   key={person.id}
-                  variant={editingPerson?.id === person.id ? "outlined" : "default"}
+                  variant="default"
                   padding="md"
-                  className={`person-card ${editingPerson?.id === person.id ? 'editing' : ''}`}
+                  className="person-card"
                 >
                   <div className="person-avatar">
                     {person.name.charAt(0).toUpperCase()}
@@ -329,7 +308,7 @@ export default function PersonCrud() {
                     <Title level={4} variant="default" className="person-name">
                       {person.name} {person.last_name}
                     </Title>
-                    {person.phone && (
+                    {person.phone && person.phone !== "0" && (
                       <p className="person-phone">Tel: {person.phone}</p>
                     )}
                   </div>
@@ -394,6 +373,72 @@ export default function PersonCrud() {
           )}
         </Card>
       </div>
+
+      {/* Form Modal */}
+      <Modal
+        isOpen={showFormModal}
+        onClose={handleCancelEdit}
+        title={editingPerson ? "Editar Persona" : "Nueva Persona"}
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="person-form">
+          <div className="person-form-grid">
+            <Input
+              label="Nombre"
+              placeholder="Ej: Juan"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              variant="primary"
+              fullWidth
+              required
+              disabled={loading}
+            />
+            
+            <Input
+              label="Apellido"
+              placeholder="Ej: Pérez"
+              value={form.last_name}
+              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+              variant="primary"
+              fullWidth
+              required
+              disabled={loading}
+            />
+            
+            <Input
+              label="Teléfono"
+              placeholder="Ej: +1 234 567 8900"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              variant="primary"
+              rightIcon="📞"
+              fullWidth
+              disabled={loading}
+            />
+          </div>
+
+          <div className="person-form-actions">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={loading || !form.name.trim() || !form.last_name.trim()}
+            >
+              {loading ? "Guardando..." : (editingPerson ? "Actualizar Persona" : "Crear Persona")}
+            </Button>
+            
+            <Button
+              type="button"
+              onClick={handleCancelEdit}
+              variant="secondary"
+              size="md"
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal
