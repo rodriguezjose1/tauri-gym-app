@@ -28,22 +28,390 @@
   background-color: var(--bg-primary);
 }
 
+/* Routine Manager - Card-based Layout */
 .routine-manager-container {
-  background-color: var(--bg-primary);
-  border-radius: 12px;
   width: 100%;
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  min-height: calc(100vh - var(--layout-nav-height, 80px));
+}
+
+.routine-manager-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Search Card */
+.routine-manager-search-card {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.routine-manager-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.routine-manager-search-container {
+  width: 100%;
+}
+
+.routine-manager-search-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.routine-manager-search-form .routine-manager-search-button {
+  flex-shrink: 0;
+  margin-top: 24px; /* Align with input field */
+}
+
+/* Main Content Card */
+.routine-manager-content-card {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  min-height: 600px;
+  width: 100%;
+}
+
+.routine-manager-content {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+/* Left Panel - Routines List */
+.routine-manager-left-panel {
+  flex: 0 0 450px;
+  border-right: 1px solid var(--border-color);
+  padding-right: 20px;
+}
+
+.routine-manager-list-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.routine-manager-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Right Panel - Routine Details */
+.routine-manager-right-panel {
+  flex: 1;
+  padding-left: 20px;
+  min-width: 0; /* Allow flex item to shrink */
+}
+
+.routine-manager-routine-details {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--border-light);
 }
 
-/* Container for page mode - no border radius or border */
-.routine-manager-container.page-mode {
-  border-radius: 0;
-  border: none;
-  height: calc(100vh - 60px); /* Account for navbar */
+.routine-manager-routine-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.routine-manager-routine-info {
+  flex: 1;
+}
+
+.routine-manager-routine-subtitle {
+  margin: 8px 0 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.routine-manager-add-exercise-button {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.routine-manager-exercises-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Loading States */
+.routine-manager-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 12px;
+}
+
+.routine-manager-loading-icon {
+  font-size: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.routine-manager-loading-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty States */
+.routine-manager-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.routine-manager-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.routine-manager-empty-description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 8px 0 0 0;
+  max-width: 300px;
+}
+
+.routine-manager-no-routine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  height: 100%;
+}
+
+.routine-manager-no-routine-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.routine-manager-no-routine-description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 8px 0 0 0;
+  max-width: 300px;
+}
+
+/* Groups */
+.routine-manager-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.routine-manager-group {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.routine-manager-group-header {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.routine-manager-group-container {
+  padding: 16px;
+}
+
+.routine-manager-group-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 20px;
+}
+
+/* Routine List Styles */
+.routine-manager-routines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.routine-manager-search-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.routine-manager-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.routine-manager-new-routine-button {
+  flex-shrink: 0;
+}
+
+/* NEW MODAL STYLES */
+.routine-manager-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  max-height: 800px;
+  overflow: hidden;
+}
+
+.routine-manager-search-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.routine-manager-search-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.routine-manager-search-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.routine-manager-modal-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.routine-manager-modal-left-panel {
+  width: 350px;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.routine-manager-modal-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.routine-manager-routine-details {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.routine-manager-routine-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.routine-manager-routine-info {
+  flex: 1;
+}
+
+.routine-manager-routine-title {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.routine-manager-routine-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.routine-manager-add-exercise-button {
+  margin-left: 16px;
+}
+
+.routine-manager-exercises {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.routine-manager-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.routine-manager-no-routine {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.routine-manager-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+.routine-manager-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-light);
+  border-top: 3px solid var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Header Section */
@@ -70,6 +438,18 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.routine-manager-search-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.routine-manager-search-input {
+  flex: 1;
+  min-width: 200px;
 }
 
 .routine-manager-close-button {
@@ -123,47 +503,60 @@
 
 /* Routine Item */
 .routine-manager-routine-item {
-  padding: 12px;
-  background-color: var(--bg-tertiary);
+  padding: 16px;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .routine-manager-routine-item:hover {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .routine-manager-routine-item.selected {
   background-color: var(--accent-bg);
   border: 2px solid var(--accent-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .routine-manager-routine-name {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 16px;
+  margin-bottom: 4px;
 }
 
 .routine-manager-routine-code {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
+  margin-bottom: 8px;
 }
 
 .routine-manager-routine-delete {
   background: var(--error-color);
-  color: var(--text-on-primary);
+  color: white;
   border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 10px;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
   cursor: pointer;
-  margin-top: 8px;
+  align-self: flex-start;
+  transition: all 0.2s;
+  font-weight: 500;
 }
 
 .routine-manager-routine-delete:hover {
   background: var(--error-hover);
+  transform: translateY(-1px);
 }
 
 /* Right Panel - Routine Details */
@@ -445,78 +838,85 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (min-width: 1400px) {
   .routine-manager-left-panel {
-    width: 350px;
+    flex: 0 0 500px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .routine-manager-left-panel {
+    flex: 0 0 400px;
   }
 }
 
 @media (max-width: 768px) {
+  .routine-manager-container {
+    padding: 16px;
+  }
+  
+  .routine-manager-search-form {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .routine-manager-search-form .routine-manager-search-button {
+    margin-top: 0;
+  }
+  
   .routine-manager-content {
     flex-direction: column;
+    gap: 24px;
   }
   
   .routine-manager-left-panel {
-    width: 100%;
-    max-height: 40%;
+    flex: none;
     border-right: none;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 0;
+    padding-bottom: 20px;
   }
   
-  .routine-manager-routines-list {
-    max-height: 200px;
+  .routine-manager-right-panel {
+    padding-left: 0;
+    padding-top: 20px;
   }
   
-  .routine-manager-modal-content {
-    margin: 16px;
-    width: calc(100% - 32px);
-    max-width: none;
+  .routine-manager-routine-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
   }
   
-  .routine-manager-modal-form-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  .routine-manager-add-exercise-button {
+    margin-left: 0;
+    align-self: flex-start;
   }
   
-  .routine-manager-exercise-form-grid {
-    grid-template-columns: 1fr;
-    gap: 6px;
+  .routine-manager-search-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
   }
 }
 
 @media (max-width: 480px) {
-  .routine-manager-header {
-    padding: 16px;
-  }
-  
-  .routine-manager-search-section {
+  .routine-manager-container {
     padding: 12px;
   }
   
-  .routine-manager-routines-list {
-    padding: 12px;
+  .routine-manager-wrapper {
+    gap: 16px;
   }
   
-  .routine-manager-exercises-container {
-    padding: 16px;
+  .routine-manager-empty-state,
+  .routine-manager-no-routine {
+    padding: 40px 16px;
   }
   
-  .routine-manager-routine-header {
-    padding: 16px;
-  }
-  
-  .routine-manager-modal-content {
-    padding: 16px;
-  }
-  
-  .routine-manager-exercise-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .routine-manager-drag-handle {
-    align-self: flex-end;
+  .routine-manager-empty-icon,
+  .routine-manager-no-routine-icon {
+    font-size: 36px;
   }
 }
 
@@ -1240,5 +1640,115 @@
   .routine-manager-new-group-button {
     padding: 0.6rem 1.2rem;
     font-size: 0.85rem;
+  }
+}
+
+/* RoutineForm Styles */
+.routine-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.routine-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.routine-form-help {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.routine-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.routine-form-actions button {
+  flex: 1;
+}
+
+/* Responsive Design for RoutineForm */
+@media (max-width: 768px) {
+  .routine-form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .routine-form-actions button {
+    width: 100%;
+  }
+}
+
+/* RoutinePage Styles */
+.routine-page-container {
+  min-height: calc(100vh - var(--layout-nav-height, 80px));
+  width: 100%;
+  background-color: var(--bg-secondary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.routine-page-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  width: 100%;
+}
+
+.routine-page-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.routine-page-description {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin: 16px 0 0 0;
+  line-height: 1.5;
+}
+
+.routine-page-actions {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+/* Responsive Design for RoutinePage */
+@media (max-width: 768px) {
+  .routine-page-wrapper {
+    padding: 16px;
+  }
+  
+  .routine-page-header {
+    margin-bottom: 24px;
+  }
+  
+  .routine-page-description {
+    font-size: 14px;
+  }
+  
+  .routine-page-actions {
+    padding: 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .routine-page-wrapper {
+    padding: 12px;
+  }
+  
+  .routine-page-header {
+    margin-bottom: 16px;
+  }
+  
+  .routine-page-actions {
+    padding: 12px 0;
   }
 } 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Button, ErrorMessage } from '../../../shared/components/base';
+import { Input, Button, ErrorMessage, Modal } from '../../../shared/components/base';
 import { RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
 import { ROUTINE_UI_LABELS, ROUTINE_ERROR_MESSAGES } from '../../../shared/constants';
 
@@ -66,86 +66,72 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
     onCancel();
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="routine-manager-form-overlay">
-      <div className="routine-manager-form-container">
-        <div className="routine-manager-form-header">
-          <h3 className="routine-manager-form-title">
-            {ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}
-          </h3>
-          <button
-            onClick={handleCancel}
-            className="routine-manager-form-close-button"
+    <Modal
+      isOpen={isOpen}
+      onClose={handleCancel}
+      title={ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="routine-form">
+        <div className="routine-form-field">
+          <Input
+            label={ROUTINE_UI_LABELS.NAME_LABEL}
+            value={form.name}
+            onChange={(e) => {
+              setForm(prev => ({ ...prev, name: e.target.value }));
+              if (errors.name) {
+                setErrors(prev => ({ ...prev, name: undefined }));
+              }
+            }}
+            variant="primary"
+            fullWidth
+            required
             disabled={loading}
-          >
-            ✕
-          </button>
+            placeholder="Ej: Rutina de Pecho y Tríceps"
+          />
+          {errors.name && <ErrorMessage message={errors.name} />}
         </div>
 
-        <form onSubmit={handleSubmit} className="routine-manager-form">
-          <div className="routine-manager-form-field">
-            <Input
-              label={ROUTINE_UI_LABELS.NAME_LABEL}
-              value={form.name}
-              onChange={(e) => {
-                setForm(prev => ({ ...prev, name: e.target.value }));
-                if (errors.name) {
-                  setErrors(prev => ({ ...prev, name: undefined }));
-                }
-              }}
-              variant="primary"
-              fullWidth
-              required
-              disabled={loading}
-              placeholder="Ej: Rutina de Pecho y Tríceps"
-            />
-            {errors.name && <ErrorMessage message={errors.name} />}
-          </div>
+        <div className="routine-form-field">
+          <Input
+            label={ROUTINE_UI_LABELS.CODE_LABEL}
+            value={form.code}
+            onChange={(e) => {
+              setForm(prev => ({ ...prev, code: e.target.value }));
+              if (errors.code) {
+                setErrors(prev => ({ ...prev, code: undefined }));
+              }
+            }}
+            variant="primary"
+            fullWidth
+            disabled={loading}
+            placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
+          />
+          {errors.code && <ErrorMessage message={errors.code} />}
+          <small className="routine-form-help">
+            Código opcional para identificar rápidamente la rutina
+          </small>
+        </div>
 
-          <div className="routine-manager-form-field">
-            <Input
-              label={ROUTINE_UI_LABELS.CODE_LABEL}
-              value={form.code}
-              onChange={(e) => {
-                setForm(prev => ({ ...prev, code: e.target.value }));
-                if (errors.code) {
-                  setErrors(prev => ({ ...prev, code: undefined }));
-                }
-              }}
-              variant="primary"
-              fullWidth
-              disabled={loading}
-              placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
-            />
-            {errors.code && <ErrorMessage message={errors.code} />}
-            <small className="routine-manager-form-help">
-              Código opcional para identificar rápidamente la rutina
-            </small>
-          </div>
-
-          <div className="routine-manager-form-actions">
-            <Button
-              type="button"
-              onClick={handleCancel}
-              variant="secondary"
-              disabled={loading}
-            >
-              {ROUTINE_UI_LABELS.CANCEL_BUTTON}
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={loading || !form.name.trim()}
-            >
-              {loading ? ROUTINE_UI_LABELS.CREATING_BUTTON : ROUTINE_UI_LABELS.CREATE_BUTTON}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="routine-form-actions">
+          <Button
+            type="button"
+            onClick={handleCancel}
+            variant="secondary"
+            disabled={loading}
+          >
+            {ROUTINE_UI_LABELS.CANCEL_BUTTON}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={loading || !form.name.trim()}
+          >
+            {loading ? ROUTINE_UI_LABELS.CREATING_BUTTON : ROUTINE_UI_LABELS.CREATE_BUTTON}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }; 

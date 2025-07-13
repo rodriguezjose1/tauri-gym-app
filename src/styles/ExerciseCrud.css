@@ -64,37 +64,11 @@
 }
 
 /* Search Section */
-.exercise-search-container {
+.exercise-crud-search-container {
   margin-bottom: 24px;
 }
 
-.exercise-search-wrapper {
-  position: relative;
-  max-width: 400px;
-}
-
-.exercise-search-clear {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.exercise-search-clear:hover {
-  background-color: var(--bg-secondary);
-}
-
-.exercise-search-results {
+.exercise-crud-search-results {
   font-size: 14px;
   color: var(--success-color);
   margin: 8px 0 0 0;
@@ -265,10 +239,6 @@
   
   .delete-confirmation-actions {
     flex-direction: column;
-  }
-  
-  .exercise-search-wrapper {
-    max-width: 100%;
   }
 }
 

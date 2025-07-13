@@ -257,27 +257,18 @@ export default function ExerciseCrud() {
           </div>
 
           {/* Search Field */}
-          <div className="exercise-search-container">
-            <div className="exercise-search-wrapper">
-              <Input
-                placeholder="🔍 Buscar ejercicios por nombre o código..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                variant="success"
-                fullWidth
-              />
-              {searchTerm.trim() !== "" && (
-                <button
-                  onClick={clearSearch}
-                  className="exercise-search-clear"
-                  title="Limpiar búsqueda"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+          <div className="exercise-crud-search-container">
+            <Input
+              label="Buscar ejercicios"
+              placeholder="Buscar por nombre o código..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              variant="primary"
+              leftIcon="🔍"
+              fullWidth
+            />
             {searchTerm.trim() !== "" && (
-              <p className="exercise-search-results">
+              <p className="exercise-crud-search-results">
                 Mostrando resultados para: "{searchTerm}"
               </p>
             )}

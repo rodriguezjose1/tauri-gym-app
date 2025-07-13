@@ -16,6 +16,7 @@ interface RoutineListProps {
   onSelectRoutine: (routineId: number) => void;
   onDeleteRoutine: (routineId: number, routineName: string) => void;
   onCreateNew: () => void;
+  hideCreateButton?: boolean;
 }
 
 export const RoutineList: React.FC<RoutineListProps> = ({
@@ -24,7 +25,8 @@ export const RoutineList: React.FC<RoutineListProps> = ({
   loading,
   onSelectRoutine,
   onDeleteRoutine,
-  onCreateNew
+  onCreateNew,
+  hideCreateButton = false
 }) => {
   if (loading) {
     return (
@@ -37,66 +39,38 @@ export const RoutineList: React.FC<RoutineListProps> = ({
 
   return (
     <div className="routine-manager-routines-list">
-      <div className="routine-manager-search-section">
-        <h3 className="routine-manager-title">
-          {LOCAL_LABELS.ROUTINES_TITLE}
-        </h3>
-        <Button
-          onClick={onCreateNew}
-          variant="primary"
-          size="sm"
-          className="routine-manager-new-routine-button"
-        >
-          {LOCAL_LABELS.CREATE_ROUTINE_BUTTON}
-        </Button>
-      </div>
-
       {routines.length === 0 ? (
         <div className="routine-manager-empty">
-          <div className="routine-manager-empty-icon">📋</div>
-          <p className="routine-manager-empty-message">
-            No hay rutinas disponibles
-          </p>
-          <p className="routine-manager-empty-submessage">
-            Crea tu primera rutina para comenzar
-          </p>
+          <p>No hay rutinas disponibles</p>
         </div>
       ) : (
-        <div className="routine-manager-routines-list">
-          {routines.map((routine) => (
-            <div
-              key={routine.id}
-              className={`routine-manager-routine-item ${
-                selectedRoutineId === routine.id ? 'selected' : ''
-              }`}
-              onClick={() => onSelectRoutine(routine.id!)}
-            >
-              <div className="routine-manager-routine-info">
-                <div className="routine-manager-routine-name">
-                  {routine.name}
-                </div>
-                {routine.code && (
-                  <div className="routine-manager-routine-code">
-                    Código: {routine.code}
-                  </div>
-                )}
-              </div>
-              
-              <div className="routine-manager-routine-actions">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteRoutine(routine.id!, routine.name);
-                  }}
-                  className="routine-manager-routine-delete"
-                  title={ROUTINE_UI_LABELS.DELETE_TOOLTIP}
-                >
-                  🗑️
-                </button>
-              </div>
+        routines.map((routine) => (
+          <div
+            key={routine.id}
+            className={`routine-manager-routine-item ${
+              selectedRoutineId === routine.id ? 'selected' : ''
+            }`}
+            onClick={() => onSelectRoutine(routine.id!)}
+          >
+            <div className="routine-manager-routine-name">
+              {routine.name}
             </div>
-          ))}
-        </div>
+            {routine.code && (
+              <div className="routine-manager-routine-code">
+                Código: {routine.code}
+              </div>
+            )}
+            <button
+              className="routine-manager-routine-delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteRoutine(routine.id!, routine.name);
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
+        ))
       )}
     </div>
   );
