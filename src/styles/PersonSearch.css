@@ -6,7 +6,8 @@
   display: flex;
   align-items: center; /* Center the PersonSearch vertically */
   min-height: 56px; /* Match parent container height */
-  margin: 0; /* Remove any default margins */
+  margin: 0; /* Remove all margins to allow proper centering */
+  padding: 0; /* Remove any padding that might interfere */
 }
 
 .person-search-selected {

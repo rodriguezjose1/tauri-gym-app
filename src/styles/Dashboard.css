@@ -26,14 +26,14 @@
 
 /* Calendar Header */
 .dashboard-calendar-header {
-  margin-bottom: 20px;
+  margin-bottom: 0; /* Remove unnecessary margin bottom */
 }
 
 .dashboard-calendar-title-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 0; /* Remove unnecessary margin bottom */
 }
 
 .dashboard-calendar-actions {
@@ -51,7 +51,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 0; /* Remove unnecessary margin bottom */
 }
 
 .weekly-calendar-controls-row {
@@ -59,11 +59,15 @@
   justify-content: space-between;
   align-items: center;
   gap: 20px;
+  min-height: 56px; /* Ensure consistent height for proper alignment */
 }
 
 .weekly-calendar-person-section {
-  flex: 1;
+  flex: 0 0 350px;
   min-width: 0;
+  display: flex;
+  align-items: center; /* Center PersonSearch vertically */
+  height: 100%; /* Take full height of parent */
 }
 
 .weekly-calendar-date-section {

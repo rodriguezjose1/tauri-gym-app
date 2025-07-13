@@ -31,16 +31,6 @@ export default function DashboardRefactored() {
               <Title level={2} variant="default">
                 📅 Calendario Semanal
               </Title>
-              <div className="dashboard-calendar-actions">
-                <Button
-                  onClick={() => modals.settings.setShowSettingsModal(true)}
-                  variant="secondary"
-                  size="sm"
-                  className="dashboard-settings-button"
-                >
-                  ⚙️ Configurar
-                </Button>
-              </div>
             </div>
           </div>
           
@@ -138,11 +128,13 @@ export default function DashboardRefactored() {
         onCancel={() => modals.confirm.setShowConfirmModal(false)}
       />
 
-      {/* Settings Modal */}
+      {/* Settings Modal - Hidden for now but functionality maintained */}
+      {/* 
       <SettingsModal
         isOpen={modals.settings.showSettingsModal}
         onClose={() => modals.settings.setShowSettingsModal(false)}
       />
+      */}
 
       {/* Toast Notifications */}
       <ToastContainer

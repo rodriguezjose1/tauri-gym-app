@@ -65,7 +65,7 @@
 }
 
 .person-search-container {
-  margin-bottom: 20px;
+  margin-bottom: 0; /* Remove margin bottom to prevent alignment issues */
 }
 
 .person-search-results {
