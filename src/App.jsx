@@ -25,10 +25,10 @@ function Navigation() {
           <li>
             <Link 
               to="/" 
-              className={`nav-link ${location.pathname === '/' ? 'active dashboard' : ''}`}
+              className={`nav-link ${location.pathname === '/' ? 'active calendar' : ''}`}
             >
-              <span className="nav-link-icon">📊</span>
-              Dashboard
+              <span className="nav-link-icon">📅</span>
+              Calendario
             </Link>
           </li>
           <li>

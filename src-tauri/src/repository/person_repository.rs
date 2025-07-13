@@ -9,4 +9,6 @@ pub trait PersonRepository: Send + Sync {
     fn list_paginated(&self, page: i32, page_size: i32) -> Vec<Person>;
     fn search(&self, query: &str) -> Vec<Person>;
     fn search_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Person>;
+    fn count_all(&self) -> i32;
+    fn search_count(&self, query: &str) -> i32;
 }

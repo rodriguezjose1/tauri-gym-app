@@ -78,7 +78,7 @@ describe('Dashboard Component', () => {
 
       // Should show person search
       expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
-      expect(screen.getByText(/dashboard de entrenamientos/i)).toBeInTheDocument()
+      expect(screen.getByText(/calendario semanal/i)).toBeInTheDocument()
     })
 
     test('fetches exercises on mount', async () => {

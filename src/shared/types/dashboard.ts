@@ -127,4 +127,12 @@ export interface PaginatedExerciseResponse {
   page: number;
   page_size: number;
   total_pages: number;
+}
+
+export interface PaginatedPersonResponse {
+  persons: Person[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 } 

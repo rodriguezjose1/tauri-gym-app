@@ -53,8 +53,8 @@ describe('Dashboard Integration Tests', () => {
       </TestWrapper>
     )
 
-    // Should show the dashboard title
-    expect(screen.getByText(/dashboard de entrenamientos/i)).toBeInTheDocument()
+    // Should show the calendar title
+    expect(screen.getByText(/calendario semanal/i)).toBeInTheDocument()
   })
 
   test('Dashboard initializes localStorage correctly', async () => {

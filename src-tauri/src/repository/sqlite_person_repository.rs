@@ -206,5 +206,40 @@ impl PersonRepository for SqlitePersonRepository {
 
         person_iter.filter_map(|person| person.ok()).collect()
     }
+
+    fn count_all(&self) -> i32 {
+        let conn = match self.get_connection() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+
+        match conn.query_row(
+            "SELECT COUNT(*) FROM people",
+            [],
+            |row| Ok(row.get::<_, i32>(0)?)
+        ) {
+            Ok(count) => count,
+            Err(_) => 0,
+        }
+    }
+
+    fn search_count(&self, query: &str) -> i32 {
+        let conn = match self.get_connection() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+
+        let search_pattern = format!("%{}%", query.to_lowercase());
+        
+        match conn.query_row(
+            "SELECT COUNT(*) FROM people 
+             WHERE LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1",
+            params![search_pattern],
+            |row| Ok(row.get::<_, i32>(0)?)
+        ) {
+            Ok(count) => count,
+            Err(_) => 0,
+        }
+    }
 }
 

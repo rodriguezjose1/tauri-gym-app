@@ -5,7 +5,7 @@ Una aplicación de gestión de gimnasio construida con **Tauri**, **React** y **
 ## 🚀 Características Principales
 
 - **👥 Gestión de Clientes**: Administra información completa de tus clientes
-- **📊 Dashboard Interactivo**: Visualiza entrenamientos en calendario semanal
+- **📅 Calendario Semanal**: Visualiza entrenamientos en calendario semanal
 - **💪 Catálogo de Ejercicios**: Base de datos completa con autocompletado
 - **📋 Rutinas Personalizadas**: Creación y gestión de rutinas personalizadas
 - **🔄 Sincronización Local**: Datos almacenados localmente con SQLite
@@ -23,7 +23,7 @@ src/
 │   ├── exercise/     # Catálogo de ejercicios
 │   ├── workout/      # Entrenamientos
 │   ├── routine/      # Rutinas de ejercicios
-│   ├── dashboard/    # Vista principal y calendario
+│   ├── calendario/    # Vista principal y calendario
 │   └── settings/     # Configuraciones
 ├── shared/           # Componentes compartidos
 │   ├── components/   # UI components reutilizables
@@ -114,7 +114,7 @@ npm run type-check
 
 ## 🎯 Uso de la Aplicación
 
-### Dashboard
+### Calendario
 - **Vista de calendario** con entrenamientos organizados por semanas
 - **Navegación temporal** (anterior/siguiente/hoy)
 - **Gestión de entrenamientos** con funcionalidad completa

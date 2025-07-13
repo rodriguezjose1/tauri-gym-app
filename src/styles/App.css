@@ -90,7 +90,7 @@
   font-weight: 600;
 }
 
-.nav-link.active.dashboard {
+.nav-link.active.calendar {
   background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
 }
 

@@ -5,7 +5,7 @@ mod config;
 
 use tauri::{State, Manager};
 
-use models::person::Person;
+use models::person::{Person, PaginatedPersonResponse};
 use models::exercise::{Exercise, PaginatedExerciseResponse};
 use models::workout_entry::{WorkoutEntry, WorkoutEntryWithDetails};
 use models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
@@ -33,6 +33,11 @@ fn get_persons_paginated(service: State<'_, PersonService>, page: i32, page_size
 }
 
 #[tauri::command]
+fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> PaginatedPersonResponse {
+    service.list_people_paginated_response(page, page_size)
+}
+
+#[tauri::command]
 fn search_persons(service: State<'_, PersonService>, query: String) -> Vec<Person> {
     service.search_people(&query)
 }
@@ -40,6 +45,11 @@ fn search_persons(service: State<'_, PersonService>, query: String) -> Vec<Perso
 #[tauri::command]
 fn search_persons_paginated(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Vec<Person> {
     service.search_people_paginated(&query, page, page_size)
+}
+
+#[tauri::command]
+fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> PaginatedPersonResponse {
+    service.search_people_paginated_response(&query, page, page_size)
 }
 
 #[tauri::command]
@@ -278,8 +288,10 @@ fn main() {
             create_person, 
             get_persons, 
             get_persons_paginated,
+            get_persons_paginated_response,
             search_persons,
             search_persons_paginated,
+            search_persons_paginated_response,
             delete_person, 
             update_person,
             // Exercise commands

@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Person } from "../../../shared/types/dashboard";
+import { Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createPerson: "create_person",
   getPersons: "get_persons",
   getPersonsPaginated: "get_persons_paginated",
+  getPersonsPaginatedResponse: "get_persons_paginated_response",
   searchPersonsPaginated: "search_persons_paginated",
+  searchPersonsPaginatedResponse: "search_persons_paginated_response",
   searchPersons: "search_persons",
   updatePerson: "update_person",
   deletePerson: "delete_person",
@@ -49,6 +51,18 @@ export class PersonService {
   }
 
   /**
+   * Obtiene personas paginadas con información completa de paginación
+   */
+  static async getPersonsPaginatedResponse(page: number, pageSize: number): Promise<PaginatedPersonResponse> {
+    try {
+      return await invoke(requestNames.getPersonsPaginatedResponse, { page, pageSize }) as PaginatedPersonResponse;
+    } catch (error) {
+      console.error("Error getting paginated persons response:", error);
+      throw new Error(`Error al obtener las personas paginadas: ${error}`);
+    }
+  }
+
+  /**
    * Busca personas por query
    */
   static async searchPersons(query: string): Promise<Person[]> {
@@ -73,6 +87,18 @@ export class PersonService {
   }
 
   /**
+   * Busca personas paginadas con información completa de paginación
+   */
+  static async searchPersonsPaginatedResponse(query: string, page: number, pageSize: number): Promise<PaginatedPersonResponse> {
+    try {
+      return await invoke(requestNames.searchPersonsPaginatedResponse, { query, page, pageSize }) as PaginatedPersonResponse;
+    } catch (error) {
+      console.error("Error searching paginated persons response:", error);
+      throw new Error(`Error al buscar personas paginadas: ${error}`);
+    }
+  }
+
+  /**
    * Actualiza una persona existente
    */
   static async updatePerson(person: Person): Promise<void> {
@@ -85,7 +111,7 @@ export class PersonService {
   }
 
   /**
-   * Elimina una persona por ID
+   * Elimina una persona
    */
   static async deletePerson(id: number): Promise<void> {
     try {
