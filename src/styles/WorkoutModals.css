@@ -100,6 +100,33 @@
 .workout-modal-routine-selector {
   display: grid;
   gap: 12px;
+  margin-bottom: 24px;
+}
+
+.workout-modal-routine-compact {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.workout-modal-routine-compact .ui-select-container {
+  flex: 1;
+}
+
+.workout-modal-load-routine-compact {
+  min-width: 40px;
+  padding: 8px 12px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.workout-modal-warning-compact {
+  font-size: 12px;
+  color: var(--warning-color, #f59e0b);
+  background-color: var(--warning-bg, #fef3c7);
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--warning-border, #f59e0b);
 }
 
 .workout-modal-routine-label {
@@ -237,6 +264,16 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+  
+  .workout-modal-routine-compact {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .workout-modal-load-routine-compact {
+    width: 100%;
+    justify-content: center;
   }
   
   .workout-modal-actions {

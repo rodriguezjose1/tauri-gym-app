@@ -371,86 +371,46 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
         size="lg"
       >
         <div className="workout-modal-content">
-          {selectedPerson && selectedDate && (
-            <div className="workout-modal-person-date-info">
-              <div className="workout-modal-person-name">
-                {selectedPerson.name} {selectedPerson.last_name}
-              </div>
-              <div className="workout-modal-date">
-                📅 {formatDate(selectedDate)}
-              </div>
-            </div>
-          )}
-
           <div className="workout-modal-routine-selector">
-            <Button
-              onClick={() => setShowRoutineSelector(!showRoutineSelector)}
-              variant="secondary"
-              style={{ marginBottom: '16px' }}
-            >
-              {showRoutineSelector ? '📋 Ocultar Rutinas' : '📋 Cargar desde Rutina'}
-            </Button>
-            
-            {showRoutineSelector && (
-              <div className="workout-modal-routine-content">
-                <Select
-                  label="Seleccionar Rutina:"
-                  options={routines.map(routine => ({
+            <div className="workout-modal-routine-compact">
+              <Select
+                label=""
+                options={[
+                  { value: '', label: 'Seleccionar rutina...' },
+                  ...routines.map(routine => ({
                     value: routine.id,
-                    label: routine.name
-                  }))}
-                  value={selectedRoutineId || ''}
-                  onChange={(value) => setSelectedRoutineId(Number(value))}
-                  placeholder="Seleccionar rutina..."
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  helperText="Los ejercicios de la rutina se cargarán en el formulario"
-                />
-                
-                <div className="workout-modal-routine-actions">
-                  <Button
-                    onClick={() => {
-                      setShowRoutineSelector(false);
-                      setSelectedRoutineId(null);
-                    }}
-                    variant="secondary"
-                    style={{ fontSize: '14px' }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      console.log("Cargar Ejercicios button clicked, selectedRoutineId:", selectedRoutineId);
-                      if (selectedRoutineId) {
-                        console.log("Calling handleLoadRoutine");
-                        handleLoadRoutine();
-                      } else {
-                        console.log("No routine selected");
-                      }
-                    }}
-                    disabled={!selectedRoutineId || loadingRoutine}
-                    className={`workout-modal-load-routine-btn ${(!selectedRoutineId || loadingRoutine) ? 'disabled' : ''}`}
-                  >
-                    {loadingRoutine ? (
-                      <>
-                        <span>⏳</span>
-                        Cargando...
-                      </>
-                    ) : (
-                      <>
-                        <span>📋</span>
-                        Cargar Ejercicios
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                {sessionForm.exercises.length > 1 && (
-                  <div className="workout-modal-warning">
-                    ⚠️ Los ejercicios actuales serán reemplazados por los de la rutina seleccionada.
-                  </div>
-                )}
+                    label: `${routine.name} (${routine.exerciseCount} ejercicios)`
+                  }))
+                ]}
+                value={selectedRoutineId || ''}
+                onChange={(value) => setSelectedRoutineId(value ? Number(value) : null)}
+                placeholder="Seleccionar rutina..."
+                variant="primary"
+                size="sm"
+                fullWidth
+              />
+              <Button
+                onClick={() => {
+                  console.log("Cargar Ejercicios button clicked, selectedRoutineId:", selectedRoutineId);
+                  if (selectedRoutineId) {
+                    console.log("Calling handleLoadRoutine");
+                    handleLoadRoutine();
+                  } else {
+                    console.log("No routine selected");
+                  }
+                }}
+                disabled={!selectedRoutineId || loadingRoutine}
+                variant="primary"
+                size="sm"
+                className="workout-modal-load-routine-compact"
+              >
+                {loadingRoutine ? '⏳' : '📋'}
+              </Button>
+            </div>
+            
+            {sessionForm.exercises.length > 1 && selectedRoutineId && (
+              <div className="workout-modal-warning-compact">
+                ⚠️ Los ejercicios actuales serán reemplazados
               </div>
             )}
           </div>
