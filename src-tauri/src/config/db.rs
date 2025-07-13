@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::env;
-use std::path::PathBuf;
 use crate::repository::sqlite_person_repository::SqlitePersonRepository;
 use crate::repository::sqlite_exercise_repository::SqliteExerciseRepository;
 use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;

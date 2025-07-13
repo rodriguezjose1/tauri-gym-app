@@ -1,9 +1,6 @@
 import React from 'react';
-import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { arrayMove } from '@dnd-kit/sortable';
-import { WorkoutEntryWithDetails } from '../../services';
-import { SortableWorkoutItem } from '../../workout';
+import { WorkoutEntryWithDetails } from '../../../services';
+import { WorkoutItem } from '../../workout';
 import '../../../styles/CalendarGrid.css';
 
 interface CalendarGridProps {
@@ -13,8 +10,6 @@ interface CalendarGridProps {
   onDayRightClick: (e: React.MouseEvent, date: string) => void;
   onAddWorkoutClick: (date: string) => void;
   onDeleteWorkoutEntry: (id: number) => void;
-  onDragEnd: (event: DragEndEvent) => void;
-  sensors: any;
   showWeekends?: boolean;
   onSelectedDateChange?: (date: string) => void;
 }
@@ -26,116 +21,79 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   onDayRightClick,
   onAddWorkoutClick,
   onDeleteWorkoutEntry,
-  onDragEnd,
-  sensors,
-  showWeekends = false,
+  showWeekends = true,
   onSelectedDateChange
 }) => {
-  const formatDateForDB = (date: Date) => {
+  const formatDateForDB = (date: Date): string => {
     return date.toISOString().split('T')[0];
   };
 
-  const formatWeekRange = (weekStart: Date) => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-
-    const startStr = weekStart.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short'
-    });
-
-    const endStr = weekEnd.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short'
-    });
-
-    return `${startStr} - ${endStr}`;
-  };
-
-  const getWeekNumber = (date: Date) => {
-    const start = new Date(date.getFullYear(), 0, 1);
-    const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil((days + start.getDay() + 1) / 7);
+  const isToday = (date: Date): boolean => {
+    const today = new Date();
+    return formatDateForDB(date) === formatDateForDB(today);
   };
 
   return (
-    <div className="calendar-grid-container">
+    <div className="calendar-grid">
       {threeWeeks.map((week, weekIndex) => {
         const weekStart = week[0];
-        const weekNumber = getWeekNumber(weekStart);
-        
+        const weekEnd = week[6];
+        const weekLabel = `${weekStart.getDate()} ${weekStart.toLocaleDateString('es-ES', { month: 'short' })} - ${weekEnd.getDate()} ${weekEnd.toLocaleDateString('es-ES', { month: 'short' })}`;
+
         return (
           <div key={weekIndex} className="calendar-week-container">
-            {/* Week Header */}
             <div className="calendar-week-header">
-              Semana {weekNumber}: {formatWeekRange(weekStart)}
+              {weekLabel}
             </div>
-            
-            {/* Week Days Grid */}
-            <div className={`calendar-week-grid ${showWeekends ? 'show-weekends' : 'weekdays-only'}`}>
+            <div className="calendar-week">
               {week.map((day, dayIndex) => {
                 const dayDateString = formatDateForDB(day);
-                const dayWorkouts = workoutData.filter(workout => 
-                  workout.date === dayDateString
-                );
-                const isToday = day.toDateString() === new Date().toDateString();
-                const isPastDay = day < new Date(new Date().setHours(0, 0, 0, 0));
+                const dayWorkouts = workoutData
+                  .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
+                  .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+                const dayOfWeek = day.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 
-                console.log(`Day ${dayDateString}: found ${dayWorkouts.length} workouts`);
-                
-                const dayClasses = `calendar-day-cell ${
-                  isToday ? 'today' : isPastDay ? 'past-day' : 'regular-day'
-                }`;
-                
+                if (!showWeekends && isWeekend) {
+                  return null;
+                }
+
                 return (
                   <div
                     key={dayIndex}
-                    className={dayClasses}
+                    className={`calendar-day ${isToday(day) ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
                     onContextMenu={(e) => onDayRightClick(e, dayDateString)}
                   >
-                    {/* Day Header */}
                     <div className="calendar-day-header">
-                      <div className={`calendar-day-weekday ${isToday ? 'today' : ''}`}>
-                        {day.toLocaleDateString('es-ES', { weekday: 'short' })}
-                      </div>
-                      <div className={`calendar-day-number ${isToday ? 'today' : ''}`}>
+                      <div className="calendar-day-number">
                         {day.getDate()}
+                      </div>
+                      <div className="calendar-day-name">
+                        {day.toLocaleDateString('es-ES', { weekday: 'short' })}
                       </div>
                     </div>
 
-                    {/* Workouts */}
-                    <div className="calendar-workouts-container">
+                    <div className="calendar-workouts">
                       {dayWorkouts.length === 0 ? (
                         <div className="calendar-no-workouts">
                           Sin entrenamientos
                         </div>
                       ) : (
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={onDragEnd}
-                        >
-                          <SortableContext
-                            items={dayWorkouts.map(w => w.id!)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {dayWorkouts.map((workout, workoutIndex) => (
-                              <SortableWorkoutItem
-                                key={workout.id || workoutIndex}
-                                workout={workout}
-                                onDayClick={(date) => {
-                                  onSelectedDateChange?.(date);
-                                  onDayClick(date);
-                                }}
-                                onDeleteWorkoutEntry={onDeleteWorkoutEntry}
-                              />
-                            ))}
-                          </SortableContext>
-                        </DndContext>
+                        dayWorkouts.map((workout, workoutIndex) => (
+                          <WorkoutItem
+                            key={workout.id || workoutIndex}
+                            workout={workout}
+                            onDayClick={(date) => {
+                              onSelectedDateChange?.(date);
+                              onDayClick(date);
+                            }}
+                            onDeleteWorkoutEntry={onDeleteWorkoutEntry}
+                          />
+                        ))
                       )}
                     </div>
 
-                    {/* Add Workout Button */}
                     <div className="calendar-add-workout-container">
                       <button
                         onClick={() => {

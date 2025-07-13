@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { WorkoutEntryWithDetails } from '../../../services';
-import { SortableWorkoutItem } from '../../workout';
+import { WorkoutItem } from '../../workout';
 import '../../../styles/DayCell.css';
 
 interface DayCellProps {
@@ -67,19 +63,16 @@ export const DayCell: React.FC<DayCellProps> = ({
       {/* Workouts List */}
       <div className="day-cell-workouts">
         {dayWorkouts.length > 0 ? (
-          <SortableContext
-            items={dayWorkouts.map(w => w.id!)}
-            strategy={verticalListSortingStrategy}
-          >
+          <div className="day-cell-workouts-list">
             {dayWorkouts.map((workout) => (
-              <SortableWorkoutItem
+              <WorkoutItem
                 key={workout.id}
                 workout={workout}
                 onDayClick={onDayClick}
                 onDeleteWorkoutEntry={onDeleteWorkoutEntry}
               />
             ))}
-          </SortableContext>
+          </div>
         ) : (
           <div className="day-cell-no-workouts">
             Sin entrenamientos

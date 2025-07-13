@@ -19,6 +19,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,10 +66,19 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     onPersonSelect(person);
     setSearchTerm("");
     setShowDropdown(false);
+    setShowSearchInput(false);
   };
 
   const handleClearSelection = () => {
     onClearSelection();
+    setSearchTerm("");
+    setPersons([]);
+    setShowDropdown(false);
+    setShowSearchInput(false);
+  };
+
+  const handleChangeUser = () => {
+    setShowSearchInput(true);
     setSearchTerm("");
     setPersons([]);
     setShowDropdown(false);
@@ -90,9 +100,16 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   };
 
   const handleSearchFocus = () => {
-    if (!selectedPerson && searchTerm.length >= 2) {
+    if (searchTerm.length >= 2) {
       setShowDropdown(true);
     }
+  };
+
+  const handleCancelSearch = () => {
+    setShowSearchInput(false);
+    setSearchTerm("");
+    setPersons([]);
+    setShowDropdown(false);
   };
 
   useEffect(() => {
@@ -108,89 +125,105 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     };
   }, []);
 
-  return (
-    <div className="person-search-container">
-      {/* Selected Person Display */}
-      {selectedPerson && (
-        <div className="person-search-selected">
-          <div className="person-search-avatar">
-            {selectedPerson.name.charAt(0)}{selectedPerson.last_name.charAt(0)}
-          </div>
-          <div className="person-search-info">
-            <div className="person-search-name">
-              {selectedPerson.name} {selectedPerson.last_name}
-            </div>
-            <div className="person-search-phone">
-              📞 {selectedPerson.phone}
-            </div>
-          </div>
-          <Button
-            onClick={handleClearSelection}
-            variant="secondary"
-            size="sm"
-          >
-            Cambiar
-          </Button>
-        </div>
-      )}
-
-      {/* Search Input - Always Present */}
-      <div ref={dropdownRef} className="person-search-input-container">
-        <Input
-          label=""
-          placeholder={placeholder}
-          value={searchTerm}
-          onChange={handleSearchChange}
-          onFocus={handleSearchFocus}
-          variant="primary"
-          fullWidth
-        />
-        
-        {showDropdown && searchTerm && !selectedPerson && (
-          <div className="person-search-dropdown">
-            {searchTerm.length < 2 ? (
-              <div className="person-search-message">
-                Escribe al menos 2 caracteres...
-              </div>
-            ) : loading ? (
-              <div className="person-search-message">
-                <div className="person-search-loading">
-                  <div className="person-search-loading-icon">⏳</div>
-                  Buscando...
-                </div>
-              </div>
-            ) : persons.length === 0 ? (
-              <div className="person-search-message">
-                No se encontraron personas
-              </div>
-            ) : (
-              <>
-                {persons.map((person) => (
-                  <div
-                    key={person.id}
-                    onClick={() => handlePersonSelect(person)}
-                    className="person-search-item"
-                  >
-                    <div className="person-search-item-name">
-                      {person.name} {person.last_name}
-                    </div>
-                    <div className="person-search-item-phone">
-                      📞 {person.phone}
-                    </div>
-                  </div>
-                ))}
-                {hasMore && (
-                  <div
-                    onClick={loadMorePersons}
-                    className="person-search-load-more"
-                  >
-                    Cargar más...
-                  </div>
-                )}
-              </>
+  // Show search input when no person is selected OR when user clicked "Cambiar"
+  if (!selectedPerson || showSearchInput) {
+    return (
+      <div className="person-search-container">
+        <div ref={dropdownRef} className="person-search-input-container">
+          <div className="person-search-input-wrapper">
+            <Input
+              label=""
+              placeholder={placeholder}
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onFocus={handleSearchFocus}
+              variant="primary"
+              fullWidth
+            />
+            {selectedPerson && (
+              <Button
+                onClick={handleCancelSearch}
+                variant="secondary"
+                size="sm"
+                className="person-search-cancel-btn"
+              >
+                Cancelar
+              </Button>
             )}
           </div>
-        )}
+          
+          {showDropdown && searchTerm && (
+            <div className="person-search-dropdown">
+              {searchTerm.length < 2 ? (
+                <div className="person-search-message">
+                  Escribe al menos 2 caracteres...
+                </div>
+              ) : loading ? (
+                <div className="person-search-message">
+                  <div className="person-search-loading">
+                    <div className="person-search-loading-icon">⏳</div>
+                    Buscando...
+                  </div>
+                </div>
+              ) : persons.length === 0 ? (
+                <div className="person-search-message">
+                  No se encontraron personas
+                </div>
+              ) : (
+                <>
+                  {persons.map((person) => (
+                    <div
+                      key={person.id}
+                      onClick={() => handlePersonSelect(person)}
+                      className="person-search-item"
+                    >
+                      <div className="person-search-item-name">
+                        {person.name} {person.last_name}
+                      </div>
+                      <div className="person-search-item-phone">
+                        📞 {person.phone}
+                      </div>
+                    </div>
+                  ))}
+                  {hasMore && (
+                    <div
+                      onClick={loadMorePersons}
+                      className="person-search-load-more"
+                    >
+                      Cargar más...
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show selected person when someone is selected
+  return (
+    <div className="person-search-container">
+      <div className="person-search-selected">
+        <div className="person-search-avatar">
+          {selectedPerson.name.charAt(0)}{selectedPerson.last_name.charAt(0)}
+        </div>
+        <div className="person-search-info">
+          <div className="person-search-name">
+            {selectedPerson.name} {selectedPerson.last_name}
+          </div>
+          <div className="person-search-phone">
+            📞 {selectedPerson.phone}
+          </div>
+        </div>
+        <Button
+          onClick={handleChangeUser}
+          variant="secondary"
+          size="sm"
+        >
+          Cambiar
+        </Button>
       </div>
     </div>
   );

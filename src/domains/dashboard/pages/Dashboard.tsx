@@ -35,9 +35,9 @@ export default function DashboardRefactored() {
             selectedPerson={data.selectedPerson}
             workoutData={data.workoutData}
             onWorkoutDataChange={data.setWorkoutData}
-            onReorderExercises={handlers.reorderExercises}
             onAddWorkoutClick={handlers.addWorkout}
             onDeleteWorkoutEntry={handlers.deleteWorkout}
+            onEditWorkoutEntry={handlers.editWorkoutEntry}
             onDayClick={handlers.dayClick}
             onDayRightClick={handlers.dayRightClick}
             onSelectedDateChange={data.setSelectedDate}
@@ -56,13 +56,20 @@ export default function DashboardRefactored() {
         onSaveWorkoutEntry={handlers.saveWorkoutEntry}
         onUpdateWorkoutForm={modals.workout.updateWorkoutForm}
         
+        showEditModal={modals.workout.showEditModal}
+        editForm={modals.workout.editForm}
+        savingEdit={operations.workout.savingEdit}
+        onCloseEditModal={modals.workout.closeEditModal}
+        onSaveEditEntry={handlers.saveEditEntry}
+        onUpdateEditForm={handlers.updateEditForm}
+        
         showSessionModal={modals.session.showSessionModal}
         sessionForm={modals.session.sessionForm}
         savingSession={operations.workout.savingSession}
         onCloseSessionModal={handlers.closeSessionModal}
         onSaveWorkoutSession={handlers.saveWorkoutSession}
         onUpdateSessionExercise={modals.session.updateSessionExercise}
-        onDeleteSessionExercise={modals.session.deleteSessionExercise}
+        onDeleteSessionExercise={modals.session.deleteExerciseFromSession}
         onAddExerciseToSession={modals.session.addExerciseToSession}
         onDeleteWorkoutEntry={handlers.deleteWorkout}
         

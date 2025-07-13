@@ -1,19 +1,10 @@
-// Routine Domain Exports
-export * from './components';
-export * from './hooks';
-export * from './services';
-export * from './pages';
-
 // Componentes principales
 export { RoutineManager } from './components/RoutineManager';
+export { RoutineExercise } from './components/RoutineExercise';
+export { LoadRoutineModal } from './components/LoadRoutineModal';
 
-// Componentes especializados
-export { SortableRoutineExercise } from './components/SortableRoutineExercise';
-export { RoutineList } from './components/RoutineList';
-export { RoutineForm } from './components/RoutineForm';
-export { ExerciseSearch } from './components/ExerciseSearch';
-
-// Hooks personalizados específicos
-export { useRoutineData } from './hooks/useRoutineData';
+// Hooks
 export { useRoutineExercises } from './hooks/useRoutineExercises';
-export { useRoutineUI } from './hooks/useRoutineUI'; 
+
+// Pages
+export * from './pages'; 

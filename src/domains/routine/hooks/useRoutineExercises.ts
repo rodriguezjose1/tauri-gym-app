@@ -78,16 +78,15 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     try {
       setLoading(true);
       
-      // Encontrar el ejercicio actual
+      // Encontrar el ejercicio actual antes de hacer cambios
       const currentExercise = exercises.find(ex => ex.id === exerciseId);
-      if (!currentExercise) throw new Error('Exercise not found');
+      if (!currentExercise) {
+        console.error('Exercise not found with id:', exerciseId);
+        console.error('Available exercises:', exercises.map(ex => ({ id: ex.id, name: ex.exercise_name })));
+        throw new Error('Exercise not found');
+      }
 
-      // Actualizar estado local inmediatamente
-      setExercises(prev => prev.map(ex => 
-        ex.id === exerciseId ? { ...ex, ...updates } : ex
-      ));
-
-      // Sincronizar con el servidor
+      // Sincronizar con el servidor primero
       await RoutineService.updateRoutineExercise(
         exerciseId,
         routineId,
@@ -99,6 +98,11 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         updates.notes ?? currentExercise.notes,
         updates.group_number ?? currentExercise.group_number
       );
+
+      // Actualizar estado local después del éxito
+      setExercises(prev => prev.map(ex => 
+        ex.id === exerciseId ? { ...ex, ...updates } : ex
+      ));
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_UPDATED_SUCCESS, 'success');
     } catch (error) {
@@ -117,14 +121,22 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     try {
       setLoading(true);
       
-      // Encontrar el ejercicio actual para obtener el exercise_id
+      // Encontrar el ejercicio actual antes de hacer cambios
       const currentExercise = exercises.find(ex => ex.id === exerciseId);
-      if (!currentExercise) throw new Error('Exercise not found');
+      if (!currentExercise) {
+        console.error('Exercise not found with id:', exerciseId);
+        console.error('Available exercises:', exercises.map(ex => ({ id: ex.id, name: ex.exercise_name })));
+        throw new Error('Exercise not found');
+      }
       
-      // Actualizar estado local inmediatamente
-      setExercises(prev => prev.filter(ex => ex.id !== exerciseId));
-      
+      // Sincronizar con el servidor primero
       await RoutineService.removeExerciseFromRoutine(routineId, currentExercise.exercise_id);
+      
+      // Renumerar grupos automáticamente después de eliminar
+      await RoutineService.renumberRoutineGroups(routineId);
+      
+      // Recargar ejercicios para obtener los números de grupo actualizados
+      await loadExercises();
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_REMOVED_SUCCESS, 'success');
     } catch (error) {
@@ -137,37 +149,6 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     }
   }, [routineId, exercises, loadExercises, addNotification]);
 
-  const reorderExercises = useCallback(async (exerciseOrders: Array<[number, number]>) => {
-    if (!routineId) return;
-
-    try {
-      setLoading(true);
-      
-      // Actualizar estado local inmediatamente
-      setExercises(prev => {
-        const updated = [...prev];
-        exerciseOrders.forEach(([exerciseId, newOrder]) => {
-          const index = updated.findIndex(ex => ex.id === exerciseId);
-          if (index !== -1) {
-            updated[index] = { ...updated[index], order_index: newOrder };
-          }
-        });
-        return updated;
-      });
-      
-      await RoutineService.reorderRoutineExercises(routineId, exerciseOrders);
-      
-      addNotification(ROUTINE_UI_LABELS.EXERCISES_REORDERED_SUCCESS, 'success');
-    } catch (error) {
-      console.error('Error reordering exercises:', error);
-      // Recargar en caso de error
-      await loadExercises();
-      addNotification(ROUTINE_ERROR_MESSAGES.REORDER_EXERCISES_FAILED, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [routineId, loadExercises, addNotification]);
-
   const clearExercises = useCallback(() => {
     setExercises([]);
   }, []);
@@ -179,7 +160,6 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     addExercise,
     updateExercise,
     removeExercise,
-    reorderExercises,
     clearExercises
   };
 }; 

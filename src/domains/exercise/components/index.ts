@@ -1,3 +1,3 @@
-export { ExerciseAutocomplete } from './ExerciseAutocomplete';
-export { SortableExerciseItem } from './SortableExerciseItem';
-export { SortableExerciseList } from './SortableExerciseList'; 
+export { ExerciseItem } from './ExerciseItem';
+export { ExerciseList } from './ExerciseList';
+export { ExerciseAutocomplete } from './ExerciseAutocomplete'; 

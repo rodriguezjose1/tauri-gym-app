@@ -1,385 +1,142 @@
-import { useState, useRef, useEffect } from "react";
-import { DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
-import { WorkoutService, Person, WorkoutEntryWithDetails } from "../../../services";
+import { useState, useMemo } from 'react';
+import { useConfig } from '../../../shared/contexts/ConfigContext';
+import { WorkoutEntryWithDetails } from '../../../services';
 
 interface UseWeeklyCalendarProps {
-  selectedPerson?: Person | null;
-  workoutData?: WorkoutEntryWithDetails[];
-  onWorkoutDataChange?: (workoutData: WorkoutEntryWithDetails[]) => void;
-  onReorderExercises: (exerciseOrders: Array<{ id: number; order: number }>) => void;
+  selectedPerson: any;
+  workoutData: WorkoutEntryWithDetails[];
+  onWorkoutDataChange?: (data: WorkoutEntryWithDetails[]) => void;
+  onGroupEmpty?: (date: string, groupNumber: number) => void;
 }
 
 export const useWeeklyCalendar = ({
   selectedPerson,
   workoutData,
   onWorkoutDataChange,
-  onReorderExercises,
+  onGroupEmpty
 }: UseWeeklyCalendarProps) => {
-  // Workout data state
-  const [workoutDataState, setWorkoutDataState] = useState<WorkoutEntryWithDetails[]>([]);
-  const [workoutLoading, setWorkoutLoading] = useState(false);
+  const { config } = useConfig();
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [weekOffset, setWeekOffset] = useState<number>(0); // 0 = current week, -1 = previous, +1 = next
 
-  // Calendar state
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [showWeekends, setShowWeekends] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const savedScrollPosition = useRef<number>(0);
-  const isReordering = useRef<boolean>(false);
+  // Generate three weeks based on current offset
+  const threeWeeks = useMemo(() => {
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay());
+    
+    // Apply week offset
+    const baseWeekStart = new Date(currentWeekStart);
+    baseWeekStart.setDate(currentWeekStart.getDate() + (weekOffset * 7));
+    
+    const weeks = [];
+    for (let weekOffsetFromBase = -1; weekOffsetFromBase <= 1; weekOffsetFromBase++) {
+      const weekStart = new Date(baseWeekStart);
+      weekStart.setDate(baseWeekStart.getDate() + (weekOffsetFromBase * 7));
+      
+      const week = [];
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const day = new Date(weekStart);
+        day.setDate(weekStart.getDate() + dayOffset);
+        week.push(day);
+      }
+      weeks.push(week);
+    }
+    
+    return weeks;
+  }, [weekOffset]);
 
-  // Helper function to format date as YYYY-MM-DD to match database format
-  const formatDateForDB = (date: Date) => {
+  // Get date range title
+  const dateRangeTitle = useMemo(() => {
+    if (threeWeeks.length === 0) return '';
+    
+    const firstWeek = threeWeeks[0];
+    const lastWeek = threeWeeks[threeWeeks.length - 1];
+    const startDate = firstWeek[0];
+    const endDate = lastWeek[6];
+    
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('es-ES', { 
+        day: 'numeric', 
+        month: 'short'
+      });
+    };
+    
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  }, [threeWeeks]);
+
+  // Navigation functions
+  const goToNewerWeeks = () => {
+    setWeekOffset(prev => prev + 1);
+  };
+
+  const goToOlderWeeks = () => {
+    setWeekOffset(prev => prev - 1);
+  };
+
+  const goToCurrentWeeks = () => {
+    setWeekOffset(0);
+  };
+
+  // Format date for database
+  const formatDateForDB = (date: Date): string => {
     return date.toISOString().split('T')[0];
   };
 
-  // Workout data functions
-  const fetchWorkoutData = async (personId: number, startDate?: string, endDate?: string) => {
-    setWorkoutLoading(true);
-    try {
-      // Calculate default date range if not provided
-      let actualStartDate = startDate;
-      let actualEndDate = endDate;
-      
-      if (!actualStartDate || !actualEndDate) {
-        const today = new Date();
-        const start = new Date(today);
-        start.setDate(today.getDate() - (weekOffset * 21) - 20); // 3 weeks * 7 days = 21
-        actualStartDate = formatDateForDB(start);
-        
-        const end = new Date(today);
-        end.setDate(today.getDate() - (weekOffset * 21));
-        actualEndDate = formatDateForDB(end);
-      }
-      
-      const data = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(
-        personId,
-        actualStartDate,
-        actualEndDate
-      );
-      
-      if (onWorkoutDataChange) {
-        onWorkoutDataChange(data);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error("Error fetching workout data:", error);
-      return [];
-    } finally {
-      setWorkoutLoading(false);
-    }
-  };
-
-  const fetchDataForOffset = async (offset: number) => {
-    if (!selectedPerson) return;
-    
+  // Check if date is today
+  const isToday = (date: Date): boolean => {
     const today = new Date();
-    
-    // Calculate the date range for the 3 weeks we want to show
-    const oldestWeekStart = new Date(today);
-    const totalWeeksBack = (offset * 3) + 2; // +2 because we show 3 weeks (0, 1, 2)
-    oldestWeekStart.setDate(today.getDate() - (totalWeeksBack * 7) - today.getDay());
-    
-    const newestWeekEnd = new Date(today);
-    const newestWeeksBack = offset * 3;
-    newestWeekEnd.setDate(today.getDate() - (newestWeeksBack * 7) - today.getDay() + 6);
-    
-    const startDate = oldestWeekStart.toISOString().split('T')[0];
-    const endDate = newestWeekEnd.toISOString().split('T')[0];
-    
-    await fetchWorkoutData(selectedPerson.id!, startDate, endDate);
+    return formatDateForDB(date) === formatDateForDB(today);
   };
 
-  // Save scroll position before data refresh
-  const saveScrollPosition = () => {
-    if (scrollContainerRef.current) {
-      savedScrollPosition.current = scrollContainerRef.current.scrollTop;
-    }
+  // Check if date is selected
+  const isSelected = (date: Date): boolean => {
+    return selectedDate === formatDateForDB(date);
   };
 
-  // Restore scroll position after data refresh
-  const restoreScrollPosition = () => {
-    if (scrollContainerRef.current && isReordering.current) {
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = savedScrollPosition.current;
-          isReordering.current = false;
-        }
-      }, 50); // Small delay to ensure DOM is updated
-    }
-  };
-
-  // Drag and drop handler
-  const handleDragEnd = (event: DragEndEvent, currentWorkoutData: WorkoutEntryWithDetails[]) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    // Find the active workout being dragged
-    const activeWorkout = currentWorkoutData.find(w => w.id === active.id);
-    if (!activeWorkout) return;
-
-    const dayDateString = formatDateForDB(new Date(activeWorkout.date));
-    const dayWorkouts = currentWorkoutData
-      .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
-      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-
-    // Check if we're dropping over a group container or another workout
-    const overIdString = String(over.id);
+  // Group workouts by group number
+  const groupWorkoutsByGroup = (workouts: WorkoutEntryWithDetails[], dayDateString: string, emptyGroups: number[] = []) => {
+    const groups = new Map<number, WorkoutEntryWithDetails[]>();
     
-    if (overIdString.startsWith('group-')) {
-      // Dropping over a group container - change group
-      // Format: group-{groupNumber}-{dayDateString}
-      const parts = overIdString.split('-');
-      if (parts.length >= 2) {
-        const targetGroupNumber = parseInt(parts[1]);
-        handleGroupChange(activeWorkout, targetGroupNumber, dayWorkouts);
+    // Add workouts to their respective groups
+    workouts.forEach(workout => {
+      const groupNumber = workout.group_number || 1;
+      if (!groups.has(groupNumber)) {
+        groups.set(groupNumber, []);
       }
-    } else {
-      // Dropping over another workout - reorder within same group or change group
-      const targetWorkout = currentWorkoutData.find(w => w.id === over.id);
-      if (!targetWorkout) return;
+      groups.get(groupNumber)!.push(workout);
+    });
 
-      if (activeWorkout.group_number === targetWorkout.group_number) {
-        // Same group - reorder
-        handleReorderWithinGroup(activeWorkout, targetWorkout, dayWorkouts);
-      } else {
-        // Different group - change group and position
-        handleMoveToGroup(activeWorkout, targetWorkout, dayWorkouts);
+    // Add empty groups
+    emptyGroups.forEach(groupNumber => {
+      if (!groups.has(groupNumber)) {
+        groups.set(groupNumber, []);
       }
-    }
-  };
-
-  // Handle changing workout group
-  const handleGroupChange = async (workout: WorkoutEntryWithDetails, newGroupNumber: number, dayWorkouts: WorkoutEntryWithDetails[]) => {
-    try {
-      // Calculate new order within the target group
-      const targetGroupWorkouts = dayWorkouts.filter(w => w.group_number === newGroupNumber);
-      const newOrder = targetGroupWorkouts.length; // Add at the end of the group
-
-      // Update the workout with new group and order
-      const updatedWorkout = {
-        ...workout,
-        group_number: newGroupNumber,
-        order_index: newOrder
-      };
-
-      await WorkoutService.updateWorkoutEntry(updatedWorkout);
-
-      // Refresh data to reflect changes
-      if (selectedPerson && selectedPerson.id) {
-        const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - 20);
-        const endDate = new Date(today);
-        
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        
-        const refreshedData = await WorkoutService.getWorkoutEntriesByPersonAndDateRange(
-          selectedPerson.id,
-          startDateStr,
-          endDateStr
-        );
-        
-        if (onWorkoutDataChange) {
-          onWorkoutDataChange(refreshedData);
-        }
-      }
-    } catch (error) {
-      console.error("Error changing workout group:", error);
-    }
-  };
-
-  // Handle moving workout to different group with specific position
-  const handleMoveToGroup = (activeWorkout: WorkoutEntryWithDetails, targetWorkout: WorkoutEntryWithDetails, dayWorkouts: WorkoutEntryWithDetails[]) => {
-    const targetGroupWorkouts = dayWorkouts
-      .filter(w => w.group_number === targetWorkout.group_number)
-      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-
-    const targetIndex = targetGroupWorkouts.findIndex(w => w.id === targetWorkout.id);
-    
-    // Update the active workout with new group and order
-    WorkoutService.updateWorkoutEntry({
-      ...activeWorkout,
-      group_number: targetWorkout.group_number,
-      order_index: targetIndex
     });
 
-    // Update orders for other workouts in the target group
-    const orderUpdates = targetGroupWorkouts
-      .filter(w => w.id !== activeWorkout.id)
-      .map((workout, index) => [workout.id!, index >= targetIndex ? index + 1 : index] as [number, number]);
+    // Convert to array and sort
+    const groupsArray = Array.from(groups.entries())
+      .map(([groupNumber, workouts]) => ({
+        groupNumber,
+        workouts: workouts.sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+      }))
+      .sort((a, b) => a.groupNumber - b.groupNumber);
 
-    if (orderUpdates.length > 0) {
-      WorkoutService.updateExerciseOrder(orderUpdates);
-    }
+    return groupsArray;
   };
-
-  // Reorder workouts within the same group
-  const handleReorderWithinGroup = (activeWorkout: WorkoutEntryWithDetails, targetWorkout: WorkoutEntryWithDetails, dayWorkouts: WorkoutEntryWithDetails[]) => {
-    const groupWorkouts = dayWorkouts
-      .filter(w => w.group_number === activeWorkout.group_number)
-      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-
-    const oldIndex = groupWorkouts.findIndex(w => w.id === activeWorkout.id);
-    const newIndex = groupWorkouts.findIndex(w => w.id === targetWorkout.id);
-
-    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-      const reorderedWorkouts = arrayMove(groupWorkouts, oldIndex, newIndex);
-      
-      // Update order_index for all workouts in the group
-      const exerciseOrders = reorderedWorkouts
-        .map((workout, index) => [workout.id!, index] as [number, number]);
-
-      WorkoutService.updateExerciseOrder(exerciseOrders);
-    }
-  };
-
-  // Create a new group for a workout
-  const handleCreateNewGroup = (workout: WorkoutEntryWithDetails, dayDateString: string) => {
-    const dayWorkouts = workoutData?.filter(w => 
-      formatDateForDB(new Date(w.date)) === dayDateString
-    ) || [];
-
-    const existingGroups = new Set(dayWorkouts.map(w => w.group_number));
-    let newGroupNumber = 1;
-    while (existingGroups.has(newGroupNumber)) {
-      newGroupNumber++;
-    }
-
-    WorkoutService.updateWorkoutEntry({
-      ...workout,
-      group_number: newGroupNumber,
-      order_index: 0
-    });
-  };
-
-  // Generate 3 weeks based on offset
-  const generateThreeWeeks = () => {
-    const today = new Date();
-    const weeks = [];
-    
-    for (let i = 2; i >= 0; i--) {
-      const weekStart = new Date(today);
-      const totalWeeksBack = (weekOffset * 3) + i;
-      weekStart.setDate(today.getDate() - (totalWeeksBack * 7) - today.getDay());
-      
-      const weekDays = Array.from({ length: 7 }, (_, dayIndex) => {
-        const day = new Date(weekStart);
-        day.setDate(weekStart.getDate() + dayIndex);
-        return day;
-      });
-      
-      // Filter out weekends if showWeekends is false
-      const filteredDays = showWeekends ? weekDays : weekDays.filter(day => {
-        const dayOfWeek = day.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // 0 = Sunday, 6 = Saturday
-      });
-      
-      weeks.push({
-        weekStart,
-        days: filteredDays,
-        weekNumber: 3 - i
-      });
-    }
-    
-    // Reverse the weeks array so the most recent weeks appear first
-    return weeks.reverse();
-  };
-
-  const formatWeekRange = (weekStart: Date) => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    
-    const startStr = weekStart.toLocaleDateString('es-ES', { 
-      day: 'numeric', 
-      month: 'short' 
-    });
-    const endStr = weekEnd.toLocaleDateString('es-ES', { 
-      day: 'numeric', 
-      month: 'short'
-    });
-    
-    return `${startStr} - ${endStr}`;
-  };
-
-  const getDateRangeTitle = () => {
-    if (weekOffset === 0) {
-      return "📅 Últimas 3 Semanas de Entrenamientos";
-    } else {
-      const weeksAgo = weekOffset * 3;
-      return `📅 Entrenamientos de hace ${weeksAgo}-${weeksAgo + 2} semanas`;
-    }
-  };
-
-  // Navigation functions
-  const goToNewerWeeks = async () => {
-    if (weekOffset > 0) {
-      const newOffset = weekOffset - 1;
-      setWeekOffset(newOffset);
-      await fetchDataForOffset(newOffset);
-    }
-  };
-
-  const goToOlderWeeks = async () => {
-    const newOffset = weekOffset + 1;
-    setWeekOffset(newOffset);
-    await fetchDataForOffset(newOffset);
-  };
-
-  const goToCurrentWeeks = async () => {
-    setWeekOffset(0);
-    await fetchDataForOffset(0);
-  };
-
-  // Effects
-  // Restore scroll position when workoutData changes after reordering
-  useEffect(() => {
-    restoreScrollPosition();
-  }, [workoutDataState]);
-
-  // Sync internal workout data state with prop data from parent
-  useEffect(() => {
-    if (workoutData) {
-      setWorkoutDataState(workoutData);
-    }
-  }, [workoutData]);
-
-  // Sync search term when selectedPerson prop changes
-  useEffect(() => {
-    if (selectedPerson) {
-      setWorkoutDataState(workoutData || []);
-    } else {
-      setWorkoutDataState([]);
-    }
-  }, [selectedPerson, workoutData]);
-
-  // Use the most current workout data (prop takes precedence over internal state)
-  const currentWorkoutData = workoutData || workoutDataState;
 
   return {
-    // State
-    workoutLoading,
-    weekOffset,
-    showWeekends,
-    setShowWeekends,
-    scrollContainerRef,
-    currentWorkoutData,
-    
-    // Functions
-    fetchWorkoutData,
-    fetchDataForOffset,
-    handleDragEnd,
-    generateThreeWeeks,
+    threeWeeks,
+    dateRangeTitle,
     formatDateForDB,
-    formatWeekRange,
-    getDateRangeTitle,
+    groupWorkoutsByGroup,
+    isToday,
+    isSelected,
+    selectedDate,
+    showWeekends: config.showWeekends, // Use global config
     goToNewerWeeks,
     goToOlderWeeks,
     goToCurrentWeeks,
-    handleCreateNewGroup,
+    weekOffset
   };
 }; 

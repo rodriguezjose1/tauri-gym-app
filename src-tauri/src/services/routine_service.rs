@@ -3,11 +3,11 @@ use crate::models::routine::{Routine, RoutineExercise, RoutineWithExercises, Rou
 use crate::repository::routine_repository::RoutineRepository;
 
 pub struct RoutineService {
-    repository: Arc<dyn RoutineRepository>,
+    repository: Arc<dyn RoutineRepository + Send + Sync>,
 }
 
 impl RoutineService {
-    pub fn new(repository: Arc<dyn RoutineRepository>) -> Self {
+    pub fn new(repository: Arc<dyn RoutineRepository + Send + Sync>) -> Self {
         Self { repository }
     }
 
@@ -22,15 +22,15 @@ impl RoutineService {
         }
 
         let routine = Routine::new(name.trim().to_string(), code.trim().to_uppercase());
-        self.repository.create_routine(routine)
+        self.repository.create(routine)
     }
 
     pub fn get_routine_by_id(&self, id: i32) -> Option<Routine> {
-        self.repository.get_routine_by_id(id)
+        self.repository.get_by_id(id)
     }
 
     pub fn get_routine_with_exercises(&self, id: i32) -> Option<RoutineWithExercises> {
-        self.repository.get_routine_with_exercises(id)
+        self.repository.get_with_exercises(id)
     }
 
     pub fn update_routine(&self, id: i32, name: String, code: String) -> Result<(), String> {
@@ -42,23 +42,15 @@ impl RoutineService {
             return Err("El código de la rutina no puede estar vacío".to_string());
         }
 
-        let routine = Routine {
-            id: Some(id),
-            name: name.trim().to_string(),
-            code: code.trim().to_uppercase(),
-            created_at: None,
-            updated_at: None,
-        };
-
-        self.repository.update_routine(routine)
+        self.repository.update(id, name.trim().to_string(), code.trim().to_uppercase())
     }
 
     pub fn delete_routine(&self, id: i32) -> Result<(), String> {
-        self.repository.delete_routine(id)
+        self.repository.delete(id)
     }
 
     pub fn list_routines(&self) -> Vec<Routine> {
-        self.repository.list_routines()
+        self.repository.list_all()
     }
 
     pub fn list_routines_paginated(&self, page: i32, page_size: i32) -> Vec<Routine> {
@@ -98,7 +90,7 @@ impl RoutineService {
         group_number: Option<i32>,
     ) -> Result<(), String> {
         // Validate that routine exists
-        if self.repository.get_routine_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id).is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
@@ -163,11 +155,24 @@ impl RoutineService {
 
     pub fn replace_routine_exercises(&self, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
         // Validate that routine exists
-        if self.repository.get_routine_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id).is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
         self.repository.replace_routine_exercises(routine_id, exercises)
+    }
+
+    pub fn renumber_routine_groups(&self, routine_id: i32) -> Result<(), String> {
+        if routine_id <= 0 {
+            return Err("Invalid routine ID".to_string());
+        }
+
+        // Validate that routine exists
+        if self.repository.get_by_id(routine_id).is_none() {
+            return Err("La rutina especificada no existe".to_string());
+        }
+
+        self.repository.renumber_routine_groups(routine_id)
     }
 
     // Utility method to create a routine from an existing workout session

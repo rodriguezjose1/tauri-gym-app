@@ -1,9 +1,9 @@
-import { WorkoutEntryForm } from '../../types/dashboard';
+import { WorkoutEntryForm } from '../types/dashboard';
 
 interface UseDayRightClickProps {
   selectedPerson: any;
   setSelectedDate: (date: string) => void;
-  openWorkoutModal: (date: string) => void;
+  openWorkoutModal: () => void;
   updateWorkoutForm: (field: keyof WorkoutEntryForm, value: any) => void;
 }
 
@@ -24,9 +24,9 @@ export const useDayRightClick = ({
     updateWorkoutForm('reps', 1);
     updateWorkoutForm('weight', 0);
     updateWorkoutForm('notes', "");
-    updateWorkoutForm('order', 0);
+    updateWorkoutForm('order_index', 0);
     updateWorkoutForm('group_number', 1);
-    openWorkoutModal(date);
+    openWorkoutModal();
   };
 
   return { handleDayRightClick };

@@ -4,13 +4,13 @@ Una aplicación de gestión de gimnasio construida con **Tauri**, **React** y **
 
 ## 🚀 Características Principales
 
-- **📊 Dashboard Interactivo**: Vista de calendario con entrenamientos organizados por semanas
-- **👥 Gestión de Personas**: CRUD completo para clientes/usuarios
-- **💪 Catálogo de Ejercicios**: Base de datos de ejercicios con autocompletado
-- **📋 Rutinas Personalizadas**: Creación y gestión de rutinas con drag & drop
-- **🗓️ Entrenamientos**: Programación y seguimiento de entrenamientos
-- **⚙️ Configuraciones**: Personalización de la aplicación
-- **🔔 Notificaciones**: Sistema de notificaciones toast integrado
+- **👥 Gestión de Clientes**: Administra información completa de tus clientes
+- **📊 Dashboard Interactivo**: Visualiza entrenamientos en calendario semanal
+- **💪 Catálogo de Ejercicios**: Base de datos completa con autocompletado
+- **📋 Rutinas Personalizadas**: Creación y gestión de rutinas personalizadas
+- **🔄 Sincronización Local**: Datos almacenados localmente con SQLite
+- **⚡ Rendimiento Nativo**: Aplicación desktop construida con Tauri
+- **🎨 Interfaz Moderna**: Diseño responsive con componentes reutilizables
 
 ## 🏗️ Arquitectura
 
@@ -43,7 +43,6 @@ Para más detalles, consulta [ARCHITECTURE.md](./ARCHITECTURE.md).
 - **React 18** - Biblioteca de UI
 - **TypeScript** - Tipado estático
 - **Vite** - Build tool y dev server
-- **@dnd-kit** - Drag and drop functionality
 - **CSS Modules** - Estilos modulares
 
 ### Backend/Desktop
@@ -118,7 +117,7 @@ npm run type-check
 ### Dashboard
 - **Vista de calendario** con entrenamientos organizados por semanas
 - **Navegación temporal** (anterior/siguiente/hoy)
-- **Drag & drop** para reorganizar entrenamientos
+- **Gestión de entrenamientos** con funcionalidad completa
 - **Agregar entrenamientos** directamente desde el calendario
 
 ### Gestión de Personas
@@ -132,7 +131,7 @@ npm run type-check
 - **Gestión CRUD** de ejercicios
 
 ### Rutinas
-- **Creador de rutinas** con drag & drop
+- **Creador de rutinas** con interfaz intuitiva
 - **Agrupación de ejercicios** por superseries
 - **Configuración detallada** (series, repeticiones, peso)
 - **Reutilización** de rutinas
@@ -258,7 +257,6 @@ Si encuentras algún problema o tienes preguntas:
 
 - **Tauri Team** por el excelente framework
 - **React Team** por la biblioteca de UI
-- **@dnd-kit** por la funcionalidad de drag & drop
 - **Vite Team** por las herramientas de desarrollo
 
 ---

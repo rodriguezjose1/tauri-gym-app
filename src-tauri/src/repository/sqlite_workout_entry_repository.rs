@@ -555,28 +555,60 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn update_exercise_order(&self, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
-        if exercise_orders.is_empty() {
-            return Ok(());
-        }
-
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
-        // Start a transaction for batch order updates
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
         
         {
-            let mut stmt = tx.prepare(
-                "UPDATE workout_entries SET order_index = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2"
-            ).map_err(|e| e.to_string())?;
-
+            let mut stmt = tx.prepare("UPDATE workout_entries SET order_index = ?1 WHERE id = ?2")
+                .map_err(|e| e.to_string())?;
+            
             for (id, order) in exercise_orders {
                 stmt.execute(params![order, id]).map_err(|e| e.to_string())?;
             }
         }
         
-        // Commit the transaction
         tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn renumber_groups(&self, person_id: i32, date: &str) -> Result<(), String> {
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
         
+        // Start transaction
+        let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        
+        {
+            // Get all distinct group numbers for this person and date, ordered by group number
+            let mut stmt = tx.prepare(
+                "SELECT DISTINCT group_number FROM workout_entries 
+                 WHERE person_id = ?1 AND date(date) = date(?2) 
+                 ORDER BY group_number"
+            ).map_err(|e| e.to_string())?;
+            
+            let group_numbers: Result<Vec<i32>, _> = stmt.query_map(params![person_id, date], |row| {
+                Ok(row.get::<_, i32>(0)?)
+            }).map_err(|e| e.to_string())?.collect();
+            
+            let group_numbers = group_numbers.map_err(|e| e.to_string())?;
+            
+            // Renumber groups consecutively starting from 1
+            for (new_group_number, old_group_number) in group_numbers.iter().enumerate() {
+                let new_group = (new_group_number + 1) as i32;
+                
+                // Only update if the group number needs to change
+                if new_group != *old_group_number {
+                    tx.execute(
+                        "UPDATE workout_entries 
+                         SET group_number = ?1 
+                         WHERE person_id = ?2 AND date(date) = date(?3) AND group_number = ?4",
+                        params![new_group, person_id, date, old_group_number]
+                    ).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        
+        tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 } 

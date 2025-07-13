@@ -106,26 +106,27 @@ impl SqliteRoutineRepository {
 }
 
 impl RoutineRepository for SqliteRoutineRepository {
-    fn create_routine(&self, routine: Routine) -> Result<i32, String> {
+    fn create(&self, routine: Routine) -> Result<i32, String> {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
             "INSERT INTO routines (name, code) VALUES (?1, ?2)",
-            params![routine.name, routine.code],
+            params![routine.name, routine.code]
         ).map_err(|e| e.to_string())?;
-
+        
+        // Get the ID of the newly created routine
         let routine_id = conn.last_insert_rowid() as i32;
         Ok(routine_id)
     }
 
-    fn get_routine_by_id(&self, id: i32) -> Option<Routine> {
+    fn get_by_id(&self, id: i32) -> Option<Routine> {
         let conn = self.get_connection().ok()?;
         
         let mut stmt = conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines WHERE id = ?1"
         ).ok()?;
-
-        let routine = stmt.query_row(params![id], |row| {
+        
+        stmt.query_row(params![id], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
                 name: row.get(1)?,
@@ -133,15 +134,13 @@ impl RoutineRepository for SqliteRoutineRepository {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
             })
-        }).ok()?;
-
-        Some(routine)
+        }).ok()
     }
 
-    fn get_routine_with_exercises(&self, id: i32) -> Option<RoutineWithExercises> {
-        let routine = self.get_routine_by_id(id)?;
+    fn get_with_exercises(&self, id: i32) -> Option<RoutineWithExercises> {
+        let routine = self.get_by_id(id)?;
         let exercises = self.get_routine_exercises(id);
-
+        
         Some(RoutineWithExercises {
             id: routine.id,
             name: routine.name,
@@ -152,48 +151,39 @@ impl RoutineRepository for SqliteRoutineRepository {
         })
     }
 
-    fn update_routine(&self, routine: Routine) -> Result<(), String> {
+    fn update(&self, id: i32, name: String, code: String) -> Result<(), String> {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
             "UPDATE routines SET name = ?1, code = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3",
-            params![routine.name, routine.code, routine.id],
+            params![name, code, id]
         ).map_err(|e| e.to_string())?;
-
+        
         Ok(())
     }
 
-    fn delete_routine(&self, id: i32) -> Result<(), String> {
+    fn delete(&self, id: i32) -> Result<(), String> {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
-        // Start transaction to delete routine and its exercises
-        let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-        
-        // Delete routine exercises first (due to foreign key constraint)
-        tx.execute("DELETE FROM routine_exercises WHERE routine_id = ?1", params![id])
+        conn.execute("DELETE FROM routines WHERE id = ?1", params![id])
             .map_err(|e| e.to_string())?;
         
-        // Delete routine
-        tx.execute("DELETE FROM routines WHERE id = ?1", params![id])
-            .map_err(|e| e.to_string())?;
-        
-        tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn list_routines(&self) -> Vec<Routine> {
+    fn list_all(&self) -> Vec<Routine> {
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
         };
-
+        
         let mut stmt = match conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines ORDER BY name"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
         };
-
+        
         let routine_iter = match stmt.query_map([], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
@@ -206,7 +196,7 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(iter) => iter,
             Err(_) => return Vec::new(),
         };
-
+        
         routine_iter.filter_map(|routine| routine.ok()).collect()
     }
 
@@ -215,18 +205,16 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
         };
-
+        
         let offset = (page - 1) * page_size;
         
         let mut stmt = match conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
-             ORDER BY name
-             LIMIT ?1 OFFSET ?2"
+            "SELECT id, name, code, created_at, updated_at FROM routines ORDER BY name LIMIT ?1 OFFSET ?2"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
         };
-
+        
         let routine_iter = match stmt.query_map(params![page_size, offset], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
@@ -239,7 +227,7 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(iter) => iter,
             Err(_) => return Vec::new(),
         };
-
+        
         routine_iter.filter_map(|routine| routine.ok()).collect()
     }
 
@@ -248,18 +236,18 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
         };
-
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        
+        let search_pattern = format!("%{}%", query);
         
         let mut stmt = match conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines 
-             WHERE LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1 
+             WHERE name LIKE ?1 OR code LIKE ?1 
              ORDER BY name"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
         };
-
+        
         let routine_iter = match stmt.query_map(params![search_pattern], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
@@ -272,7 +260,7 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(iter) => iter,
             Err(_) => return Vec::new(),
         };
-
+        
         routine_iter.filter_map(|routine| routine.ok()).collect()
     }
 
@@ -281,20 +269,19 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
         };
-
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        
         let offset = (page - 1) * page_size;
+        let search_pattern = format!("%{}%", query);
         
         let mut stmt = match conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines 
-             WHERE LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1 
-             ORDER BY name
-             LIMIT ?2 OFFSET ?3"
+             WHERE name LIKE ?1 OR code LIKE ?1 
+             ORDER BY name LIMIT ?2 OFFSET ?3"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
         };
-
+        
         let routine_iter = match stmt.query_map(params![search_pattern, page_size, offset], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
@@ -307,7 +294,7 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(iter) => iter,
             Err(_) => return Vec::new(),
         };
-
+        
         routine_iter.filter_map(|routine| routine.ok()).collect()
     }
 
@@ -369,24 +356,22 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
         };
-
+        
         let mut stmt = match conn.prepare(
-            "SELECT 
-                re.id, re.routine_id, re.exercise_id, re.order_index, re.sets, re.reps, re.weight, re.notes, re.group_number,
-                re.created_at, re.updated_at,
-                e.name as exercise_name, e.code as exercise_code
+            "SELECT re.id, re.routine_id, re.exercise_id, re.order_index, re.sets, re.reps, re.weight, re.notes, re.group_number, re.created_at, re.updated_at,
+                    e.name as exercise_name, e.code as exercise_code
              FROM routine_exercises re
              JOIN exercise e ON re.exercise_id = e.id
              WHERE re.routine_id = ?1
-             ORDER BY re.order_index ASC"
+             ORDER BY re.order_index"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
         };
-
+        
         let exercise_iter = match stmt.query_map(params![routine_id], |row| {
             Ok(RoutineExerciseWithDetails {
-                id: Some(row.get(0)?),
+                id: row.get(0)?,
                 routine_id: row.get(1)?,
                 exercise_id: row.get(2)?,
                 order_index: row.get(3)?,
@@ -404,24 +389,21 @@ impl RoutineRepository for SqliteRoutineRepository {
             Ok(iter) => iter,
             Err(_) => return Vec::new(),
         };
-
+        
         exercise_iter.filter_map(|exercise| exercise.ok()).collect()
     }
 
-    fn reorder_routine_exercises(&self, routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+    fn reorder_routine_exercises(&self, _routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
         
         {
-            let mut stmt = tx.prepare(
-                "UPDATE routine_exercises SET order_index = ?1, updated_at = CURRENT_TIMESTAMP 
-                 WHERE routine_id = ?2 AND exercise_id = ?3"
-            ).map_err(|e| e.to_string())?;
-
-            for (exercise_id, new_order) in exercise_orders {
-                stmt.execute(params![new_order, routine_id, exercise_id])
-                    .map_err(|e| e.to_string())?;
+            let mut stmt = tx.prepare("UPDATE routine_exercises SET order_index = ?1 WHERE id = ?2")
+                .map_err(|e| e.to_string())?;
+            
+            for (id, order) in exercise_orders {
+                stmt.execute(params![order, id]).map_err(|e| e.to_string())?;
             }
         }
         
@@ -457,6 +439,46 @@ impl RoutineRepository for SqliteRoutineRepository {
                         exercise.notes,
                         exercise.group_number
                     ]).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn renumber_routine_groups(&self, routine_id: i32) -> Result<(), String> {
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        
+        // Start transaction
+        let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        
+        {
+            // Get all distinct group numbers for this routine, ordered by group number
+            let mut stmt = tx.prepare(
+                "SELECT DISTINCT group_number FROM routine_exercises 
+                 WHERE routine_id = ?1 
+                 ORDER BY group_number"
+            ).map_err(|e| e.to_string())?;
+            
+            let group_numbers: Result<Vec<i32>, _> = stmt.query_map(params![routine_id], |row| {
+                Ok(row.get::<_, i32>(0)?)
+            }).map_err(|e| e.to_string())?.collect();
+            
+            let group_numbers = group_numbers.map_err(|e| e.to_string())?;
+            
+            // Renumber groups consecutively starting from 1
+            for (new_group_number, old_group_number) in group_numbers.iter().enumerate() {
+                let new_group = (new_group_number + 1) as i32;
+                
+                // Only update if the group number needs to change
+                if new_group != *old_group_number {
+                    tx.execute(
+                        "UPDATE routine_exercises 
+                         SET group_number = ?1 
+                         WHERE routine_id = ?2 AND group_number = ?3",
+                        params![new_group, routine_id, old_group_number]
+                    ).map_err(|e| e.to_string())?;
                 }
             }
         }

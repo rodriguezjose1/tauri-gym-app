@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button, Input, Modal, Select } from "../../../shared/components/base";
 import { ExerciseAutocomplete } from "../../exercise";
-import { Person, Exercise, WorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
+import { Person, Exercise, WorkoutEntryForm, EditWorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
 import '../../../styles/WorkoutModals.css';
 
 interface WorkoutModalsProps {
@@ -12,6 +12,14 @@ interface WorkoutModalsProps {
   onCloseWorkoutModal: () => void;
   onSaveWorkoutEntry: () => void;
   onUpdateWorkoutForm: (field: keyof WorkoutEntryForm, value: any) => void;
+  
+  // Edit workout modal
+  showEditModal: boolean;
+  editForm: EditWorkoutEntryForm;
+  savingEdit: boolean;
+  onCloseEditModal: () => void;
+  onSaveEditEntry: () => void;
+  onUpdateEditForm: (field: keyof EditWorkoutEntryForm, value: any) => void;
   
   // Session modal
   showSessionModal: boolean;
@@ -44,6 +52,14 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
   onCloseWorkoutModal,
   onSaveWorkoutEntry,
   onUpdateWorkoutForm,
+  
+  // Edit workout modal
+  showEditModal,
+  editForm,
+  savingEdit,
+  onCloseEditModal,
+  onSaveEditEntry,
+  onUpdateEditForm,
   
   // Session modal
   showSessionModal,
@@ -131,25 +147,23 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             </div>
 
             {/* Group Selection */}
-            <div>
-              <label className="workout-modal-label">
-                Grupo:
-              </label>
-              <select
-                value={workoutForm.group_number || 1}
-                onChange={(e) => onUpdateWorkoutForm('group_number', parseInt(e.target.value))}
-                className="workout-modal-group-select"
-              >
-                <option value={1}>Grupo 1</option>
-                <option value={2}>Grupo 2</option>
-                <option value={3}>Grupo 3</option>
-                <option value={4}>Grupo 4</option>
-                <option value={5}>Grupo 5</option>
-              </select>
-              <div className="workout-modal-group-help">
-                Los ejercicios del mismo grupo se mostrarán juntos en el calendario
-              </div>
-            </div>
+            <Select
+              label="Grupo:"
+              options={[
+                { value: 1, label: "Grupo 1" },
+                { value: 2, label: "Grupo 2" },
+                { value: 3, label: "Grupo 3" },
+                { value: 4, label: "Grupo 4" },
+                { value: 5, label: "Grupo 5" }
+              ]}
+              value={workoutForm.group_number || 1}
+              onChange={(value) => onUpdateWorkoutForm('group_number', parseInt(value.toString()))}
+              placeholder="Seleccionar grupo"
+              variant="primary"
+              size="md"
+              fullWidth
+              helperText="Los ejercicios del mismo grupo se mostrarán juntos en el calendario"
+            />
 
             {/* Temporarily commented out - using default values
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
@@ -216,6 +230,124 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
         </div>
       </Modal>
 
+      {/* Edit Workout Entry Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={onCloseEditModal}
+        title="Editar Ejercicio"
+        size="md"
+      >
+        <div className="workout-modal-content">
+          {selectedPerson && editForm.date && (
+            <div className="workout-modal-person-date-info">
+              <div className="workout-modal-person-name">
+                {selectedPerson.name} {selectedPerson.last_name}
+              </div>
+              <div className="workout-modal-date">
+                📅 {formatDate(editForm.date)}
+              </div>
+            </div>
+          )}
+
+          <div className="workout-modal-form-grid">
+            <div>
+              <ExerciseAutocomplete
+                onExerciseSelect={(exercise) => {
+                  if (exercise) {
+                    onUpdateEditForm('exercise_id', exercise.id || 0);
+                  } else {
+                    onUpdateEditForm('exercise_id', 0);
+                  }
+                }}
+                placeholder="Buscar ejercicio..."
+                selectedExercise={exercises.find(ex => ex.id === editForm.exercise_id) || null}
+              />
+            </div>
+
+            {/* Group Selection */}
+            <Select
+              label="Grupo:"
+              options={[
+                { value: 1, label: "Grupo 1" },
+                { value: 2, label: "Grupo 2" },
+                { value: 3, label: "Grupo 3" },
+                { value: 4, label: "Grupo 4" },
+                { value: 5, label: "Grupo 5" }
+              ]}
+              value={editForm.group_number || 1}
+              onChange={(value) => onUpdateEditForm('group_number', parseInt(value.toString()))}
+              placeholder="Seleccionar grupo"
+              variant="primary"
+              size="md"
+              fullWidth
+              helperText="Los ejercicios del mismo grupo se mostrarán juntos en el calendario"
+            />
+
+            {/* Temporarily commented out - using default values
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <Input
+                label="Series *"
+                type="number"
+                min="1"
+                value={editForm.sets?.toString() || '1'}
+                onChange={(e) => onUpdateEditForm('sets', parseInt(e.target.value) || 1)}
+                variant="primary"
+                fullWidth
+              />
+              
+              <Input
+                label="Repeticiones *"
+                type="number"
+                min="1"
+                value={editForm.reps?.toString() || '1'}
+                onChange={(e) => onUpdateEditForm('reps', parseInt(e.target.value) || 1)}
+                variant="primary"
+                fullWidth
+              />
+              
+              <Input
+                label="Peso (kg)"
+                type="number"
+                min="0"
+                step="0.5"
+                value={editForm.weight?.toString() || '0'}
+                onChange={(e) => onUpdateEditForm('weight', parseFloat(e.target.value) || 0)}
+                variant="primary"
+                fullWidth
+              />
+            </div>
+
+            <Input
+              label="Notas"
+              placeholder="Observaciones adicionales..."
+              value={editForm.notes || ''}
+              onChange={(e) => onUpdateEditForm('notes', e.target.value)}
+              variant="primary"
+              fullWidth
+            />
+            */}
+          </div>
+
+          <div className="workout-modal-actions">
+            <Button
+              onClick={onCloseEditModal}
+              variant="secondary"
+              disabled={savingEdit}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={onSaveEditEntry}
+              variant="primary"
+              loading={savingEdit}
+              disabled={editForm.exercise_id === 0}
+            >
+              {savingEdit ? "Guardando..." : "Actualizar Ejercicio"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Workout Session Modal */}
       <Modal
         isOpen={showSessionModal}
@@ -250,40 +382,31 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
             </div>
           )}
 
-          {/* Routine Selection Section */}
-          <div className="workout-modal-routine-section">
-            <div className="workout-modal-routine-header">
-              <h4 className="workout-modal-routine-title">
-                🏋️ Cargar desde Rutina
-              </h4>
-              <Button
-                onClick={() => setShowRoutineSelector(!showRoutineSelector)}
-                variant="secondary"
-                style={{ fontSize: '14px' }}
-              >
-                {showRoutineSelector ? 'Cancelar' : 'Seleccionar Rutina'}
-              </Button>
-            </div>
+          <div className="workout-modal-routine-selector">
+            <Button
+              onClick={() => setShowRoutineSelector(!showRoutineSelector)}
+              variant="secondary"
+              style={{ marginBottom: '16px' }}
+            >
+              {showRoutineSelector ? '📋 Ocultar Rutinas' : '📋 Cargar desde Rutina'}
+            </Button>
             
             {showRoutineSelector && (
-              <div className="workout-modal-routine-selector">
-                <div>
-                  <label className="workout-modal-label">
-                    Seleccionar Rutina:
-                  </label>
-                  <select
-                    value={selectedRoutineId || ''}
-                    onChange={(e) => setSelectedRoutineId(e.target.value ? parseInt(e.target.value) : null)}
-                    className="workout-modal-routine-select"
-                  >
-                    <option value="">-- Seleccionar rutina --</option>
-                    {routines.map(routine => (
-                      <option key={routine.id} value={routine.id}>
-                        {routine.name} ({routine.exerciseCount} ejercicios)
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="workout-modal-routine-content">
+                <Select
+                  label="Seleccionar Rutina:"
+                  options={routines.map(routine => ({
+                    value: routine.id,
+                    label: routine.name
+                  }))}
+                  value={selectedRoutineId || ''}
+                  onChange={(value) => setSelectedRoutineId(Number(value))}
+                  placeholder="Seleccionar rutina..."
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  helperText="Los ejercicios de la rutina se cargarán en el formulario"
+                />
                 
                 <div className="workout-modal-routine-actions">
                   <Button

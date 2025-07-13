@@ -2,51 +2,103 @@
 
 .person-search-container {
   position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center; /* Center the PersonSearch vertically */
+  min-height: 56px; /* Match parent container height */
+  margin: 0; /* Remove any default margins */
 }
 
 .person-search-selected {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  background-color: #f0f9ff;
+  padding: 10px 14px;
+  background-color: var(--accent-bg);
   border-radius: 8px;
-  border: 1px solid #0ea5e9;
-  margin-bottom: 12px;
+  border: 1px solid var(--accent-primary);
+  margin: 0; /* Remove all margins */
+  min-height: 48px; /* Ensure consistent height */
+  width: 100%;
 }
 
 .person-search-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background-color: #2563eb;
+  background-color: var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .person-search-info {
   flex: 1;
+  min-width: 0; /* Allow text to truncate */
 }
 
 .person-search-name {
   font-weight: 600;
-  color: #1f2937;
-  font-size: 14px;
+  color: var(--text-primary);
+  font-size: 15px;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .person-search-phone {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .person-search-input-container {
   position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center; /* Center input vertically */
+  min-height: 48px; /* Match selected state height */
+  margin: 0; /* Remove any default margins */
+}
+
+.person-search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0; /* Remove any default margins */
+}
+
+/* Ensure the Input component inside doesn't add margins */
+.person-search-input-wrapper .ui-input-container {
+  margin: 0 !important;
+  gap: 0 !important; /* Remove the gap that's causing misalignment */
+}
+
+.person-search-input-wrapper .ui-input-wrapper {
+  margin: 0 !important;
+}
+
+/* Override Input component's flex-direction for PersonSearch */
+.person-search-input-wrapper .ui-input-container {
+  flex-direction: row !important; /* Override column direction */
+  align-items: center !important;
+}
+
+/* Hide the label in PersonSearch since we don't need it */
+.person-search-input-wrapper .ui-input-label {
+  display: none !important;
+}
+
+.person-search-cancel-btn {
+  flex-shrink: 0;
 }
 
 .person-search-dropdown {
@@ -54,10 +106,10 @@
   top: 100%;
   left: 0;
   right: 0;
-  background-color: white;
-  border: 1px solid #e5e7eb;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px var(--shadow-medium);
   z-index: 1000;
   max-height: 200px;
   overflow-y: auto;
@@ -65,7 +117,7 @@
 
 .person-search-message {
   padding: 12px 16px;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-align: center;
   font-size: 14px;
 }
@@ -84,13 +136,13 @@
 .person-search-item {
   padding: 10px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-light);
   transition: background-color 0.2s;
-  background-color: white;
+  background-color: var(--bg-primary);
 }
 
 .person-search-item:hover {
-  background-color: #f9fafb;
+  background-color: var(--bg-hover);
 }
 
 .person-search-item:last-child {
@@ -99,30 +151,30 @@
 
 .person-search-item-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--text-primary);
   font-size: 14px;
   margin-bottom: 2px;
 }
 
 .person-search-item-phone {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .person-search-load-more {
   padding: 10px 16px;
   cursor: pointer;
   text-align: center;
-  color: #3b82f6;
+  color: var(--accent-primary);
   font-weight: 500;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border-light);
   transition: background-color 0.2s;
   font-size: 14px;
-  background-color: white;
+  background-color: var(--bg-primary);
 }
 
 .person-search-load-more:hover {
-  background-color: #f0f9ff;
+  background-color: var(--accent-bg);
 }
 
 /* Responsive Design */
@@ -146,10 +198,6 @@
     font-size: 11px;
   }
   
-  .person-search-dropdown {
-    max-height: 150px;
-  }
-  
   .person-search-item {
     padding: 8px 12px;
   }
@@ -170,7 +218,7 @@
 
 @media (max-width: 480px) {
   .person-search-selected {
-    padding: 4px 8px;
+    padding: 5px 8px;
     gap: 8px;
   }
   

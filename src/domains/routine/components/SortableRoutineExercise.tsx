@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Select } from '../../../shared/components/base';
 import { RoutineExerciseWithDetails } from '../../../services';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 
-interface SortableRoutineExerciseProps {
+interface RoutineExerciseProps {
   exercise: RoutineExerciseWithDetails;
   onUpdate: (exercise: RoutineExerciseWithDetails) => void;
   onRemove: (exerciseId: number) => void;
 }
 
-export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = ({
+export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   exercise,
   onUpdate,
   onRemove
@@ -20,21 +18,6 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
   const [editForm, setEditForm] = useState({
     group_number: exercise.group_number || 1,
   });
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: exercise.id! });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
   const groupOptions = [
     { value: 1, label: "Grupo 1" },
@@ -68,22 +51,8 @@ export const SortableRoutineExercise: React.FC<SortableRoutineExerciseProps> = (
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      className="routine-manager-exercise-item"
-    >
+    <div className="routine-manager-exercise-item">
       <div className="routine-manager-exercise-content">
-        {/* Drag handle */}
-        <div
-          {...listeners}
-          className="routine-manager-drag-handle"
-          title={ROUTINE_UI_LABELS.DRAG_TOOLTIP}
-        >
-          ⋮⋮
-        </div>
-
         {/* Exercise info */}
         <div className="routine-manager-exercise-info">
           <div className="routine-manager-exercise-name">

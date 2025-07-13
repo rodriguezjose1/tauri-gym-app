@@ -83,7 +83,7 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     }
   }, [addNotification]);
 
-  const deleteRoutine = async (routineId: number): Promise<boolean> => {
+  const deleteRoutine = useCallback(async (routineId: number): Promise<boolean> => {
     try {
       setLoading(true);
       await RoutineService.deleteRoutine(routineId);
@@ -106,7 +106,7 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedRoutineId, addNotification]);
 
   const searchRoutines = useCallback(async (searchTerm: string) => {
     try {

@@ -57,6 +57,12 @@ export interface WorkoutEntryForm {
   group_number?: number;
 }
 
+export interface EditWorkoutEntryForm extends WorkoutEntryForm {
+  id?: number;
+  date: string;
+  person_id: number;
+}
+
 export interface WorkoutSessionForm {
   exercises: WorkoutEntryForm[];
 }

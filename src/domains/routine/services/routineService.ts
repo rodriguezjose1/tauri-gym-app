@@ -21,7 +21,8 @@ const requestNames = {
   removeExerciseFromRoutine: "remove_exercise_from_routine",
   getRoutineExercises: "get_routine_exercises",
   reorderRoutineExercises: "reorder_routine_exercises",
-  getRoutineOptions: "get_routine_options"
+  getRoutineOptions: "get_routine_options",
+  renumberRoutineGroups: "renumber_routine_groups"
 };
 
 export class RoutineService {
@@ -258,6 +259,19 @@ export class RoutineService {
     } catch (error) {
       console.error("Error getting routine options:", error);
       throw new Error(`Error al obtener opciones de rutinas: ${error}`);
+    }
+  }
+
+  /**
+   * Renumera los grupos de ejercicios de una rutina
+   * para mantener numeración consecutiva (1, 2, 3, 4...)
+   */
+  static async renumberRoutineGroups(routineId: number): Promise<void> {
+    try {
+      await invoke(requestNames.renumberRoutineGroups, { routineId });
+    } catch (error) {
+      console.error("Error renumbering routine groups:", error);
+      throw new Error(`Error al renumerar grupos de rutina: ${error}`);
     }
   }
 } 

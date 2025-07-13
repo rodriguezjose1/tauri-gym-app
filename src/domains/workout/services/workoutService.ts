@@ -12,7 +12,8 @@ const requestNames = {
   replaceWorkoutSession: "replace_workout_session",
   replaceWorkoutSessionGranular: "replace_workout_session_granular",
   updateExerciseOrder: "update_exercise_order",
-  createBatch: "create_batch"
+  createBatch: "create_batch",
+  renumberWorkoutGroups: "renumber_workout_groups"
 };
 export class WorkoutService {
   /**
@@ -84,7 +85,7 @@ export class WorkoutService {
   }
 
   /**
-   * Elimina una entrada de entrenamiento por ID
+   * Elimina una entrada de entrenamiento por ID y renumera grupos automáticamente
    */
   static async deleteWorkoutEntry(id: number): Promise<void> {
     try {
@@ -92,6 +93,22 @@ export class WorkoutService {
     } catch (error) {
       console.error("Error deleting workout entry:", error);
       throw new Error(`Error al eliminar la entrada de entrenamiento: ${error}`);
+    }
+  }
+
+  /**
+   * Renumera los grupos de ejercicios para una persona y fecha específica
+   * para mantener numeración consecutiva (1, 2, 3, 4...)
+   */
+  static async renumberWorkoutGroups(personId: number, date: string): Promise<void> {
+    try {
+      await invoke(requestNames.renumberWorkoutGroups, { 
+        personId, 
+        date 
+      });
+    } catch (error) {
+      console.error("Error renumbering workout groups:", error);
+      throw new Error(`Error al renumerar grupos: ${error}`);
     }
   }
 

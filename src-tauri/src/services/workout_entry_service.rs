@@ -245,6 +245,18 @@ impl WorkoutEntryService {
         self.repository.update_exercise_order(exercise_orders)
     }
 
+    pub fn renumber_groups(&self, person_id: i32, date: &str) -> Result<(), String> {
+        if person_id <= 0 {
+            return Err("Invalid person ID".to_string());
+        }
+
+        if !self.is_valid_date_format(date) {
+            return Err("Invalid date format. Use YYYY-MM-DD".to_string());
+        }
+
+        self.repository.renumber_groups(person_id, date)
+    }
+
     fn is_valid_date_format(&self, date: &str) -> bool {
         // Simple validation for YYYY-MM-DD format
         if date.len() != 10 {

@@ -1,25 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  useDroppable,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { Input, Button } from '../../../shared/components/base';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Button, Input, Select } from '../../../shared/components/base';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import ToastContainer from "../../../shared/components/notifications/ToastContainer";
-import { SortableRoutineExercise } from './SortableRoutineExercise';
+import { RoutineExercise } from './RoutineExercise';
 import { RoutineList } from './RoutineList';
 import { RoutineForm } from './RoutineForm';
 import { ExerciseSearch } from './ExerciseSearch';
@@ -32,23 +15,14 @@ import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 import { Exercise } from '../../../shared/types/dashboard';
 import { RoutineExerciseWithDetails } from '../../../services';
 import '../../../styles/RoutineManager.css';
-import { useDragAndDrop } from '../hooks/useDragAndDrop';
 
-// Droppable Group Component for Routine Exercises
-const DroppableRoutineGroup: React.FC<{
+// Simple Group Component for Routine Exercises
+const RoutineGroup: React.FC<{
   groupNumber: number;
-  routineId: number;
   children: React.ReactNode;
-}> = ({ groupNumber, routineId, children }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `routine-group-${groupNumber}-${routineId}`,
-  });
-
+}> = ({ groupNumber, children }) => {
   return (
-    <div
-      ref={setNodeRef}
-      className={`routine-manager-droppable-group ${isOver ? 'is-over' : ''}`}
-    >
+    <div className="routine-manager-group">
       <div className="routine-manager-group-header">
         Grupo {groupNumber}
         </div>
@@ -56,7 +30,7 @@ const DroppableRoutineGroup: React.FC<{
         {children}
         {React.Children.count(children) === 0 && (
           <div className="routine-manager-group-empty">
-            Arrastra ejercicios aquí
+            No hay ejercicios
           </div>
         )}
       </div>
@@ -64,57 +38,17 @@ const DroppableRoutineGroup: React.FC<{
   );
 };
 
-// Helper function to group exercises by group_number
-const groupExercisesByGroup = (exercises: RoutineExerciseWithDetails[], emptyGroups: number[] = []) => {
-  // Ordenar ejercicios por group_number y order_index antes de agrupar
-  const sortedExercises = [...exercises].sort((a, b) => {
-    const groupA = a.group_number || 1;
-    const groupB = b.group_number || 1;
-    if (groupA !== groupB) {
-      return groupA - groupB;
-    }
-    return (a.order_index || 0) - (b.order_index || 0);
-  });
-  
-  const groups = sortedExercises.reduce((acc, exercise) => {
-    const groupNumber = exercise.group_number || 1;
-    if (!acc[groupNumber]) {
-      acc[groupNumber] = [];
-    }
-    acc[groupNumber].push(exercise);
-    return acc;
-  }, {} as Record<number, RoutineExerciseWithDetails[]>);
-  
-  // Add empty groups
-  emptyGroups.forEach(groupNumber => {
-    if (!groups[groupNumber]) {
-      groups[groupNumber] = [];
-    }
-  });
-  
-  // Sort groups by group number and return as array
-  const result = Object.keys(groups)
-    .sort((a, b) => parseInt(a) - parseInt(b))
-    .map(groupNumber => ({
-      groupNumber: parseInt(groupNumber),
-      exercises: groups[parseInt(groupNumber)]
-    }));
-    
-  return result;
-};
-
 export const RoutineManager: React.FC = () => {
-  // Hooks específicos
+  const [searchTerm, setSearchTerm] = useState('');
+  const [emptyGroups, setEmptyGroups] = useState<number[]>([]);
+  
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { notifications, removeNotification, addNotification } = useToast();
-  const { exercises, exercisesLoading, loadExercises } = useExercisesData();
-
-  // Estados locales para UI específica
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [emptyGroups, setEmptyGroups] = React.useState<number[]>([]);
-  const [deleteConfirmation, setDeleteConfirmation] = React.useState<{
+  const { exercises, exercisesLoading } = useExercisesData();
+  const { addNotification, notifications, removeNotification } = useToast();
+  
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     routineId: number | null;
     routineName: string;
@@ -123,55 +57,30 @@ export const RoutineManager: React.FC = () => {
     routineId: null,
     routineName: ''
   });
-  const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
 
-  // Cargar datos iniciales
   useEffect(() => {
     routineData.loadRoutines();
-    loadExercises();
   }, []);
 
-  // Cargar ejercicios cuando se selecciona una rutina
   useEffect(() => {
     if (routineData.selectedRoutineId) {
       routineExercises.loadExercises();
     }
-  }, [routineData.selectedRoutineId]);
+  }, [routineData.selectedRoutineId, routineExercises.loadExercises]);
 
-  // Limpiar grupos vacíos cuando cambian los ejercicios
-  useEffect(() => {
-    if (routineExercises.exercises) {
-      const usedGroups = new Set(routineExercises.exercises.map(e => e.group_number || 1));
-      const stillEmptyGroups = emptyGroups.filter(groupNum => !usedGroups.has(groupNum));
-      
-      if (stillEmptyGroups.length !== emptyGroups.length) {
-        setEmptyGroups(stillEmptyGroups);
-      }
-    }
-  }, [routineExercises.exercises, emptyGroups]);
-
-  // Configuración de sensores para drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  // Manejar búsqueda de rutinas
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      routineData.searchRoutines(searchTerm.trim());
+      routineData.searchRoutines(searchTerm);
+    } else {
+      routineData.loadRoutines();
     }
   };
 
-  // Manejar selección de rutina
   const handleSelectRoutine = (routineId: number) => {
     routineData.selectRoutine(routineId);
   };
 
-  // Manejar confirmación de eliminación
   const handleDeleteClick = (routineId: number, routineName: string) => {
     setDeleteConfirmation({
       isOpen: true,
@@ -184,16 +93,22 @@ export const RoutineManager: React.FC = () => {
     if (deleteConfirmation.routineId) {
       const success = await routineData.deleteRoutine(deleteConfirmation.routineId);
       if (success) {
-        addNotification('Rutina eliminada exitosamente', 'success');
+        addNotification(
+          `Rutina "${deleteConfirmation.routineName}" eliminada correctamente`,
+          'success'
+        );
       } else {
-        addNotification('Error al eliminar la rutina', 'error');
+        addNotification(
+          'Error al eliminar la rutina',
+          'error'
+        );
+      }
       }
       setDeleteConfirmation({
         isOpen: false,
         routineId: null,
         routineName: ''
       });
-    }
   };
 
   const handleDeleteCancel = () => {
@@ -204,71 +119,70 @@ export const RoutineManager: React.FC = () => {
     });
   };
 
-  // Crear nuevo grupo
-  const createNewGroup = () => {
-    if (!routineExercises.exercises) return;
+  // Group exercises by group number
+  const groupExercisesByGroup = (exercises: RoutineExerciseWithDetails[], emptyGroups: number[] = []) => {
+    const groups = new Map<number, RoutineExerciseWithDetails[]>();
     
-    // Encontrar el número de grupo más alto
-    const maxGroupNumber = Math.max(...routineExercises.exercises.map(e => e.group_number || 1), 0);
-    const newGroupNumber = maxGroupNumber + 1;
-    
-    // Agregar el nuevo grupo vacío al estado
-    setEmptyGroups(prev => [...prev, newGroupNumber]);
+    // Add exercises to their respective groups
+    exercises.forEach(exercise => {
+      const groupNumber = exercise.group_number || 1;
+      if (!groups.has(groupNumber)) {
+        groups.set(groupNumber, []);
+      }
+      groups.get(groupNumber)!.push(exercise);
+    });
+
+    // Add empty groups
+    emptyGroups.forEach(groupNumber => {
+      if (!groups.has(groupNumber)) {
+        groups.set(groupNumber, []);
+      }
+    });
+
+    // Convert to array and sort
+    const groupsArray = Array.from(groups.entries())
+      .map(([groupNumber, exercises]) => ({
+        groupNumber,
+        exercises: exercises.sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+      }))
+      .sort((a, b) => a.groupNumber - b.groupNumber);
+
+    return groupsArray;
   };
 
-  // Eliminar grupo vacío
-  const handleRemoveEmptyGroup = (groupNumber: number) => {
-    setEmptyGroups(prev => prev.filter(g => g !== groupNumber));
-  };
+  // Memoize the grouped exercises to avoid recalculating on every render
+  const exerciseGroups = useMemo(() => {
+    return groupExercisesByGroup(routineExercises.exercises, emptyGroups);
+  }, [routineExercises.exercises, emptyGroups]);
 
-  // Manejar grupo vacío
-  const handleGroupEmpty = (groupNumber: number) => {
-    addNotification(`El grupo ${groupNumber} está vacío. Puedes arrastrar ejercicios aquí.`, 'info');
-  };
-
-  // Hook para drag and drop
-  const { 
-    isDragging, 
-    activeExercise, 
-    handleDragStart, 
-    handleDragOver, 
-    handleDragEnd 
-  } = useDragAndDrop({
-    exercises: routineExercises.exercises,
-    onUpdateExercise: routineExercises.updateExercise,
-    onReorderExercises: routineExercises.reorderExercises,
-    onGroupEmpty: handleGroupEmpty
-  });
+  const isButtonDisabled = !routineData.selectedRoutineId || routineData.loading || exercisesLoading;
 
   return (
     <div className="routine-manager">
-        <div className="routine-manager-header">
-        <h2 className="routine-manager-title">
-          Gestor de Rutinas
-        </h2>
+      <div className="routine-manager-header">
+        <h2 className="routine-manager-title">Gestor de Rutinas</h2>
         
-        <div className="routine-manager-actions">
-          <form onSubmit={handleSearch} className="routine-manager-search">
-              <Input
+        <div className="routine-manager-search">
+          <form onSubmit={handleSearch} className="routine-manager-search-form">
+            <Input
+              type="text"
+              placeholder="Buscar rutinas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={ROUTINE_UI_LABELS.SEARCH_PLACEHOLDER}
-                variant="primary"
-              />
-            <Button type="submit" variant="primary">
+              variant="primary"
+              className="routine-manager-search-input"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={routineData.loading}
+            >
               Buscar
             </Button>
           </form>
-          
-              <Button
-            onClick={routineUI.openCreateForm}
-                variant="primary"
-            disabled={routineData.loading}
-              >
-            Nueva Rutina
-              </Button>
-            </div>
-                </div>
+        </div>
+      </div>
 
       <div className="routine-manager-content">
         <div className="routine-manager-left-panel">
@@ -300,87 +214,38 @@ export const RoutineManager: React.FC = () => {
                   <Button
                   onClick={routineUI.openExerciseSearch}
                     variant="primary"
-                  disabled={routineData.loading || routineExercises.loading}
+                  disabled={isButtonDisabled}
                     className="routine-manager-add-exercise-button"
                   >
                   Agregar Ejercicio
                   </Button>
                 </div>
 
-              <div className="routine-manager__exercises">
-                {exercisesLoading ? (
-                  <div className="routine-manager__loading">
-                    Cargando ejercicios...
+                <div className="routine-manager-exercises">
+                  {routineExercises.loading ? (
+                    <div className="routine-manager-loading">
+                      <div className="routine-manager-spinner"></div>
+                      <span>Cargando ejercicios...</span>
                     </div>
                   ) : (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                      onDragEnd={handleDragEnd}
-                  >
-                    <div className="routine-manager__groups">
-                      {(() => {
-                        const exerciseGroups = groupExercisesByGroup(routineExercises.exercises, emptyGroups);
-                        return exerciseGroups.map((group) => (
-                          <DroppableRoutineGroup
-                            key={`group-${group.groupNumber}-${routineData.selectedRoutineId}`}
-                            groupNumber={group.groupNumber}
-                            routineId={routineData.selectedRoutineId!}
-                    >
-                      <SortableContext
-                              items={group.exercises.map(ex => ex.id!)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                              {group.exercises.map((exercise) => (
-                                  <SortableRoutineExercise
-                                    key={exercise.id}
-                                    exercise={exercise}
-                                  onUpdate={(updates) => {
-                                    const updatedExercise = {
-                                      ...exercise,
-                                      ...updates,
-                                      exercise_id: exercise.exercise_id,
-                                      routine_id: routineData.selectedRoutineId!,
-                                      sets: exercise.sets,
-                                      reps: exercise.reps,
-                                      weight: exercise.weight,
-                                      notes: exercise.notes
-                                    };
-                                    routineExercises.updateExercise(exercise.id!, updatedExercise);
-                                  }}
-                                  onRemove={() => routineExercises.removeExercise(exercise.id!)}
-                                  />
-                                ))}
-                            </SortableContext>
-                          </DroppableRoutineGroup>
-                          ));
-                        })()}
+                    <div className="routine-manager-groups">
+                      {exerciseGroups.map((group, groupIndex) => (
+                        <div key={`group-${group.groupNumber}`}>
+                          <RoutineGroup groupNumber={group.groupNumber}>
+                            {group.exercises.map((exercise, exerciseIndex) => (
+                              <RoutineExercise
+                                key={exercise.id || exerciseIndex}
+                                exercise={exercise}
+                                onUpdate={routineExercises.updateExercise}
+                                onDelete={routineExercises.removeExercise}
+                              />
+                            ))}
+                          </RoutineGroup>
+                        </div>
+                      ))}
                     </div>
-
-                    <DragOverlay>
-                      {activeExercise && (
-                        <SortableRoutineExercise
-                          exercise={activeExercise}
-                          onUpdate={() => {}}
-                          onRemove={() => {}}
-                        />
-                      )}
-                    </DragOverlay>
-                    </DndContext>
                   )}
-
-                {/* Botón para crear nuevo grupo */}
-                <div className="routine-manager-new-group-container">
-                  <button
-                    onClick={createNewGroup}
-                    className="routine-manager-new-group-button"
-                  >
-                    + Crear Nuevo Grupo
-                  </button>
                 </div>
-              </div>
             </div>
           ) : (
             <div className="routine-manager-no-routine">
@@ -417,9 +282,8 @@ export const RoutineManager: React.FC = () => {
             undefined, // reps - no usado por el momento
             undefined, // weight - no usado por el momento
             undefined, // notes - no usado por el momento
-            1  // group_number por defecto
+            1 // group_number - default group
           );
-          routineUI.closeExerciseSearch();
         }}
         onClose={routineUI.closeExerciseSearch}
       />
@@ -427,12 +291,13 @@ export const RoutineManager: React.FC = () => {
         <DeleteConfirmationModal
         isOpen={deleteConfirmation.isOpen}
           title="Eliminar Rutina"
-        message={`¿Estás seguro de que quieres eliminar la rutina "${deleteConfirmation.routineName}"?`}
+        message={`¿Estás seguro de que deseas eliminar la rutina "${deleteConfirmation.routineName}"? Esta acción no se puede deshacer.`}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+        isDeleting={routineData.loading}
         />
 
-        <ToastContainer
+        <ToastContainer 
           notifications={notifications}
           onRemoveNotification={removeNotification}
         />

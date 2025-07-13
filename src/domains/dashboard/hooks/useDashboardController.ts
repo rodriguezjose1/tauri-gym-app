@@ -3,7 +3,7 @@ import { useDashboardDataComposer } from './useDashboardDataComposer';
 import { useWorkoutOperations } from '../../workout/hooks/useWorkoutOperations';
 import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
 import { useConfirmModal } from '../../../shared/hooks/useConfirmModal';
-import { Person, WorkoutEntry } from '../../../shared/types/dashboard';
+import { Person, WorkoutEntry, WorkoutEntryWithDetails, EditWorkoutEntryForm } from '../../../shared/types/dashboard';
 
 // Atomic modal hooks
 import { useWorkoutModal } from '../../../shared/hooks/useWorkoutModal';
@@ -18,6 +18,7 @@ import { useAddWorkout } from '../../../shared/hooks/useAddWorkout';
 import { useDayRightClick } from '../../../shared/hooks/useDayRightClick';
 import { useSaveWorkoutEntry } from '../../workout/hooks/useSaveWorkoutEntry';
 import { useSaveWorkoutSession } from '../../workout/hooks/useSaveWorkoutSession';
+import { useSaveEditEntry } from '../../workout/hooks/useSaveEditEntry';
 import { useLoadRoutine } from '../../routine/hooks/useLoadRoutine';
 import { useApplyRoutineToDate } from '../../routine/hooks/useApplyRoutineToDate';
 import { useDeleteEventHandlers } from '../../../shared/hooks/useDeleteEventHandlers';
@@ -89,6 +90,13 @@ export const useDashboardController = () => {
     showToast
   });
 
+  const saveEditEntryHandler = useSaveEditEntry({
+    editForm: workoutModal.editForm,
+    updateWorkoutEntry: workoutOps.updateWorkoutEntry,
+    closeEditModal: workoutModal.closeEditModal,
+    showToast
+  });
+
   const saveWorkoutSessionHandler = useSaveWorkoutSession({
     selectedPerson: dataLayer.selectedPerson,
     selectedDate: dataLayer.selectedDate,
@@ -121,7 +129,9 @@ export const useDashboardController = () => {
     workoutToDelete: deleteModal.workoutToDelete,
     deleteWorkoutEntry: workoutOps.deleteWorkoutEntry,
     openDeleteModal: deleteModal.openDeleteModal,
-    closeDeleteModal: deleteModal.closeDeleteModal
+    closeDeleteModal: deleteModal.closeDeleteModal,
+    workoutData: dataLayer.workoutData,
+    showToast
   });
 
   // 6. Enhanced Handlers
@@ -140,13 +150,12 @@ export const useDashboardController = () => {
     dataLayer.setSelectedDate("");
   };
 
-  const handleReorderExercises = async (exerciseOrders: Array<{ id: number; order: number }>) => {
-    try {
-      await workoutOps.reorderExercises(exerciseOrders);
-    } catch (error) {
-      console.error("Error reordering exercises:", error);
-      showToast("Error al reordenar ejercicios", 'error');
-    }
+  const handleEditWorkoutEntry = (workout: WorkoutEntryWithDetails) => {
+    workoutModal.openEditModal(workout, dataLayer.workoutData);
+  };
+
+  const handleUpdateEditForm = (field: keyof EditWorkoutEntryForm, value: any) => {
+    workoutModal.updateEditForm(field, value, showToast);
   };
 
   return {
@@ -180,6 +189,7 @@ export const useDashboardController = () => {
       addWorkout: addWorkoutHandler.handleAddWorkoutClick,
       dayRightClick: dayRightClickHandler.handleDayRightClick,
       saveWorkoutEntry: saveWorkoutEntryHandler.handleSaveWorkoutEntry,
+      saveEditEntry: saveEditEntryHandler.handleSaveEditEntry,
       saveWorkoutSession: saveWorkoutSessionHandler.handleSaveWorkoutSession,
       loadRoutine: loadRoutineHandler.handleLoadRoutine,
       loadingRoutine: loadRoutineHandler.loadingRoutine,
@@ -191,7 +201,8 @@ export const useDashboardController = () => {
       clearSelection: handleClearSelection,
       closeWorkoutModal: handleCloseWorkoutModal,
       closeSessionModal: handleCloseSessionModal,
-      reorderExercises: handleReorderExercises
+      editWorkoutEntry: handleEditWorkoutEntry,
+      updateEditForm: handleUpdateEditForm
     }
   };
 }; 

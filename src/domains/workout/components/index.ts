@@ -1,2 +1,2 @@
 export { WorkoutModals } from './WorkoutModals';
-export { SortableWorkoutItem } from './SortableWorkoutItem'; 
+export { WorkoutItem } from './WorkoutItem'; 

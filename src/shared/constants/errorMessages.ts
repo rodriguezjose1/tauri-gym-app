@@ -75,7 +75,6 @@ export const ROUTINE_UI_LABELS = {
   EXERCISES_REORDERED_SUCCESS: "Ejercicios reordenados exitosamente",
   
   // Tooltips
-  DRAG_TOOLTIP: "Arrastrar para reordenar",
   EDIT_TOOLTIP: "Editar ejercicio",
   REMOVE_TOOLTIP: "Eliminar ejercicio",
   DELETE_TOOLTIP: "Eliminar ejercicio",

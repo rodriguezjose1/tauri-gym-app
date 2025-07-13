@@ -12,32 +12,111 @@
   flex-direction: column;
 }
 
+/* Main Grid Container */
+.weekly-calendar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.weekly-calendar-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
 /* Header Styles */
 .weekly-calendar-header {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);
   background-color: var(--bg-secondary);
+  flex-shrink: 0;
 }
 
 .weekly-calendar-header-layout {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
+  min-height: 56px; /* Increased height for better spacing */
+}
+
+.weekly-calendar-person-search {
+  flex: 0 0 350px; /* Fixed width instead of flexible */
+  min-width: 300px;
+  max-width: 400px;
+}
+
+/* Fix PersonSearch alignment within WeeklyCalendar */
+.weekly-calendar-person-search .person-search-container {
+  height: 48px !important;
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.weekly-calendar-person-search .person-search-selected {
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.weekly-calendar-person-search .person-search-input-container {
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Fix Input component within PersonSearch */
+.weekly-calendar-person-search .ui-input-container {
+  margin: 0 !important;
+  gap: 0 !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  height: 48px !important;
+}
+
+.weekly-calendar-person-search .ui-input-label {
+  display: none !important;
+}
+
+.weekly-calendar-person-search .ui-input-wrapper {
+  margin: 0 !important;
+  height: 48px !important;
+}
+
+.weekly-calendar-person-search .ui-input {
+  height: 48px !important;
+  margin: 0 !important;
+}
+
+.weekly-calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
 }
 
 .weekly-calendar-title {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 16px;
-  flex: 0 0 auto;
+  white-space: nowrap;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .weekly-calendar-navigation-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* Selected Person Styles */
@@ -136,14 +215,6 @@
 }
 
 /* Person Search Container */
-.weekly-calendar-person-search {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1 1 auto;
-  min-width: 300px;
-}
-
 .weekly-calendar-clear-button {
   padding: 6px 12px;
   background-color: transparent;
@@ -157,20 +228,6 @@
 
 .weekly-calendar-clear-button:hover {
   background-color: var(--error-bg);
-}
-
-/* Weekend Toggle */
-.weekly-calendar-weekend-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.weekly-calendar-checkbox {
-  margin: 0;
 }
 
 /* Empty State Styles */
@@ -247,6 +304,17 @@
   border-bottom: 1px solid var(--border-light);
 }
 
+.weekly-calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: var(--border-light);
+}
+
+.weekly-calendar-week.hide-weekends {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .weekly-calendar-week-header {
   padding: 12px 16px;
   background-color: var(--bg-secondary);
@@ -271,11 +339,12 @@
 /* Day Styles */
 .weekly-calendar-day {
   padding: 8px;
-  min-height: 120px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background-color: var(--bg-primary);
+  border: 1px solid var(--border-light);
 }
 
 .weekly-calendar-day.today {
@@ -283,17 +352,63 @@
   border: 2px solid var(--accent-primary);
 }
 
+.weekly-calendar-day.selected {
+  background-color: var(--accent-bg);
+  border: 2px solid var(--accent-primary);
+}
+
+.weekly-calendar-day.weekend {
+  background-color: var(--bg-secondary);
+}
+
 .weekly-calendar-day.past {
   background-color: var(--bg-secondary);
+  opacity: 0.8;
 }
 
 .weekly-calendar-day-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.weekly-calendar-add-button {
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-primary);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.weekly-calendar-add-button:hover {
+  background-color: var(--accent-secondary);
+  transform: scale(1.1);
+}
+
+.weekly-calendar-add-button:active {
+  transform: scale(0.95);
+}
+
+.weekly-calendar-day-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .weekly-calendar-day-weekday {
@@ -320,36 +435,15 @@
   color: var(--text-primary);
 }
 
+.weekly-calendar-day-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
 .weekly-calendar-day-number.today {
   color: var(--accent-primary);
-}
-
-.weekly-calendar-add-button {
-  width: 20px;
-  height: 20px;
-  background-color: var(--accent-bg);
-  border: 1px solid var(--accent-primary);
-  border-radius: 4px;
-  color: var(--accent-primary);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  padding: 0;
-  line-height: 1;
-}
-
-.weekly-calendar-add-button:hover {
-  background-color: var(--accent-primary);
-  color: white;
-  transform: scale(1.1);
-}
-
-.weekly-calendar-add-button:active {
-  transform: scale(0.95);
 }
 
 /* Workouts Container */
@@ -372,59 +466,35 @@
   background-color: var(--bg-secondary);
 }
 
-/* Droppable Group Styles */
-.weekly-calendar-droppable-group {
+/* Remove droppable group styles and replace with regular group styles */
+.weekly-calendar-group {
   margin-bottom: 8px;
-  padding: 6px;
-  border: 1px dashed var(--border-color);
-  border-radius: 6px;
-  background-color: var(--bg-tertiary);
-  position: relative;
-  transition: all 0.2s ease;
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-}
-
-.weekly-calendar-droppable-group.is-over {
-  background-color: var(--accent-bg);
-  border-color: var(--accent-primary);
-  border-width: 2px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px;
 }
 
 .weekly-calendar-group-header {
   font-size: 10px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text-muted);
   margin-bottom: 4px;
-  text-align: center;
-  padding: 4px;
-  background-color: var(--bg-secondary);
-  border-radius: 4px;
-  flex-shrink: 0;
+  padding: 0 4px;
 }
 
 .weekly-calendar-group-container {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 20px;
+  gap: 2px;
 }
 
 .weekly-calendar-group-empty {
-  color: #9ca3af;
-  font-size: 10px;
-  font-style: italic;
+  font-size: 9px;
+  color: var(--text-muted);
   text-align: center;
-  padding: 8px;
-  border: 1px dashed var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-primary);
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px;
+  font-style: italic;
 }
 
 .weekly-calendar-workout-item {
@@ -454,30 +524,6 @@
   background-color: #bae6fd;
 }
 
-/* Add Workout Button */
-.weekly-calendar-add-workout-container {
-  margin-top: auto;
-  padding-top: 8px;
-}
-
-.weekly-calendar-add-workout-button {
-  width: 100%;
-  padding: 6px 8px;
-  background-color: var(--accent-bg);
-  border: 1px solid var(--accent-primary);
-  border-radius: 6px;
-  color: var(--accent-primary);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.weekly-calendar-add-workout-button:hover {
-  background-color: var(--accent-primary);
-  color: white;
-}
-
 /* Header Right Section */
 .weekly-calendar-header-right {
   display: flex;
@@ -497,6 +543,10 @@
     min-width: auto;
   }
   
+  .weekly-calendar-controls {
+    justify-content: space-between;
+  }
+  
   .weekly-calendar-navigation-container {
     justify-content: center;
     flex-wrap: wrap;
@@ -512,6 +562,21 @@
     padding: 12px 16px;
   }
   
+  .weekly-calendar-header-layout {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .weekly-calendar-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .weekly-calendar-title {
+    font-size: 14px;
+    text-align: center;
+  }
+  
   .weekly-calendar-week-grid.show-weekends {
     grid-template-columns: repeat(7, minmax(120px, 1fr));
   }
@@ -525,6 +590,12 @@
     padding: 6px;
   }
   
+  .weekly-calendar-add-button {
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+  }
+  
   .weekly-calendar-selected-person {
     flex-direction: column;
     align-items: flex-start;
@@ -532,7 +603,8 @@
   }
   
   .weekly-calendar-navigation-container {
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
   }
   
   .weekly-calendar-nav-button,
@@ -548,7 +620,7 @@
   }
   
   .weekly-calendar-title {
-    font-size: 14px;
+    font-size: 12px;
   }
   
   .weekly-calendar-week-grid.show-weekends {
@@ -566,6 +638,13 @@
   
   .weekly-calendar-day-header {
     margin-bottom: 4px;
+    gap: 6px;
+  }
+  
+  .weekly-calendar-add-button {
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
   }
   
   .weekly-calendar-person-avatar {
@@ -585,10 +664,6 @@
   .weekly-calendar-navigation-container {
     flex-direction: column;
     gap: 4px;
-  }
-  
-  .weekly-calendar-weekend-toggle {
-    font-size: 10px;
   }
 }
 
@@ -611,7 +686,7 @@
     border: 1px solid var(--border-color);
   }
   
-  .weekly-calendar-droppable-group {
+  .weekly-calendar-group {
     border-width: 2px;
   }
   
@@ -625,7 +700,7 @@
   .weekly-calendar-nav-button,
   .weekly-calendar-current-button,
   .weekly-calendar-new-group-button,
-  .weekly-calendar-droppable-group {
+  .weekly-calendar-group {
     transition: none;
   }
   

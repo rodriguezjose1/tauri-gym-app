@@ -231,7 +231,7 @@
   padding: 8px;
 }
 
-/* Sortable Exercise Item */
+/* Exercise Item */
 .routine-manager-exercise-item {
   padding: 8px 4px;
   background-color: transparent;
@@ -245,17 +245,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.routine-manager-drag-handle {
-  cursor: grab;
-  color: var(--text-muted);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.routine-manager-drag-handle:active {
-  cursor: grabbing;
 }
 
 .routine-manager-exercise-info {
@@ -583,58 +572,131 @@
   }
 }
 
-/* Droppable Groups Styles */
-.routine-manager-droppable-group {
-  margin-bottom: 1.5rem;
-  border: 2px dashed var(--border-color);
+/* Remove droppable group styles and replace with regular group styles */
+.routine-manager-group {
+  margin-bottom: 16px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--bg-secondary);
-  transition: all 0.2s ease;
-}
-
-.routine-manager-droppable-group.is-over {
-  border-color: var(--primary-color);
-  background-color: var(--primary-color-light);
-  transform: scale(1.02);
+  padding: 12px;
 }
 
 .routine-manager-group-header {
-  padding: 0.75rem 1rem;
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  border-radius: 6px 6px 0 0;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 0.9rem;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .routine-manager-group-container {
-  padding: 1rem;
-  min-height: 60px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .routine-manager-group-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60px;
+  font-size: 12px;
   color: var(--text-muted);
+  text-align: center;
+  padding: 16px;
   font-style: italic;
-  border: 1px dashed var(--border-color);
+  background-color: var(--bg-secondary);
   border-radius: 4px;
-  background-color: var(--bg-primary);
-  transition: all 0.2s ease;
 }
 
-.routine-manager-droppable-group.is-over .routine-manager-group-empty {
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-  background-color: var(--primary-color-light);
+/* RoutineExercise Component Styles */
+.routine-exercise-item {
+  padding: 8px 4px;
+  background-color: transparent;
+  border-radius: 4px;
+  border: none;
+  margin-bottom: 4px;
+  transition: all 0.2s;
+}
+
+.routine-exercise-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.routine-exercise-info {
+  flex: 1;
+}
+
+.routine-exercise-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.routine-exercise-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.routine-exercise-notes-display {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.routine-exercise-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.routine-exercise-edit-button,
+.routine-exercise-remove-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.routine-exercise-edit-button {
+  color: var(--accent-primary);
+}
+
+.routine-exercise-edit-button:hover {
+  background-color: var(--accent-bg);
+}
+
+.routine-exercise-remove-button {
+  color: var(--error-color);
+}
+
+.routine-exercise-remove-button:hover {
+  background-color: var(--error-bg);
+}
+
+/* Exercise Edit Form */
+.routine-exercise-form {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.routine-exercise-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.routine-exercise-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* New Group Button */
@@ -671,23 +733,8 @@
 
 /* Responsive adjustments for groups */
 @media (max-width: 768px) {
-  .routine-manager-droppable-group {
-    margin-bottom: 1rem;
-  }
-  
-  .routine-manager-group-header {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-  }
-  
-  .routine-manager-group-container {
+  .routine-manager-new-group-container {
     padding: 0.75rem;
-    gap: 0.5rem;
-  }
-  
-  .routine-manager-group-empty {
-    min-height: 50px;
-    font-size: 0.85rem;
   }
   
   .routine-manager-new-group-button {
@@ -697,14 +744,9 @@
 }
 
 /* Dark mode adjustments */
-[data-theme="dark"] .routine-manager-droppable-group {
+[data-theme="dark"] .routine-manager-group {
   border-color: var(--border-color);
   background-color: var(--bg-secondary);
-}
-
-[data-theme="dark"] .routine-manager-droppable-group.is-over {
-  border-color: var(--primary-color);
-  background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 
 [data-theme="dark"] .routine-manager-group-header {
@@ -715,10 +757,6 @@
 [data-theme="dark"] .routine-manager-group-empty {
   background-color: var(--bg-primary);
   border-color: var(--border-color);
-}
-
-[data-theme="dark"] .routine-manager-droppable-group.is-over .routine-manager-group-empty {
-  background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 
 /* RoutineForm Modal Styles */

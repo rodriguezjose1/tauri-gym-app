@@ -1,16 +1,20 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import Dashboard from '../shared/pages/Dashboard'
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
+import Dashboard from "../domains/dashboard/pages/Dashboard";
+import { ConfigProvider } from "../shared/contexts";
 
 // Test wrapper component
 const TestWrapper = ({ children }) => (
   <ChakraProvider value={defaultSystem}>
     <BrowserRouter>
-      {children}
+      <ConfigProvider>
+        {children}
+      </ConfigProvider>
     </BrowserRouter>
   </ChakraProvider>
-)
+);
 
 // Mock data
 const mockPerson = {

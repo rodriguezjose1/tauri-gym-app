@@ -1,14 +1,17 @@
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import Dashboard from '../shared/pages/Dashboard'
+import Dashboard from '../domains/dashboard/pages/Dashboard'
+import { ConfigProvider } from '../shared/contexts'
 
 // Test wrapper component
 const TestWrapper = ({ children }) => (
   <ChakraProvider value={defaultSystem}>
     <BrowserRouter>
-      {children}
+      <ConfigProvider>
+        {children}
+      </ConfigProvider>
     </BrowserRouter>
   </ChakraProvider>
 )

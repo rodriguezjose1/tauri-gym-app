@@ -95,6 +95,11 @@ fn create_workout_session(service: State<'_, WorkoutEntryService>, workout_entri
 }
 
 #[tauri::command]
+fn create_batch(service: State<'_, WorkoutEntryService>, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+    service.create_batch(workout_entries)
+}
+
+#[tauri::command]
 fn get_workout_entries_by_person_and_date_range(
     service: State<'_, WorkoutEntryService>, 
     person_id: i32, 
@@ -139,6 +144,11 @@ fn update_exercise_order(service: State<'_, WorkoutEntryService>, exercise_order
     service.update_exercise_order(exercise_orders)
 }
 
+#[tauri::command]
+fn renumber_workout_groups(service: State<'_, WorkoutEntryService>, person_id: i32, date: String) -> Result<(), String> {
+    service.renumber_groups(person_id, &date)
+}
+
 // Routine commands
 #[tauri::command]
 fn create_routine(service: State<'_, RoutineService>, name: String, code: String) -> Result<i32, String> {
@@ -168,6 +178,11 @@ fn delete_routine(service: State<'_, RoutineService>, id: i32) -> Result<(), Str
 #[tauri::command]
 fn list_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
     service.list_routines()
+}
+
+#[tauri::command]
+fn renumber_routine_groups(service: State<'_, RoutineService>, routine_id: i32) -> Result<(), String> {
+    service.renumber_routine_groups(routine_id)
 }
 
 #[tauri::command]
@@ -277,6 +292,7 @@ fn main() {
             // Workout entry commands
             create_workout_entry,
             create_workout_session,
+            create_batch,
             get_workout_entries_by_person_and_date_range,
             get_workout_entries_by_person,
             update_workout_entry,
@@ -285,6 +301,7 @@ fn main() {
             replace_workout_session,
             replace_workout_session_granular,
             update_exercise_order,
+            renumber_workout_groups,
             // Routine commands
             create_routine,
             get_routine_by_id,
@@ -292,6 +309,7 @@ fn main() {
             update_routine,
             delete_routine,
             list_routines,
+            renumber_routine_groups,
             list_routines_paginated,
             search_routines,
             search_routines_paginated,
