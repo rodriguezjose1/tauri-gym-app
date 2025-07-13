@@ -363,7 +363,7 @@ impl RoutineRepository for SqliteRoutineRepository {
              FROM routine_exercises re
              JOIN exercise e ON re.exercise_id = e.id
              WHERE re.routine_id = ?1
-             ORDER BY re.order_index"
+             ORDER BY re.group_number, re.order_index"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),

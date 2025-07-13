@@ -189,32 +189,70 @@ export class WorkoutService {
     }>
   ): Promise<void> {
     try {
-      // Primero obtener los ejercicios existentes para calcular el siguiente order_index
+      // Primero obtener los ejercicios existentes
       const existingWorkouts = await this.getWorkoutEntriesByPersonAndDateRange(
         personId,
         date,
         date
       );
 
-      // Calcular el siguiente order_index y group_number
+      // Crear un mapa de ejercicios existentes por exercise_id para búsqueda rápida
+      const existingExerciseMap = new Map<number, WorkoutEntryWithDetails>();
+      existingWorkouts.forEach(workout => {
+        existingExerciseMap.set(workout.exercise_id, workout);
+      });
+
+      // Calcular el siguiente order_index y group_number para ejercicios nuevos
       const maxOrderIndex = Math.max(...existingWorkouts.map(w => w.order_index || 0), -1);
       const maxGroupNumber = Math.max(...existingWorkouts.map(w => w.group_number || 1), 0);
 
-      // Crear los nuevos workout entries con order_index y group_number apropiados
-      const workoutEntries = exercises.map((exercise, index) => ({
-        person_id: personId,
-        exercise_id: exercise.exercise_id,
-        date: date,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weight: exercise.weight,
-        notes: exercise.notes,
-        order_index: exercise.order_index !== undefined ? exercise.order_index : maxOrderIndex + 1 + index,
-        group_number: exercise.group_number || maxGroupNumber + 1
-      }));
+      // Separar ejercicios a actualizar y ejercicios nuevos
+      const exercisesToUpdate: WorkoutEntry[] = [];
+      const exercisesToInsert: WorkoutEntry[] = [];
 
-      // Usar create_batch para agregar los nuevos ejercicios sin eliminar los existentes
-      await invoke(requestNames.createBatch, { workoutEntries: workoutEntries });
+      exercises.forEach((exercise, index) => {
+        const existingExercise = existingExerciseMap.get(exercise.exercise_id);
+        
+        if (existingExercise) {
+          // Ejercicio ya existe, preparar para actualización
+          exercisesToUpdate.push({
+            id: existingExercise.id,
+            person_id: personId,
+            exercise_id: exercise.exercise_id,
+            date: date,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            weight: exercise.weight,
+            notes: exercise.notes,
+            order_index: exercise.order_index !== undefined ? exercise.order_index : existingExercise.order_index,
+            group_number: exercise.group_number || existingExercise.group_number
+          });
+        } else {
+          // Ejercicio nuevo, preparar para inserción
+          exercisesToInsert.push({
+            person_id: personId,
+            exercise_id: exercise.exercise_id,
+            date: date,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            weight: exercise.weight,
+            notes: exercise.notes,
+            order_index: exercise.order_index !== undefined ? exercise.order_index : maxOrderIndex + 1 + index,
+            group_number: exercise.group_number || maxGroupNumber + 1
+          });
+        }
+      });
+
+      // Actualizar ejercicios existentes
+      for (const exercise of exercisesToUpdate) {
+        await this.updateWorkoutEntry(exercise);
+      }
+
+      // Insertar ejercicios nuevos
+      if (exercisesToInsert.length > 0) {
+        await invoke(requestNames.createBatch, { workoutEntries: exercisesToInsert });
+      }
+
     } catch (error) {
       console.error("Error saving workout session (merge):", error);
       throw new Error(`Error al guardar la sesión de entrenamiento: ${error}`);
