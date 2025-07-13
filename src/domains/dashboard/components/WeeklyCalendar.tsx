@@ -93,30 +93,31 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   return (
     <div className="weekly-calendar">
       <div className="weekly-calendar-header">
-        <div className="weekly-calendar-header-layout">
-          <div className="weekly-calendar-person-search">
-            <PersonSearch
-              selectedPerson={selectedPerson}
-              onPersonSelect={handlePersonSelect}
-              onClearSelection={handleClearSelection}
-            />
-          </div>
-          
-          <div className="weekly-calendar-controls">
-            {/* Date Range Title */}
-            <div className="weekly-calendar-title">
-              {dateRangeTitle}
+        <div className="weekly-calendar-header-compact">
+          {/* Person Selection, Date Range, and Navigation Row */}
+          <div className="weekly-calendar-controls-row">
+            <div className="weekly-calendar-person-section">
+              <PersonSearch
+                selectedPerson={selectedPerson}
+                onPersonSelect={handlePersonSelect}
+                onClearSelection={handleClearSelection}
+              />
             </div>
-
-            {/* Navigation Controls */}
-            <div className="weekly-calendar-navigation-container">
+            
+            <div className="weekly-calendar-date-section">
+              <div className="weekly-calendar-date-range">
+                📅 {dateRangeTitle}
+              </div>
+            </div>
+            
+            <div className="weekly-calendar-navigation-section">
               <Button
                 onClick={goToOlderWeeks}
                 variant="secondary"
                 size="sm"
                 className="weekly-calendar-nav-button"
               >
-                ← Anteriores
+                ← Anterior
               </Button>
               
               <Button
@@ -134,7 +135,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 size="sm"
                 className="weekly-calendar-nav-button"
               >
-                Siguientes →
+                Siguiente →
               </Button>
             </div>
           </div>

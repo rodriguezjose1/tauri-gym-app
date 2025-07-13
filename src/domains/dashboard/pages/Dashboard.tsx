@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card, Title, Button } from '../../../shared/components/base';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
 import { DeleteConfirmationModal } from '../../../shared/components/modals/DeleteConfirmationModal';
@@ -23,14 +24,26 @@ export default function DashboardRefactored() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-wrapper">
-        <div className="dashboard-header">
-          <div className="dashboard-header-left">
-            {/* Configuraciones button moved to navbar */}
+        {/* Weekly Calendar Card */}
+        <Card variant="elevated" padding="lg" className="dashboard-calendar-card">
+          <div className="dashboard-calendar-header">
+            <div className="dashboard-calendar-title-section">
+              <Title level={2} variant="default">
+                📅 Calendario Semanal
+              </Title>
+              <div className="dashboard-calendar-actions">
+                <Button
+                  onClick={() => modals.settings.setShowSettingsModal(true)}
+                  variant="secondary"
+                  size="sm"
+                  className="dashboard-settings-button"
+                >
+                  ⚙️ Configurar
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        {/* Weekly Calendar with Embedded Person Search */}
-        <div className="dashboard-calendar-container">
+          
           <WeeklyCalendar
             selectedPerson={data.selectedPerson}
             workoutData={data.workoutData}
@@ -44,7 +57,7 @@ export default function DashboardRefactored() {
             handlePersonSelect={data.handlePersonSelect}
             handleClearSelection={handlers.clearSelection}
           />
-        </div>
+        </Card>
       </div>
 
       {/* Workout Modals */}

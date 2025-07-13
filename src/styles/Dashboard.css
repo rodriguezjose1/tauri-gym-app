@@ -1,54 +1,103 @@
 /* Dashboard Page Styles */
 
 .dashboard-container {
-  /* Uses dashboard wrapper styles from config */
-  height: calc(100vh - var(--layout-nav-height, 80px)); /* Account for navbar height */
-  overflow: hidden; /* Prevent scroll at container level */
-  background-color: var(--bg-secondary);
   width: 100%;
-  box-sizing: border-box; /* Include padding in height calculation */
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  min-height: calc(100vh - var(--layout-nav-height, 80px));
 }
 
 .dashboard-wrapper {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent scroll at wrapper level */
-  max-width: none;
-  margin: 0 auto;
-  padding: 24px; /* Only keep padding here */
+  gap: 20px;
   width: 100%;
-  box-sizing: border-box; /* Include any borders in height calculation */
 }
 
-/* Header Section */
-.dashboard-header {
+/* Calendar Card */
+.dashboard-calendar-card {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  width: 100%;
+  flex: 1;
+}
+
+/* Calendar Header */
+.dashboard-calendar-header {
+  margin-bottom: 20px;
+}
+
+.dashboard-calendar-title-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
-  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
-.dashboard-header-left {
+.dashboard-calendar-actions {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
-.dashboard-header-right {
+.dashboard-settings-button {
+  flex-shrink: 0;
+}
+
+/* Weekly Calendar Compact Header */
+.weekly-calendar-header-compact {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.weekly-calendar-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.weekly-calendar-person-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.weekly-calendar-date-section {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 
-.dashboard-load-routine-button {
+.weekly-calendar-date-range {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.weekly-calendar-navigation-section {
   display: flex;
-  align-items: center;
   gap: 8px;
-  font-size: 14px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.weekly-calendar-nav-button,
+.weekly-calendar-current-button {
+  min-width: 80px;
+}
+
+/* Keep existing calendar grid and other styles */
+.dashboard-calendar-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Load Routine Modal */
@@ -126,13 +175,6 @@
   gap: 12px;
   justify-content: flex-end;
   margin-top: 32px;
-}
-
-/* Calendar Section */
-.dashboard-calendar-container {
-  flex: 1;
-  min-height: 0; /* Important for flex child to shrink */
-  overflow: hidden; /* Let the calendar handle its own scrolling */
 }
 
 /* Modal Overlays */
@@ -250,27 +292,51 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: stretch;
+  .dashboard-container {
+    padding: 16px;
+  }
+  
+  .dashboard-wrapper {
     gap: 16px;
   }
   
-  .dashboard-header-left,
-  .dashboard-header-right {
+  .dashboard-calendar-title-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .weekly-calendar-controls-row {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .weekly-calendar-person-section {
+    order: 1;
+  }
+  
+  .weekly-calendar-date-section {
+    order: 2;
     justify-content: center;
   }
   
-  .dashboard-load-routine-button {
+  .weekly-calendar-navigation-section {
+    order: 3;
     justify-content: center;
+  }
+  
+  .weekly-calendar-nav-button,
+  .weekly-calendar-current-button {
+    min-width: 100px;
   }
   
   .load-routine-modal-content {
-    padding: 16px 0;
+    margin: 20px;
   }
   
   .load-routine-form-grid {
-    gap: 16px;
+    grid-template-columns: 1fr;
   }
   
   .load-routine-actions {
@@ -279,37 +345,65 @@
   }
   
   .dashboard-modal-content {
-    padding: 16px;
-    margin: 16px;
+    margin: 20px;
   }
   
   .dashboard-toast-container {
-    top: 10px;
-    right: 10px;
-    left: 10px;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
   }
 }
 
 @media (max-width: 480px) {
-  .dashboard-header {
-    margin-bottom: 16px;
+  .dashboard-container {
+    padding: 12px;
+  }
+  
+  .dashboard-wrapper {
+    gap: 12px;
+  }
+  
+  .weekly-calendar-header-compact {
+    gap: 12px;
+  }
+  
+  .weekly-calendar-controls-row {
+    gap: 12px;
+  }
+  
+  .weekly-calendar-date-section {
+    margin: 8px 0;
+  }
+  
+  .weekly-calendar-date-range {
+    font-size: 14px;
+  }
+  
+  .weekly-calendar-navigation-section {
+    gap: 6px;
+  }
+  
+  .weekly-calendar-nav-button,
+  .weekly-calendar-current-button {
+    min-width: 70px;
+    font-size: 12px;
   }
   
   .load-routine-person-info {
     padding: 12px;
-    margin-bottom: 16px;
   }
   
   .load-routine-actions {
-    margin-top: 24px;
+    padding: 12px;
   }
   
   .dashboard-empty {
-    padding: 40px 16px;
+    padding: 20px;
   }
   
   .dashboard-empty-icon {
-    font-size: 48px;
+    font-size: 32px;
   }
   
   .dashboard-empty-title {
@@ -323,12 +417,17 @@
 
 /* Dark Mode Adjustments */
 @media (prefers-color-scheme: dark) {
+  .dashboard-calendar-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
   .load-routine-select {
-    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
   }
   
   .load-routine-select option {
-    background-color: var(--bg-primary);
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
   }
 }
@@ -361,7 +460,6 @@
 
 /* Print Styles */
 @media print {
-  .dashboard-header,
   .dashboard-toast-container,
   .dashboard-modal-overlay {
     display: none;

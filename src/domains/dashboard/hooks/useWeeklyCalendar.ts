@@ -30,12 +30,14 @@ export const useWeeklyCalendar = ({
     baseWeekStart.setDate(currentWeekStart.getDate() + (weekOffset * 7));
     
     const weeks = [];
-    for (let weekOffsetFromBase = -1; weekOffsetFromBase <= 1; weekOffsetFromBase++) {
+    // Generate weeks from +1 to -1 (future to past)
+    for (let weekOffsetFromBase = 1; weekOffsetFromBase >= -1; weekOffsetFromBase--) {
       const weekStart = new Date(baseWeekStart);
       weekStart.setDate(baseWeekStart.getDate() + (weekOffsetFromBase * 7));
       
       const week = [];
-      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      // Generate days from Saturday to Sunday (6 to 0, reverse order)
+      for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
         const day = new Date(weekStart);
         day.setDate(weekStart.getDate() + dayOffset);
         week.push(day);
