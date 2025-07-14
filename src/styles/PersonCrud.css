@@ -13,27 +13,23 @@
   gap: 24px;
 }
 
-/* Header Card */
-.person-header-card {
-  background: #2d2d2d;
-  border: 1px solid #404040;
-}
-
-.person-header-content {
+/* Card Layout - Make it flex to position pagination at bottom */
+.person-crud-wrapper .card {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  min-height: 70vh;
 }
 
-.person-header-info {
+.person-card-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.person-header-description {
-  color: #b0b0b0;
-  margin: 8px 0 0 0;
-  font-size: 14px;
+.person-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Form Modal Styles */
@@ -61,17 +57,34 @@
 .person-list-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid #404040;
+  gap: 16px;
+}
+
+.person-list-title-section {
+  flex: 1;
+}
+
+.person-list-description {
+  color: #b0b0b0;
+  margin: 8px 0 0 0;
+  font-size: 14px;
+}
+
+.person-list-actions {
+  flex-shrink: 0;
 }
 
 .person-list-stats {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #404040;
 }
 
 .person-count {
@@ -102,6 +115,7 @@
   display: grid;
   gap: 16px;
   margin-bottom: 24px;
+  flex: 1;
 }
 
 .person-card {
@@ -169,6 +183,7 @@
   justify-content: center;
   padding: 48px 16px;
   text-align: center;
+  flex: 1;
 }
 
 .person-loading-icon,
@@ -190,14 +205,22 @@
   max-width: 400px;
 }
 
-/* Pagination */
+/* Pagination - Sticky at bottom */
 .person-pagination {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-primary, #1a1a1a);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #404040;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid #404040;
+  padding: 16px 24px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .person-page-indicator {
@@ -240,20 +263,24 @@
     padding: 16px;
   }
   
-  .person-header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+  .person-crud-wrapper .card {
+    min-height: 60vh;
   }
   
   .person-list-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 16px;
+  }
+  
+  .person-list-actions {
+    align-self: flex-start;
   }
   
   .person-list-stats {
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
   
   .person-card {
@@ -273,14 +300,24 @@
   }
   
   .person-pagination {
+    padding: 12px 16px;
     flex-wrap: wrap;
     gap: 8px;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .person-page-indicator {
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .person-crud-container {
     padding: 8px;
+  }
+  
+  .person-crud-wrapper .card {
+    min-height: 50vh;
   }
   
   .person-card {
@@ -301,5 +338,19 @@
   
   .person-form-grid {
     gap: 12px;
+  }
+  
+  .person-pagination {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  
+  .person-pagination button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .person-page-indicator {
+    font-size: 11px;
   }
 } 

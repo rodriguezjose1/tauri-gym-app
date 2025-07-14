@@ -52,14 +52,16 @@ export const RoutineList: React.FC<RoutineListProps> = ({
             }`}
             onClick={() => onSelectRoutine(routine.id!)}
           >
-            <div className="routine-manager-routine-name">
-              {routine.name}
-            </div>
-            {routine.code && (
-              <div className="routine-manager-routine-code">
-                Código: {routine.code}
+            <div className="routine-manager-routine-info">
+              <div className="routine-manager-routine-name">
+                {routine.name}
               </div>
-            )}
+              {routine.code && (
+                <div className="routine-manager-routine-code">
+                  Código: {routine.code}
+                </div>
+              )}
+            </div>
             <button
               className="routine-manager-routine-delete"
               onClick={(e) => {

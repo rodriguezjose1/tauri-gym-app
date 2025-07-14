@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Input, Button } from '../../../shared/components/base';
+import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
 import { Exercise } from '../../../shared/types/dashboard';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
+
+interface ExerciseWithGroup extends Exercise {
+  selectedGroup: number;
+}
 
 interface ExerciseSearchProps {
   isOpen: boolean;
   exercises: Exercise[];
   loading: boolean;
-  onAddExercise: (exercise: Exercise) => void;
+  onAddExercise: (exercise: Exercise, groupNumber: number) => void;
   onClose: () => void;
 }
 
@@ -19,7 +23,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   onClose
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  const [selectedExercises, setSelectedExercises] = useState<ExerciseWithGroup[]>([]);
 
   // Filtrar ejercicios basado en búsqueda
   const filteredExercises = useMemo(() => {
@@ -40,7 +44,8 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       if (isSelected) {
         return prev.filter(e => e.id !== exercise.id);
       } else {
-        return [...prev, exercise];
+        // Agregar ejercicio con grupo por defecto 1
+        return [...prev, { ...exercise, selectedGroup: 1 }];
       }
     });
   };
@@ -49,9 +54,19 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
     setSelectedExercises(prev => prev.filter(e => e.id !== exerciseId));
   };
 
+  const handleGroupChange = (exerciseId: number, groupNumber: number) => {
+    setSelectedExercises(prev => 
+      prev.map(exercise => 
+        exercise.id === exerciseId 
+          ? { ...exercise, selectedGroup: groupNumber }
+          : exercise
+      )
+    );
+  };
+
   const handleAddSelectedExercises = () => {
     selectedExercises.forEach(exercise => {
-      onAddExercise(exercise);
+      onAddExercise(exercise, exercise.selectedGroup);
     });
     setSelectedExercises([]);
     setSearchTerm('');
@@ -69,6 +84,26 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setSelectedExercises([]);
     }
   }, [isOpen]);
+
+  // Agrupar ejercicios seleccionados por grupo para mostrar estadísticas
+  const groupedSelectedExercises = useMemo(() => {
+    const grouped = selectedExercises.reduce((acc, exercise) => {
+      const group = exercise.selectedGroup;
+      if (!acc[group]) {
+        acc[group] = [];
+      }
+      acc[group].push(exercise);
+      return acc;
+    }, {} as Record<number, ExerciseWithGroup[]>);
+
+    return Object.entries(grouped)
+      .map(([groupNumber, exercises]) => ({
+        groupNumber: parseInt(groupNumber),
+        exercises,
+        count: exercises.length
+      }))
+      .sort((a, b) => a.groupNumber - b.groupNumber);
+  }, [selectedExercises]);
 
   if (!isOpen) {
     return null;
@@ -90,15 +125,17 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
         </div>
 
         <div className="exercise-search-filters">
-          <div className="exercise-search-field">
-            <Input
-              label="Buscar ejercicio"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              variant="primary"
-              fullWidth
-              placeholder="Buscar por nombre o código..."
-            />
+          <div className="exercise-search-filters-row">
+            <div className="exercise-search-field">
+              <Input
+                label="Buscar ejercicio"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                variant="primary"
+                fullWidth
+                placeholder="Buscar por nombre o código..."
+              />
+            </div>
           </div>
         </div>
 
@@ -106,24 +143,49 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
           {/* Sección de ejercicios seleccionados */}
           {selectedExercises.length > 0 && (
             <div className="exercise-search-selected-section">
-              <h4 className="exercise-search-section-title">Ejercicios seleccionados</h4>
+              <h4 className="exercise-search-section-title">
+                Ejercicios seleccionados ({selectedExercises.length})
+              </h4>
               <div className="exercise-search-selected-list">
                 {selectedExercises.map(exercise => (
-                  <div key={exercise.id} className="exercise-search-selected-item">
+                  <Card 
+                    key={exercise.id} 
+                    variant="default" 
+                    padding="sm" 
+                    className="exercise-search-selected-item"
+                  >
+                    <div className="exercise-search-selected-avatar">
+                      {exercise.name.charAt(0).toUpperCase()}
+                    </div>
                     <div className="exercise-search-selected-info">
                       <span className="exercise-search-selected-name">{exercise.name}</span>
                       {exercise.code && (
-                        <span className="exercise-search-selected-code">{exercise.code}</span>
+                        <span className="exercise-search-selected-code">Código: {exercise.code}</span>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRemoveSelected(exercise.id!)}
-                      className="exercise-search-remove-button"
-                      title="Quitar ejercicio"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                    <div className="exercise-search-selected-controls">
+                      <Select
+                        value={exercise.selectedGroup.toString()}
+                        onChange={(value) => handleGroupChange(exercise.id!, parseInt(value.toString()))}
+                        options={[
+                          { value: '1', label: 'Grupo 1' },
+                          { value: '2', label: 'Grupo 2' },
+                          { value: '3', label: 'Grupo 3' },
+                          { value: '4', label: 'Grupo 4' },
+                          { value: '5', label: 'Grupo 5' }
+                        ]}
+                        variant="primary"
+                        size="sm"
+                      />
+                      <button
+                        onClick={() => handleRemoveSelected(exercise.id!)}
+                        className="exercise-search-remove-button"
+                        title="Quitar ejercicio"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -148,23 +210,28 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
             ) : (
               <div className="exercise-search-list">
                 {filteredExercises.map(exercise => (
-                  <div 
+                  <Card 
                     key={exercise.id} 
+                    variant="default" 
+                    padding="sm" 
                     className="exercise-search-item"
                     onClick={() => handleToggleExercise(exercise)}
                   >
+                    <div className="exercise-search-item-avatar">
+                      {exercise.name.charAt(0).toUpperCase()}
+                    </div>
                     <div className="exercise-search-item-info">
                       <h4 className="exercise-search-item-name">{exercise.name}</h4>
                       {exercise.code && (
                         <span className="exercise-search-item-category">
-                          {exercise.code}
+                          Código: {exercise.code}
                         </span>
                       )}
                     </div>
                     <div className="exercise-search-item-checkbox">
                       +
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -173,7 +240,18 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
 
         <div className="exercise-search-actions">
           <div className="exercise-search-selected-count">
-            {selectedExercises.length} ejercicios seleccionados
+            {selectedExercises.length > 0 ? (
+              <div className="exercise-search-group-summary">
+                <strong>{selectedExercises.length}</strong> ejercicios seleccionados:
+                {groupedSelectedExercises.map(group => (
+                  <span key={group.groupNumber} className="exercise-search-group-badge">
+                    G{group.groupNumber}: {group.count}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span>Selecciona ejercicios para agregar</span>
+            )}
           </div>
           <div className="exercise-search-buttons">
             <Button
@@ -187,7 +265,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
               variant="primary"
               disabled={selectedExercises.length === 0}
             >
-              Agregar Seleccionados
+              ✅ Agregar Ejercicios
             </Button>
           </div>
         </div>

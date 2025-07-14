@@ -153,139 +153,158 @@ export const RoutineManager: React.FC = () => {
   return (
     <div className="routine-manager-container">
       <div className="routine-manager-wrapper">
-        {/* Search Card */}
-        <Card variant="elevated" padding="lg" className="routine-manager-search-card">
-          <div className="routine-manager-search-header">
-            <Title level={2} variant="default">
-              Gestión de Rutinas
-            </Title>
-            <Button
-              onClick={routineUI.openCreateForm}
-              variant="primary"
-              size="md"
-              disabled={routineData.loading}
-            >
-              Nueva Rutina
-            </Button>
-          </div>
-          
-          <div className="routine-manager-search-container">
-            <form onSubmit={handleSearch} className="routine-manager-search-form">
-              <Input
-                label="Buscar rutinas"
-                placeholder="Buscar por nombre o código..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                variant="primary"
-                leftIcon="🔍"
-                fullWidth
-              />
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={routineData.loading}
-                className="routine-manager-search-button"
-              >
-                Buscar
-              </Button>
-            </form>
-          </div>
-        </Card>
-
         {/* Main Content Card */}
         <Card variant="elevated" padding="lg" className="routine-manager-content-card">
-          <div className="routine-manager-content">
-            {/* Left Panel - Routines List */}
-            <div className="routine-manager-left-panel">
-              <div className="routine-manager-list-header">
+          <div className="routine-manager-card-content">
+            <div className="routine-manager-main-content">
+              {/* Header with title, search and create button */}
+              <div className="routine-manager-header">
+                <div className="routine-manager-title-section">
+                  <Title level={2} variant="default">
+                    Gestión de Rutinas
+                  </Title>
+                  <p className="routine-manager-description">
+                    Administra las rutinas de entrenamiento y sus ejercicios
+                  </p>
+                </div>
+                <div className="routine-manager-actions">
+                  <form onSubmit={handleSearch} className="routine-manager-search-form">
+                    <Input
+                      placeholder="Buscar por nombre o código..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      variant="primary"
+                      leftIcon="🔍"
+                      fullWidth
+                    />
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={routineData.loading}
+                      className="routine-manager-search-button"
+                    >
+                      Buscar
+                    </Button>
+                  </form>
+                  <Button
+                    onClick={routineUI.openCreateForm}
+                    variant="primary"
+                    size="md"
+                    disabled={routineData.loading}
+                  >
+                    Nueva Rutina
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="routine-manager-stats">
                 <span className="routine-manager-count">
                   {routineData.routines.length} {routineData.routines.length === 1 ? 'rutina' : 'rutinas'}
                 </span>
               </div>
-              
-              <RoutineList
-                routines={routineData.routines}
-                selectedRoutineId={routineData.selectedRoutineId}
-                loading={routineData.loading}
-                onSelectRoutine={handleSelectRoutine}
-                onDeleteRoutine={handleDeleteClick}
-                onCreateNew={routineUI.openCreateForm}
-                hideCreateButton={true}
-              />
+
+              {/* Content Layout */}
+              <div className="routine-manager-content">
+                {/* Left Panel - Routines List */}
+                <div className="routine-manager-left-panel">
+                  <RoutineList
+                    routines={routineData.routines}
+                    selectedRoutineId={routineData.selectedRoutineId}
+                    loading={routineData.loading}
+                    onSelectRoutine={handleSelectRoutine}
+                    onDeleteRoutine={handleDeleteClick}
+                    onCreateNew={routineUI.openCreateForm}
+                    hideCreateButton={true}
+                  />
+                </div>
+
+                {/* Right Panel - Routine Details */}
+                <div className="routine-manager-right-panel">
+                  {routineData.selectedRoutine ? (
+                    <div className="routine-manager-routine-details">
+                      <div className="routine-manager-routine-header">
+                        <div className="routine-manager-routine-info">
+                          <Title level={3} variant="default">
+                            {routineData.selectedRoutine.name}
+                          </Title>
+                          {routineData.selectedRoutine.code && (
+                            <p className="routine-manager-routine-subtitle">
+                              Código: {routineData.selectedRoutine.code}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <Button
+                          onClick={routineUI.openExerciseSearch}
+                          variant="primary"
+                          disabled={isButtonDisabled}
+                          className="routine-manager-add-exercise-button"
+                        >
+                          Agregar Ejercicio
+                        </Button>
+                      </div>
+
+                      <div className="routine-manager-exercises-container">
+                        {routineExercises.loading ? (
+                          <div className="routine-manager-loading">
+                            <div className="routine-manager-loading-icon">⏳</div>
+                            <p className="routine-manager-loading-text">Cargando ejercicios...</p>
+                          </div>
+                        ) : exerciseGroups.length === 0 ? (
+                          <div className="routine-manager-empty-state">
+                            <div className="routine-manager-empty-icon">🏋️</div>
+                            <Title level={4} variant="secondary" align="center">
+                              No hay ejercicios en esta rutina
+                            </Title>
+                            <p className="routine-manager-empty-description">
+                              Agrega ejercicios a esta rutina usando el botón "Agregar Ejercicio"
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="routine-manager-groups">
+                            {exerciseGroups.map((group, groupIndex) => (
+                              <div key={`group-${group.groupNumber}`}>
+                                <RoutineGroup groupNumber={group.groupNumber}>
+                                  {group.exercises.map((exercise, exerciseIndex) => (
+                                    <RoutineExercise
+                                      key={exercise.id || exerciseIndex}
+                                      exercise={exercise}
+                                      onUpdate={routineExercises.updateExercise}
+                                      onDelete={routineExercises.removeExercise}
+                                    />
+                                  ))}
+                                </RoutineGroup>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="routine-manager-no-routine">
+                      <div className="routine-manager-no-routine-icon">📋</div>
+                      <Title level={4} variant="secondary" align="center">
+                        Selecciona una rutina
+                      </Title>
+                      <p className="routine-manager-no-routine-description">
+                        Elige una rutina de la lista para ver y editar sus ejercicios
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Right Panel - Routine Details */}
-            <div className="routine-manager-right-panel">
-              {routineData.selectedRoutine ? (
-                <div className="routine-manager-routine-details">
-                  <div className="routine-manager-routine-header">
-                    <div className="routine-manager-routine-info">
-                      <Title level={3} variant="default">
-                        {routineData.selectedRoutine.name}
-                      </Title>
-                      {routineData.selectedRoutine.code && (
-                        <p className="routine-manager-routine-subtitle">
-                          Código: {routineData.selectedRoutine.code}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <Button
-                      onClick={routineUI.openExerciseSearch}
-                      variant="primary"
-                      disabled={isButtonDisabled}
-                      className="routine-manager-add-exercise-button"
-                    >
-                      Agregar Ejercicio
-                    </Button>
-                  </div>
-
-                  <div className="routine-manager-exercises-container">
-                    {routineExercises.loading ? (
-                      <div className="routine-manager-loading">
-                        <div className="routine-manager-loading-icon">⏳</div>
-                        <p className="routine-manager-loading-text">Cargando ejercicios...</p>
-                      </div>
-                    ) : exerciseGroups.length === 0 ? (
-                      <div className="routine-manager-empty-state">
-                        <div className="routine-manager-empty-icon">🏋️</div>
-                        <Title level={4} variant="secondary" align="center">
-                          No hay ejercicios en esta rutina
-                        </Title>
-                        <p className="routine-manager-empty-description">
-                          Agrega ejercicios a esta rutina usando el botón "Agregar Ejercicio"
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="routine-manager-groups">
-                        {exerciseGroups.map((group, groupIndex) => (
-                          <div key={`group-${group.groupNumber}`}>
-                            <RoutineGroup groupNumber={group.groupNumber}>
-                              {group.exercises.map((exercise, exerciseIndex) => (
-                                <RoutineExercise
-                                  key={exercise.id || exerciseIndex}
-                                  exercise={exercise}
-                                  onUpdate={routineExercises.updateExercise}
-                                  onDelete={routineExercises.removeExercise}
-                                />
-                              ))}
-                            </RoutineGroup>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="routine-manager-no-routine">
-                  <div className="routine-manager-no-routine-icon">📋</div>
-                  <Title level={4} variant="secondary" align="center">
-                    Selecciona una rutina
-                  </Title>
-                  <p className="routine-manager-no-routine-description">
-                    Elige una rutina de la lista para ver y editar sus ejercicios
-                  </p>
-                </div>
+            {/* Sticky Pagination/Navigation - Always visible at bottom */}
+            <div className="routine-manager-pagination">
+              <span className="routine-manager-pagination-info">
+                {routineData.routines.length} {routineData.routines.length === 1 ? 'rutina' : 'rutinas'} total
+              </span>
+              {routineData.selectedRoutine && (
+                <span className="routine-manager-selected-info">
+                  Editando: {routineData.selectedRoutine.name}
+                </span>
               )}
             </div>
           </div>
@@ -310,7 +329,7 @@ export const RoutineManager: React.FC = () => {
         isOpen={routineUI.showExerciseSearch}
         exercises={exercises}
         loading={exercisesLoading}
-        onAddExercise={async (exercise: Exercise) => {
+        onAddExercise={async (exercise: Exercise, groupNumber: number) => {
           const nextOrderIndex = routineExercises.exercises.length;
           await routineExercises.addExercise(
             exercise.id!,
@@ -319,7 +338,7 @@ export const RoutineManager: React.FC = () => {
             undefined, // reps - no usado por el momento
             undefined, // weight - no usado por el momento
             undefined, // notes - no usado por el momento
-            1 // group_number - default group
+            groupNumber // group_number - selected group
           );
         }}
         onClose={routineUI.closeExerciseSearch}

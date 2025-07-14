@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Button, Select } from '../../../shared/components/base';
+import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
 import { RoutineExerciseWithDetails } from '../../../services';
 
 interface RoutineExerciseProps {
@@ -13,6 +13,12 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   onUpdate,
   onDelete
 }) => {
+  console.log('RoutineExercise rendered with:', { 
+    exercise: exercise.exercise_name, 
+    exerciseId: exercise.id,
+    hasOnDelete: typeof onDelete === 'function' 
+  });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     group_number: exercise.group_number || 1
@@ -34,14 +40,38 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   };
 
   const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este ejercicio?')) {
-      await onDelete(exercise.id!);
+    console.log('Delete button clicked for exercise:', exercise);
+    console.log('Exercise ID:', exercise.id);
+    console.log('Exercise name:', exercise.exercise_name);
+    
+    if (!exercise.id) {
+      console.error('Exercise ID is undefined!');
+      return;
     }
+    
+    console.log('About to show confirmation dialog');
+    
+    // Comentar temporalmente la confirmación para probar
+    // const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este ejercicio?');
+    // console.log('Confirmation result:', confirmDelete);
+    
+    // if (confirmDelete) {
+    // Eliminar directamente sin confirmación por ahora
+    try {
+      console.log('Calling onDelete with ID:', exercise.id);
+      await onDelete(exercise.id);
+      console.log('Delete completed successfully');
+    } catch (error) {
+      console.error('Error in delete:', error);
+    }
+    // } else {
+    //   console.log('Delete cancelled by user');
+    // }
   };
 
   if (isEditing) {
     return (
-      <div className="routine-exercise-edit">
+      <Card variant="default" padding="md" className="routine-exercise-edit-card">
         <div className="routine-exercise-edit-form">
           <div className="routine-exercise-group-selection">
             <Select
@@ -67,36 +97,61 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
             </Button>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="routine-exercise-item">
-      <div className="routine-exercise-content">
-        <div className="routine-exercise-info">
-          <div className="routine-exercise-name">
-            {exercise.exercise_name}
-          </div>
-          <div className="routine-exercise-details">
-            Grupo {exercise.group_number || 1}
-          </div>
-        </div>
-        <div className="routine-exercise-actions">
-          <button
-            onClick={() => setIsEditing(true)}
-            className="routine-exercise-edit-button"
-          >
-            ✏️
-          </button>
-          <button
-            onClick={handleDelete}
-            className="routine-exercise-remove-button"
-          >
-            🗑️
-          </button>
-        </div>
+    <Card
+      variant="default"
+      padding="md"
+      className="routine-exercise-card"
+    >
+      <div className="routine-exercise-avatar">
+        {exercise.exercise_name.charAt(0).toUpperCase()}
       </div>
-    </div>
+      
+      <div className="routine-exercise-info">
+        <Title level={4} variant="default" className="routine-exercise-name">
+          {exercise.exercise_name}
+        </Title>
+        <p className="routine-exercise-details">
+          Grupo {exercise.group_number || 1}
+        </p>
+      </div>
+      
+      <div className="routine-exercise-actions">
+        <Button
+          onClick={() => setIsEditing(true)}
+          variant="secondary"
+          size="sm"
+        >
+          ✏️ Editar
+        </Button>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Delete button clicked - event triggered');
+            handleDelete();
+          }}
+          type="button"
+          style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '6px 12px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          🗑️ Eliminar
+        </button>
+      </div>
+    </Card>
   );
 }; 

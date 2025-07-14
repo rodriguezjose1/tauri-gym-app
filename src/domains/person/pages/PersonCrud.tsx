@@ -62,7 +62,7 @@ export default function PersonCrud() {
 
   const loadAllPersons = async () => {
     try {
-      const allPersonsData = await PersonService.getAllPersons();
+      const allPersonsData = await PersonService.getPersons();
       setAllPersons(allPersonsData);
     } catch (error) {
       console.error("Error loading all persons:", error);
@@ -205,137 +205,133 @@ export default function PersonCrud() {
   return (
     <div className="person-crud-container">
       <div className="person-crud-wrapper">
-        {/* Header with Create Button */}
-        <Card variant="elevated" padding="lg" className="person-header-card">
-          <div className="person-header-content">
-            <div className="person-header-info">
-              <Title level={2} variant="default">
-                Gestión de Personas
-              </Title>
-              <p className="person-header-description">
-                Administra las personas que participan en los entrenamientos
-              </p>
-            </div>
-            <Button
-              onClick={handleOpenCreateModal}
-              variant="primary"
-              size="md"
-            >
-              ➕ Nueva Persona
-            </Button>
-          </div>
-        </Card>
-
         {/* Persons List */}
         <Card variant="elevated" padding="lg">
-          <div className="person-list-header">
-            <Title level={3} variant="default">
-              Lista de Personas
-            </Title>
-            <div className="person-list-stats">
-              <span className="person-count">
-                {searchTerm.trim() !== "" ? filteredPersons.length : totalPersons} {(searchTerm.trim() !== "" ? filteredPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {searchTerm.trim() !== "" ? 'encontrada' : 'total'}
-              </span>
-              {searchTerm.trim() === "" && (
-                <span className="person-page-info">
-                  Página {currentPage}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Search Field */}
-          <div className="person-search-container">
-            <Input
-              label="Buscar personas"
-              placeholder="Buscar por nombre, apellido o teléfono..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              variant="primary"
-              leftIcon="🔍"
-              fullWidth
-            />
-            {searchTerm.trim() !== "" && (
-              <p className="person-search-results">
-                Mostrando resultados para: "{searchTerm}"
-              </p>
-            )}
-          </div>
-          
-          {loading ? (
-            <div className="person-loading-state">
-              <div className="person-loading-icon">⏳</div>
-              <p className="person-loading-text">Cargando personas...</p>
-            </div>
-          ) : (searchTerm.trim() !== "" ? filteredPersons.length === 0 : persons.length === 0) ? (
-            <div className="person-empty-state">
-              <div className="person-empty-icon">
-                {searchTerm.trim() !== "" ? '🔍' : '👥'}
+          <div className="person-card-content">
+            <div className="person-main-content">
+              <div className="person-list-header">
+                <div className="person-list-title-section">
+                  <Title level={2} variant="default">
+                    Gestión de Personas
+                  </Title>
+                  <p className="person-list-description">
+                    Administra las personas que participan en los entrenamientos
+                  </p>
+                </div>
+                <div className="person-list-actions">
+                  <Button
+                    onClick={handleOpenCreateModal}
+                    variant="primary"
+                    size="md"
+                  >
+                    ➕ Nueva Persona
+                  </Button>
+                </div>
               </div>
-              <Title level={3} variant="secondary" align="center">
-                {searchTerm.trim() !== "" ? 'No se encontraron personas' : 'No hay personas registradas'}
-              </Title>
-              <p className="person-empty-description">
-                {searchTerm.trim() !== "" 
-                  ? `No hay personas que coincidan con "${searchTerm}"`
-                  : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
-                }
-              </p>
-              {searchTerm.trim() === "" && (
-                <Button
-                  onClick={handleOpenCreateModal}
+
+              <div className="person-list-stats">
+                <span className="person-count">
+                  {searchTerm.trim() !== "" ? filteredPersons.length : totalPersons} {(searchTerm.trim() !== "" ? filteredPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {searchTerm.trim() !== "" ? 'encontrada' : 'total'}
+                </span>
+                {searchTerm.trim() === "" && (
+                  <span className="person-page-info">
+                    Página {currentPage}
+                  </span>
+                )}
+              </div>
+
+              {/* Search Field */}
+              <div className="person-search-container">
+                <Input
+                  label="Buscar personas"
+                  placeholder="Buscar por nombre, apellido o teléfono..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
                   variant="primary"
-                  size="md"
-                >
-                  ➕ Crear Primera Persona
-                </Button>
+                  leftIcon="🔍"
+                  fullWidth
+                />
+                {searchTerm.trim() !== "" && (
+                  <p className="person-search-results">
+                    Mostrando resultados para: "{searchTerm}"
+                  </p>
+                )}
+              </div>
+              
+              {loading ? (
+                <div className="person-loading-state">
+                  <div className="person-loading-icon">⏳</div>
+                  <p className="person-loading-text">Cargando personas...</p>
+                </div>
+              ) : (searchTerm.trim() !== "" ? filteredPersons.length === 0 : persons.length === 0) ? (
+                <div className="person-empty-state">
+                  <div className="person-empty-icon">
+                    {searchTerm.trim() !== "" ? '🔍' : '👥'}
+                  </div>
+                  <Title level={3} variant="secondary" align="center">
+                    {searchTerm.trim() !== "" ? 'No se encontraron personas' : 'No hay personas registradas'}
+                  </Title>
+                  <p className="person-empty-description">
+                    {searchTerm.trim() !== "" 
+                      ? `No hay personas que coincidan con "${searchTerm}"`
+                      : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
+                    }
+                  </p>
+                  {searchTerm.trim() === "" && (
+                    <Button
+                      onClick={handleOpenCreateModal}
+                      variant="primary"
+                      size="md"
+                    >
+                      ➕ Crear Primera Persona
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="person-list-grid">
+                  {filteredPersons.map((person) => (
+                    <Card
+                      key={person.id}
+                      variant="default"
+                      padding="md"
+                      className="person-card"
+                    >
+                      <div className="person-avatar">
+                        {person.name.charAt(0).toUpperCase()}
+                      </div>
+                      
+                      <div className="person-info">
+                        <Title level={4} variant="default" className="person-name">
+                          {person.name} {person.last_name}
+                        </Title>
+                        {person.phone && person.phone !== "0" && (
+                          <p className="person-phone">Tel: {person.phone}</p>
+                        )}
+                      </div>
+                      
+                      <div className="person-actions">
+                        <Button
+                          onClick={() => handleEdit(person)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          ✏️ Editar
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(person)}
+                          variant="danger"
+                          size="sm"
+                        >
+                          🗑️ Eliminar
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
-          ) : (
-            <div className="person-list-grid">
-              {filteredPersons.map((person) => (
-                <Card
-                  key={person.id}
-                  variant="default"
-                  padding="md"
-                  className="person-card"
-                >
-                  <div className="person-avatar">
-                    {person.name.charAt(0).toUpperCase()}
-                  </div>
-                  
-                  <div className="person-info">
-                    <Title level={4} variant="default" className="person-name">
-                      {person.name} {person.last_name}
-                    </Title>
-                    {person.phone && person.phone !== "0" && (
-                      <p className="person-phone">Tel: {person.phone}</p>
-                    )}
-                  </div>
-                  
-                  <div className="person-actions">
-                    <Button
-                      onClick={() => handleEdit(person)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      ✏️ Editar
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(person)}
-                      variant="danger"
-                      size="sm"
-                    >
-                      🗑️ Eliminar
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
 
-          {/* Pagination Controls */}
-          {!loading && persons.length > 0 && searchTerm.trim() === "" && (
+            {/* Pagination Controls - Always visible at bottom */}
             <div className="person-pagination">
               <Button
                 onClick={() => goToPage(currentPage - 1)}
@@ -370,7 +366,7 @@ export default function PersonCrud() {
                 </Button>
               )}
             </div>
-          )}
+          </div>
         </Card>
       </div>
 

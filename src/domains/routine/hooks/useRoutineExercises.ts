@@ -116,7 +116,14 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
   }, [routineId, exercises, loadExercises, addNotification]);
 
   const removeExercise = useCallback(async (exerciseId: number) => {
-    if (!routineId) return;
+    console.log('removeExercise called with ID:', exerciseId);
+    console.log('Current routineId:', routineId);
+    console.log('Available exercises:', exercises.map(ex => ({ id: ex.id, exercise_id: ex.exercise_id, name: ex.exercise_name })));
+    
+    if (!routineId) {
+      console.error('No routineId available');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -129,14 +136,23 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         throw new Error('Exercise not found');
       }
       
+      console.log('Found exercise to delete:', currentExercise);
+      console.log('Will call service with routineId:', routineId, 'and exerciseId:', currentExercise.exercise_id);
+      
       // Sincronizar con el servidor primero
       await RoutineService.removeExerciseFromRoutine(routineId, currentExercise.exercise_id);
+      
+      console.log('Service call completed, now renumbering groups');
       
       // Renumerar grupos automáticamente después de eliminar
       await RoutineService.renumberRoutineGroups(routineId);
       
+      console.log('Groups renumbered, now reloading exercises');
+      
       // Recargar ejercicios para obtener los números de grupo actualizados
       await loadExercises();
+      
+      console.log('Exercises reloaded successfully');
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_REMOVED_SUCCESS, 'success');
     } catch (error) {

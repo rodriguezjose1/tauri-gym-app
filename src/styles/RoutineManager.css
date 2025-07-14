@@ -1,124 +1,137 @@
 /* RoutineManager Component Styles */
 
-/* Utility Classes */
-.routine-manager-input-spacing {
-  margin-top: 12px;
-}
-
-/* Main Container - Modal Mode */
-.routine-manager-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
 /* Main Container - Page Mode */
-.routine-manager-page {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-primary);
-}
-
-/* Routine Manager - Card-based Layout */
 .routine-manager-container {
+  background: var(--bg-primary, #1a1a1a);
+  min-height: 100vh;
   width: 100%;
-  padding: 20px;
-  background-color: var(--bg-secondary);
-  min-height: calc(100vh - var(--layout-nav-height, 80px));
+  padding: 24px;
 }
 
 .routine-manager-wrapper {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+}
+
+/* Card Layout */
+.routine-manager-wrapper .card {
+  display: flex;
+  flex-direction: column;
+  min-height: 70vh;
   width: 100%;
 }
 
-/* Search Card */
-.routine-manager-search-card {
-  background: var(--bg-primary);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
-  width: 100%;
+.routine-manager-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.routine-manager-search-header {
+.routine-manager-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.routine-manager-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #404040);
+  gap: 24px;
 }
 
-.routine-manager-search-container {
-  width: 100%;
+.routine-manager-title-section {
+  flex: 1;
+  min-width: 0;
 }
 
+.routine-manager-description {
+  color: var(--text-secondary, #b0b0b0);
+  margin: 4px 0 0 0;
+  font-size: 14px;
+}
+
+.routine-manager-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.routine-manager-actions button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Search Form */
 .routine-manager-search-form {
   display: flex;
   gap: 12px;
-  align-items: flex-end;
+  align-items: center;
+  min-width: 300px;
+  flex-shrink: 0;
 }
 
 .routine-manager-search-form .routine-manager-search-button {
   flex-shrink: 0;
-  margin-top: 24px; /* Align with input field */
+  white-space: nowrap;
 }
 
-/* Main Content Card */
-.routine-manager-content-card {
-  background: var(--bg-primary);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
-  min-height: 600px;
-  width: 100%;
+/* Stats */
+.routine-manager-stats {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #404040);
 }
 
+.routine-manager-count {
+  color: var(--text-secondary, #b0b0b0);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Content Layout */
 .routine-manager-content {
   display: flex;
   gap: 20px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 350px);
+  min-height: 500px;
 }
 
 /* Left Panel - Routines List */
 .routine-manager-left-panel {
   flex: 0 0 450px;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color, #404040);
   padding-right: 20px;
-}
-
-.routine-manager-list-header {
+  overflow-y: auto;
+  height: 100%;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.routine-manager-count {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  flex-direction: column;
 }
 
 /* Right Panel - Routine Details */
 .routine-manager-right-panel {
   flex: 1;
   padding-left: 20px;
-  min-width: 0; /* Allow flex item to shrink */
+  min-width: 0;
+  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Routine Details */
 .routine-manager-routine-details {
   height: 100%;
   display: flex;
@@ -131,16 +144,20 @@
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color, #404040);
+  flex-shrink: 0;
 }
 
 .routine-manager-routine-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .routine-manager-routine-subtitle {
   margin: 8px 0 0 0;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #b0b0b0);
   font-size: 14px;
 }
 
@@ -152,6 +169,37 @@
 .routine-manager-exercises-container {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
+}
+
+/* Pagination */
+.routine-manager-pagination {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-primary, #1a1a1a);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border-color, #404040);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.routine-manager-pagination-info {
+  color: var(--text-secondary, #b0b0b0);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.routine-manager-selected-info {
+  color: var(--accent-primary, #2196F3);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* Loading States */
@@ -230,7 +278,7 @@
 .routine-manager-groups {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .routine-manager-group {
@@ -242,266 +290,183 @@
 
 .routine-manager-group-header {
   background: var(--bg-tertiary);
-  padding: 12px 16px;
+  padding: 16px 20px;
   font-weight: 600;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-color);
+  font-size: 16px;
 }
 
 .routine-manager-group-container {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .routine-manager-group-empty {
   text-align: center;
   color: var(--text-muted);
   font-style: italic;
-  padding: 20px;
+  padding: 24px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
 }
 
-/* Routine List Styles */
+/* Responsive Design */
+@media (min-width: 1400px) {
+  .routine-manager-left-panel {
+    flex: 0 0 500px;
+  }
+  
+  .routine-manager-content {
+    height: calc(100vh - 330px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .routine-manager-left-panel {
+    flex: 0 0 400px;
+  }
+  
+  .routine-manager-content {
+    height: calc(100vh - 370px);
+  }
+}
+
+@media (max-width: 768px) {
+  .routine-manager-container {
+    padding: 16px;
+  }
+  
+  .routine-manager-wrapper .card {
+    min-height: 60vh;
+  }
+  
+  .routine-manager-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  
+  .routine-manager-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .routine-manager-search-form {
+    flex-direction: row;
+    gap: 12px;
+    min-width: auto;
+  }
+  
+  .routine-manager-stats {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+  
+  .routine-manager-content {
+    flex-direction: column;
+    gap: 16px;
+    height: auto;
+    min-height: 400px;
+  }
+  
+  .routine-manager-left-panel {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #404040);
+    padding-right: 0;
+    padding-bottom: 16px;
+    max-height: 300px;
+    height: 300px;
+  }
+  
+  .routine-manager-right-panel {
+    padding-left: 0;
+    padding-top: 16px;
+    height: auto;
+    min-height: 400px;
+  }
+  
+  .routine-manager-pagination {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .routine-manager-pagination-info,
+  .routine-manager-selected-info {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .routine-manager-container {
+    padding: 8px;
+  }
+  
+  .routine-manager-wrapper .card {
+    min-height: 50vh;
+  }
+  
+  .routine-manager-header {
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+  
+  .routine-manager-actions {
+    gap: 12px;
+  }
+  
+  .routine-manager-search-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .routine-manager-stats {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+  
+  .routine-manager-content {
+    min-height: 350px;
+  }
+  
+  .routine-manager-left-panel {
+    max-height: 250px;
+    height: 250px;
+  }
+  
+  .routine-manager-right-panel {
+    min-height: 350px;
+  }
+  
+  .routine-manager-pagination {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  
+  .routine-manager-pagination-info,
+  .routine-manager-selected-info {
+    font-size: 11px;
+  }
+}
+
+/* Additional styles for components that depend on this CSS */
 .routine-manager-routines-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.routine-manager-search-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.routine-manager-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.routine-manager-new-routine-button {
-  flex-shrink: 0;
-}
-
-/* NEW MODAL STYLES */
-.routine-manager-modal-content {
-  display: flex;
-  flex-direction: column;
-  height: 80vh;
-  max-height: 800px;
-  overflow: hidden;
-}
-
-.routine-manager-search-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-light);
-  background-color: var(--bg-secondary);
-  flex-shrink: 0;
-}
-
-.routine-manager-search-form {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.routine-manager-search-input {
-  flex: 1;
-  min-width: 200px;
-}
-
-.routine-manager-modal-layout {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.routine-manager-modal-left-panel {
-  width: 350px;
-  border-right: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.routine-manager-modal-right-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.routine-manager-routine-details {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
-.routine-manager-routine-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.routine-manager-routine-info {
-  flex: 1;
-}
-
-.routine-manager-routine-title {
-  margin: 0 0 8px 0;
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.routine-manager-routine-subtitle {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin: 0;
-}
-
-.routine-manager-add-exercise-button {
-  margin-left: 16px;
-}
-
-.routine-manager-exercises {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.routine-manager-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.routine-manager-no-routine {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: 16px;
-}
-
-.routine-manager-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-
-.routine-manager-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-light);
-  border-top: 3px solid var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Header Section */
-.routine-manager-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border-light);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.routine-manager-title {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.routine-manager-actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.routine-manager-search {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.routine-manager-search-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-}
-
-.routine-manager-search-input {
-  flex: 1;
-  min-width: 200px;
-}
-
-.routine-manager-close-button {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-
-.routine-manager-close-button:hover {
-  color: var(--text-primary);
-}
-
-/* Main Content Layout */
-.routine-manager-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* Left Panel - Routines List */
-.routine-manager-left-panel {
-  width: 400px;
-  border-right: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
-}
-
-.routine-manager-search-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.routine-manager-new-routine-button {
-  margin-top: 12px;
-  width: 100%;
-}
-
-.routine-manager-routines-list {
-  flex: 1;
-  overflow: auto;
-  padding: 16px;
-}
-
-.routine-manager-loading,
-.routine-manager-empty {
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-/* Routine Item */
 .routine-manager-routine-item {
   padding: 16px;
   background-color: var(--bg-secondary);
@@ -511,8 +476,9 @@
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
 .routine-manager-routine-item:hover {
@@ -528,17 +494,24 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.routine-manager-routine-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .routine-manager-routine-name {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 16px;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
 .routine-manager-routine-code {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .routine-manager-routine-delete {
@@ -549,9 +522,9 @@
   padding: 8px 12px;
   font-size: 12px;
   cursor: pointer;
-  align-self: flex-start;
   transition: all 0.2s;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .routine-manager-routine-delete:hover {
@@ -559,538 +532,82 @@
   transform: translateY(-1px);
 }
 
-/* Right Panel - Routine Details */
-.routine-manager-right-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.routine-manager-routine-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.routine-manager-routine-title {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.routine-manager-routine-subtitle {
-  margin: 8px 0 0 0;
-  color: var(--text-secondary);
-}
-
-.routine-manager-add-exercise-button {
-  margin-top: 12px;
-}
-
-.routine-manager-exercises-container {
-  flex: 1;
-  overflow: auto;
-  padding: 20px;
-}
-
-.routine-manager-no-exercises {
-  text-align: center;
-  color: var(--text-secondary);
-  padding: 40px;
-}
-
-.routine-manager-no-routine {
-  flex: 1;
+/* Routine Exercise Items - Card Style */
+.routine-exercise-card {
+  background: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #404040);
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-}
-
-/* Exercise Groups */
-.routine-manager-exercise-group {
-  margin-bottom: 20px;
-}
-
-.routine-manager-group-header {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-  padding-left: 4px;
-}
-
-.routine-manager-group-container {
-  border: 1px dashed var(--border-color);
-  border-radius: 6px;
-  padding: 8px;
-}
-
-/* Exercise Item */
-.routine-manager-exercise-item {
-  padding: 8px 4px;
-  background-color: transparent;
-  border-radius: 4px;
-  border: none;
-  margin-bottom: 4px;
-  transition: all 0.2s;
-}
-
-.routine-manager-exercise-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.routine-manager-exercise-info {
-  flex: 1;
-}
-
-.routine-manager-exercise-name {
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.routine-manager-exercise-details {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.routine-manager-exercise-actions {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.routine-manager-exercise-edit-button,
-.routine-manager-exercise-remove-button {
-  background: none;
-  border: none;
+  gap: 16px;
+  transition: all 0.2s ease;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.routine-manager-exercise-edit-button {
-  color: var(--accent-primary);
-}
-
-.routine-manager-exercise-edit-button:hover {
-  background-color: var(--accent-bg);
-}
-
-.routine-manager-exercise-remove-button {
-  color: var(--error-color);
-}
-
-.routine-manager-exercise-remove-button:hover {
-  background-color: var(--error-bg);
-}
-
-/* Exercise Edit Form */
-.routine-manager-exercise-edit-form {
-  margin-top: 8px;
-}
-
-.routine-manager-group-selection {
-  margin-bottom: 12px;
-}
-
-.routine-manager-group-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.routine-manager-group-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.routine-manager-exercise-form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.routine-manager-exercise-notes {
-  margin-top: 8px;
-}
-
-.routine-manager-exercise-form-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.routine-manager-save-button,
-.routine-manager-cancel-button {
-  flex: 1;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.routine-manager-save-button {
-  background-color: var(--accent-primary);
-  color: var(--text-on-primary);
-}
-
-.routine-manager-save-button:hover {
-  background-color: var(--accent-hover);
-}
-
-.routine-manager-cancel-button {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.routine-manager-cancel-button:hover {
-  background-color: var(--bg-tertiary);
-}
-
-/* Modal Overlays */
-.routine-manager-modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.routine-manager-modal-content {
-  background-color: var(--bg-primary);
-  border-radius: 8px;
-  padding: 24px;
-}
-
-.routine-manager-create-modal {
-  width: 400px;
-}
-
-.routine-manager-add-exercise-modal {
-  width: 500px;
-}
-
-.routine-manager-modal-title {
-  margin: 0 0 16px 0;
-  color: var(--text-primary);
-}
-
-.routine-manager-modal-form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.routine-manager-modal-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.routine-manager-modal-button {
-  flex: 1;
-}
-
-/* Group Selection in Modal */
-.routine-manager-modal-group-section {
-  margin-top: 16px;
-}
-
-.routine-manager-modal-group-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.routine-manager-modal-group-select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.routine-manager-modal-group-description {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-/* Responsive Design */
-@media (min-width: 1400px) {
-  .routine-manager-left-panel {
-    flex: 0 0 500px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .routine-manager-left-panel {
-    flex: 0 0 400px;
-  }
-}
-
-@media (max-width: 768px) {
-  .routine-manager-container {
-    padding: 16px;
-  }
-  
-  .routine-manager-search-form {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .routine-manager-search-form .routine-manager-search-button {
-    margin-top: 0;
-  }
-  
-  .routine-manager-content {
-    flex-direction: column;
-    gap: 24px;
-  }
-  
-  .routine-manager-left-panel {
-    flex: none;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-    padding-right: 0;
-    padding-bottom: 20px;
-  }
-  
-  .routine-manager-right-panel {
-    padding-left: 0;
-    padding-top: 20px;
-  }
-  
-  .routine-manager-routine-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
-  .routine-manager-add-exercise-button {
-    margin-left: 0;
-    align-self: flex-start;
-  }
-  
-  .routine-manager-search-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-}
-
-@media (max-width: 480px) {
-  .routine-manager-container {
-    padding: 12px;
-  }
-  
-  .routine-manager-wrapper {
-    gap: 16px;
-  }
-  
-  .routine-manager-empty-state,
-  .routine-manager-no-routine {
-    padding: 40px 16px;
-  }
-  
-  .routine-manager-empty-icon,
-  .routine-manager-no-routine-icon {
-    font-size: 36px;
-  }
-}
-
-/* Dark Mode Adjustments */
-@media (prefers-color-scheme: dark) {
-  .routine-manager-group-select,
-  .routine-manager-modal-group-select {
-    color: var(--text-primary);
-  }
-  
-  .routine-manager-group-select option,
-  .routine-manager-modal-group-select option {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-  }
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-  .routine-manager-routine-item {
-    border-width: 2px;
-  }
-  
-  .routine-manager-group-container {
-    border-width: 2px;
-  }
-  
-  .routine-manager-modal-content {
-    border: 2px solid var(--border-color);
-  }
-}
-
-/* Reduced Motion */
-@media (prefers-reduced-motion: reduce) {
-  .routine-manager-routine-item,
-  .routine-manager-exercise-item {
-    transition: none;
-  }
-}
-
-/* Print Styles */
-@media print {
-  .routine-manager-modal-overlay,
-  .routine-manager-exercise-actions,
-  .routine-manager-close-button {
-    display: none;
-  }
-  
-  .routine-manager-container {
-    background: white;
-    color: black;
-    border: none;
-  }
-}
-
-/* Remove droppable group styles and replace with regular group styles */
-.routine-manager-group {
-  margin-bottom: 16px;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.routine-manager-group-header {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.routine-manager-group-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.routine-manager-group-empty {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
   padding: 16px;
-  font-style: italic;
-  background-color: var(--bg-secondary);
-  border-radius: 4px;
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
-/* RoutineExercise Component Styles */
-.routine-exercise-item {
-  padding: 8px 4px;
-  background-color: transparent;
-  border-radius: 4px;
-  border: none;
-  margin-bottom: 4px;
-  transition: all 0.2s;
+.routine-exercise-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent-primary, #2196F3);
 }
 
-.routine-exercise-content {
+.routine-exercise-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--success-color, #4CAF50);
+  color: white;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .routine-exercise-info {
   flex: 1;
+  min-width: 0;
 }
 
 .routine-exercise-name {
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 14px;
+  margin: 0 0 4px 0;
+  color: var(--text-primary, #ffffff);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .routine-exercise-details {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
-.routine-exercise-notes-display {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-  font-style: italic;
+  color: var(--text-secondary, #b0b0b0);
+  font-size: 14px;
+  margin: 0;
 }
 
 .routine-exercise-actions {
   display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.routine-exercise-edit-button,
-.routine-exercise-remove-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.routine-exercise-edit-button {
-  color: var(--accent-primary);
-}
-
-.routine-exercise-edit-button:hover {
-  background-color: var(--accent-bg);
-}
-
-.routine-exercise-remove-button {
-  color: var(--error-color);
-}
-
-.routine-exercise-remove-button:hover {
-  background-color: var(--error-bg);
-}
-
-/* Exercise Edit Form */
-.routine-exercise-form {
-  margin-top: 8px;
-  padding: 12px;
-  background-color: var(--bg-secondary);
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-}
-
-.routine-exercise-form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
-  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+/* Edit Form Card */
+.routine-exercise-edit-card {
+  background: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #404040);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.routine-exercise-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.routine-exercise-group-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .routine-exercise-form-actions {
@@ -1099,158 +616,129 @@
   justify-content: flex-end;
 }
 
-/* New Group Button */
-.routine-manager-new-group-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.routine-manager-new-group-button {
-  padding: 0.75rem 1.5rem;
-  background-color: transparent;
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-}
-
-.routine-manager-new-group-button:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  background-color: var(--primary-color-light);
-  transform: translateY(-1px);
-}
-
-.routine-manager-new-group-button:active {
-  transform: translateY(0);
-}
-
-/* Responsive adjustments for groups */
-@media (max-width: 768px) {
-  .routine-manager-new-group-container {
-    padding: 0.75rem;
-  }
-  
-  .routine-manager-new-group-button {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.85rem;
-  }
-}
-
-/* Dark mode adjustments */
-[data-theme="dark"] .routine-manager-group {
-  border-color: var(--border-color);
-  background-color: var(--bg-secondary);
-}
-
-[data-theme="dark"] .routine-manager-group-header {
+/* Legacy styles - keeping for backward compatibility */
+.routine-exercise-item {
+  padding: 12px;
   background-color: var(--bg-primary);
-  border-bottom-color: var(--border-color);
-}
-
-[data-theme="dark"] .routine-manager-group-empty {
-  background-color: var(--bg-primary);
-  border-color: var(--border-color);
-}
-
-/* RoutineForm Modal Styles */
-.routine-manager-form-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.routine-manager-form-container {
-  background-color: var(--bg-primary);
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
 }
 
-.routine-manager-form-header {
+.routine-exercise-item:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-primary);
+}
+
+.routine-exercise-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
+  gap: 16px;
 }
 
-.routine-manager-form-title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.routine-manager-form-close-button {
+.routine-exercise-edit-button,
+.routine-exercise-remove-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
+  padding: 8px;
   border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.routine-manager-form-close-button:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-tertiary);
-}
-
-.routine-manager-form-close-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.routine-manager-form {
-  padding: 1.5rem;
-}
-
-.routine-manager-form-field {
-  margin-bottom: 1.5rem;
-}
-
-.routine-manager-form-help {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.routine-manager-form-actions {
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
 }
 
-.routine-manager-form-actions button {
-  flex: 1;
+.routine-exercise-edit-button:hover {
+  background-color: var(--info-color);
+  color: white;
 }
 
-/* ExerciseSearch Modal Styles */
+.routine-exercise-remove-button:hover {
+  background-color: var(--error-color);
+  color: white;
+}
+
+/* Routine Exercise Edit Form - Legacy */
+.routine-exercise-edit {
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+/* Responsive Design for Exercise Items */
+@media (max-width: 768px) {
+  .routine-exercise-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+  }
+  
+  .routine-exercise-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .routine-exercise-actions {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .routine-exercise-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .routine-exercise-edit-form {
+    gap: 12px;
+  }
+  
+  .routine-exercise-form-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .routine-exercise-card {
+    padding: 12px;
+  }
+  
+  .routine-exercise-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .routine-exercise-edit-card {
+    padding: 12px;
+  }
+  
+  .routine-exercise-item {
+    padding: 8px;
+  }
+  
+  .routine-exercise-edit {
+    padding: 12px;
+  }
+  
+  .routine-exercise-edit-button,
+  .routine-exercise-remove-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+
+/* Exercise Search Modal */
 .exercise-search-overlay {
   position: fixed;
   top: 0;
@@ -1262,19 +750,19 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .exercise-search-container {
   background-color: var(--bg-primary);
   border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
 }
 
@@ -1282,121 +770,176 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
 }
 
 .exercise-search-title {
   margin: 0;
-  color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .exercise-search-close-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 20px;
   cursor: pointer;
   color: var(--text-secondary);
-  padding: 0.25rem;
+  padding: 4px;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .exercise-search-close-button:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-tertiary);
+  background-color: var(--error-color);
+  color: white;
 }
 
 .exercise-search-filters {
-  padding: 1.5rem;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
+}
+
+.exercise-search-filters-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
 }
 
 .exercise-search-field {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .exercise-search-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 20px 24px;
+  min-height: 0;
 }
 
-/* Sección de ejercicios seleccionados */
 .exercise-search-selected-section {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+  padding: 16px;
   background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .exercise-search-section-title {
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 500;
 }
 
 .exercise-search-selected-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .exercise-search-selected-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background-color: var(--primary-color-light);
-  border: 1px solid var(--primary-color);
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.exercise-search-selected-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.exercise-search-selected-name {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.exercise-search-selected-code {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.exercise-search-remove-button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  gap: 12px;
+  padding: 12px;
+  background-color: var(--accent-bg);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
-.exercise-search-remove-button:hover {
-  color: var(--error-color);
-  background-color: var(--error-bg);
+.exercise-search-selected-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Sección de resultados de búsqueda */
+.exercise-search-selected-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.exercise-search-selected-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exercise-search-selected-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.exercise-search-selected-code {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.exercise-search-selected-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.exercise-search-remove-button {
+  background: var(--error-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.exercise-search-remove-button:hover {
+  background: var(--error-hover);
+  transform: scale(1.1);
+}
+
+.exercise-search-group-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exercise-search-group-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
 .exercise-search-results {
   flex: 1;
-  overflow: auto;
-  padding: 1rem;
-  min-height: 200px;
 }
 
 .exercise-search-loading {
@@ -1404,23 +947,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  color: var(--text-secondary);
+  padding: 40px;
+  gap: 16px;
 }
 
 .exercise-search-spinner {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: 3px solid var(--border-color);
-  border-top: 3px solid var(--primary-color);
+  border-top: 3px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .exercise-search-empty {
@@ -1428,327 +965,269 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  color: var(--text-secondary);
+  padding: 40px;
   text-align: center;
 }
 
+.exercise-search-empty p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
 .exercise-search-empty-hint {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
+  margin-top: 8px !important;
+  font-size: 14px !important;
+  color: var(--text-muted) !important;
 }
 
 .exercise-search-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .exercise-search-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  gap: 12px;
+  padding: 12px 16px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  transition: all 0.2s ease;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .exercise-search-item:hover {
   background-color: var(--bg-tertiary);
-  border-color: var(--primary-color);
+  border-color: var(--accent-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-search-item-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--success-color, #4CAF50);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .exercise-search-item-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .exercise-search-item-name {
-  margin: 0 0 0.25rem 0;
-  color: var(--text-primary);
-  font-size: 1rem;
+  margin: 0;
+  font-size: 14px;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .exercise-search-item-category {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  background-color: var(--primary-color-light);
-  color: var(--primary-color);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .exercise-search-item-checkbox {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--primary-color);
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--accent-primary);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color);
+  font-size: 18px;
   font-weight: bold;
-  margin-left: 1rem;
-  flex-shrink: 0;
-  font-size: 1.25rem;
+  color: var(--accent-primary);
+  background-color: var(--bg-primary);
+  transition: all 0.2s;
+}
+
+.exercise-search-item:hover .exercise-search-item-checkbox {
+  background-color: var(--accent-primary);
+  color: white;
 }
 
 .exercise-search-actions {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
 }
 
 .exercise-search-selected-count {
+  font-size: 14px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.exercise-search-group-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 8px;
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .exercise-search-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
 }
 
-/* Responsive adjustments for modals */
+/* Responsive Design for Exercise Search */
 @media (max-width: 768px) {
   .exercise-search-container {
     width: 95%;
-    max-height: 95vh;
-    margin: 1rem;
+    max-height: 85vh;
   }
   
   .exercise-search-header {
-    padding: 1rem;
+    padding: 16px 20px;
   }
   
   .exercise-search-title {
-    font-size: 1.125rem;
+    font-size: 16px;
   }
   
   .exercise-search-filters {
-    padding: 1rem;
+    padding: 16px 20px;
+  }
+  
+  .exercise-search-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .exercise-search-field,
+  .exercise-search-group-field {
+    flex: none;
+    min-width: auto;
+  }
+  
+  .exercise-search-content {
+    padding: 16px 20px;
   }
   
   .exercise-search-selected-section {
-    padding: 0.75rem;
-  }
-  
-  .exercise-search-actions {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
-  }
-  
-  .exercise-search-buttons {
-    width: 100%;
-  }
-  
-  .exercise-search-buttons button {
-    flex: 1;
-  }
-}
-
-@media (max-width: 480px) {
-  .exercise-search-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .exercise-search-item-checkbox {
-    align-self: flex-end;
-  }
-  
-  .exercise-search-selected-item {
-    width: 100%;
-  }
-}
-
-/* Dark mode adjustments for modals */
-[data-theme="dark"] .exercise-search-overlay {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-[data-theme="dark"] .exercise-search-container {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme="dark"] .exercise-search-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme="dark"] .exercise-search-selected-item {
-  background-color: rgba(var(--primary-color-rgb), 0.2);
-}
-
-.routine-manager__groups {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.routine-manager-new-group-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.routine-manager-new-group-button {
-  padding: 0.75rem 1.5rem;
-  background-color: transparent;
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-}
-
-.routine-manager-new-group-button:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  background-color: var(--primary-color-light);
-  transform: translateY(-1px);
-}
-
-.routine-manager-new-group-button:active {
-  transform: translateY(0);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .routine-manager-new-group-container {
-    padding: 0.75rem;
-  }
-  
-  .routine-manager-new-group-button {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.85rem;
-  }
-}
-
-/* RoutineForm Styles */
-.routine-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.routine-form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.routine-form-help {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-  font-style: italic;
-}
-
-.routine-form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-light);
-}
-
-.routine-form-actions button {
-  flex: 1;
-}
-
-/* Responsive Design for RoutineForm */
-@media (max-width: 768px) {
-  .routine-form-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .routine-form-actions button {
-    width: 100%;
-  }
-}
-
-/* RoutinePage Styles */
-.routine-page-container {
-  min-height: calc(100vh - var(--layout-nav-height, 80px));
-  width: 100%;
-  background-color: var(--bg-secondary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.routine-page-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-  width: 100%;
-}
-
-.routine-page-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.routine-page-description {
-  color: var(--text-secondary);
-  font-size: 16px;
-  margin: 16px 0 0 0;
-  line-height: 1.5;
-}
-
-.routine-page-actions {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0;
-}
-
-/* Responsive Design for RoutinePage */
-@media (max-width: 768px) {
-  .routine-page-wrapper {
-    padding: 16px;
-  }
-  
-  .routine-page-header {
-    margin-bottom: 24px;
-  }
-  
-  .routine-page-description {
-    font-size: 14px;
-  }
-  
-  .routine-page-actions {
-    padding: 16px 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .routine-page-wrapper {
     padding: 12px;
   }
   
-  .routine-page-header {
-    margin-bottom: 16px;
+  .exercise-search-selected-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
   
-  .routine-page-actions {
-    padding: 12px 0;
+  .exercise-search-selected-controls {
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .exercise-search-item {
+    padding: 10px 12px;
+  }
+  
+  .exercise-search-actions {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .exercise-search-buttons {
+    justify-content: center;
+  }
+  
+  .exercise-search-group-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .exercise-search-container {
+    width: 98%;
+    max-height: 90vh;
+  }
+  
+  .exercise-search-header {
+    padding: 12px 16px;
+  }
+  
+  .exercise-search-filters {
+    padding: 12px 16px;
+  }
+  
+  .exercise-search-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .exercise-search-field,
+  .exercise-search-group-field {
+    flex: none;
+    min-width: auto;
+  }
+  
+  .exercise-search-content {
+    padding: 12px 16px;
+  }
+  
+  .exercise-search-selected-section {
+    padding: 8px;
+  }
+  
+  .exercise-search-selected-item {
+    padding: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .exercise-search-selected-controls {
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .exercise-search-item {
+    padding: 8px 10px;
+  }
+  
+  .exercise-search-item-checkbox {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .exercise-search-actions {
+    padding: 12px 16px;
+  }
+  
+  .exercise-search-buttons {
+    flex-direction: column;
+  }
+  
+  .exercise-search-group-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 } 

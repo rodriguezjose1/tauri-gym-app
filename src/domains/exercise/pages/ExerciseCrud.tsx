@@ -212,137 +212,133 @@ export default function ExerciseCrud() {
   return (
     <div className="exercise-crud-container">
       <div className="exercise-crud-wrapper">
-        {/* Header with Create Button */}
-        <Card variant="elevated" padding="lg" className="exercise-header-card">
-          <div className="exercise-header-content">
-            <div className="exercise-header-info">
-              <Title level={2} variant="default">
-                Gestión de Ejercicios
-              </Title>
-              <p className="exercise-header-description">
-                Administra los ejercicios disponibles para tus rutinas y entrenamientos
-              </p>
-            </div>
-            <Button
-              onClick={handleOpenCreateModal}
-              variant="success"
-              size="md"
-            >
-              ➕ Nuevo Ejercicio
-            </Button>
-          </div>
-        </Card>
-
         {/* Exercises List */}
         <Card variant="elevated" padding="lg">
-          <div className="exercise-list-header">
-            <Title level={3} variant="default">
-              Lista de Ejercicios
-            </Title>
-            <div className="exercise-list-stats">
-              <span className="exercise-count">
-                {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
-              </span>
-              {searchTerm.trim() === "" && (
-                <span className="exercise-page-info">
-                  Página {currentPage}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Search Field */}
-          <div className="exercise-crud-search-container">
-            <Input
-              label="Buscar ejercicios"
-              placeholder="Buscar por nombre o código..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              variant="primary"
-              leftIcon="🔍"
-              fullWidth
-            />
-            {searchTerm.trim() !== "" && (
-              <p className="exercise-crud-search-results">
-                Mostrando resultados para: "{searchTerm}"
-              </p>
-            )}
-          </div>
-          
-          {loading ? (
-            <div className="exercise-loading-state">
-              <div className="exercise-loading-icon">⏳</div>
-              <p className="exercise-loading-text">Cargando ejercicios...</p>
-            </div>
-          ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
-            <div className="exercise-empty-state">
-              <div className="exercise-empty-icon">
-                {searchTerm.trim() !== "" ? '🔍' : '🏋️'}
+          <div className="exercise-card-content">
+            <div className="exercise-main-content">
+              <div className="exercise-list-header">
+                <div className="exercise-list-title-section">
+                  <Title level={2} variant="default">
+                    Gestión de Ejercicios
+                  </Title>
+                  <p className="exercise-list-description">
+                    Administra los ejercicios disponibles para tus rutinas y entrenamientos
+                  </p>
+                </div>
+                <div className="exercise-list-actions">
+                  <Button
+                    onClick={handleOpenCreateModal}
+                    variant="success"
+                    size="md"
+                  >
+                    ➕ Nuevo Ejercicio
+                  </Button>
+                </div>
               </div>
-              <Title level={3} variant="secondary" align="center">
-                {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
-              </Title>
-              <p className="exercise-empty-description">
-                {searchTerm.trim() !== "" 
-                  ? `No hay ejercicios que coincidan con "${searchTerm}"`
-                  : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
-                }
-              </p>
-              {searchTerm.trim() === "" && (
-                <Button
-                  onClick={handleOpenCreateModal}
-                  variant="success"
-                  size="md"
-                >
-                  ➕ Crear Primer Ejercicio
-                </Button>
+
+              <div className="exercise-list-stats">
+                <span className="exercise-count">
+                  {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
+                </span>
+                {searchTerm.trim() === "" && (
+                  <span className="exercise-page-info">
+                    Página {currentPage}
+                  </span>
+                )}
+              </div>
+
+              {/* Search Field */}
+              <div className="exercise-crud-search-container">
+                <Input
+                  label="Buscar ejercicios"
+                  placeholder="Buscar por nombre o código..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  variant="primary"
+                  leftIcon="🔍"
+                  fullWidth
+                />
+                {searchTerm.trim() !== "" && (
+                  <p className="exercise-crud-search-results">
+                    Mostrando resultados para: "{searchTerm}"
+                  </p>
+                )}
+              </div>
+              
+              {loading ? (
+                <div className="exercise-loading-state">
+                  <div className="exercise-loading-icon">⏳</div>
+                  <p className="exercise-loading-text">Cargando ejercicios...</p>
+                </div>
+              ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
+                <div className="exercise-empty-state">
+                  <div className="exercise-empty-icon">
+                    {searchTerm.trim() !== "" ? '🔍' : '🏋️'}
+                  </div>
+                  <Title level={3} variant="secondary" align="center">
+                    {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
+                  </Title>
+                  <p className="exercise-empty-description">
+                    {searchTerm.trim() !== "" 
+                      ? `No hay ejercicios que coincidan con "${searchTerm}"`
+                      : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
+                    }
+                  </p>
+                  {searchTerm.trim() === "" && (
+                    <Button
+                      onClick={handleOpenCreateModal}
+                      variant="success"
+                      size="md"
+                    >
+                      ➕ Crear Primer Ejercicio
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="exercise-list-grid">
+                  {filteredExercises.map((exercise) => (
+                    <Card
+                      key={exercise.id}
+                      variant="default"
+                      padding="md"
+                      className="exercise-card"
+                    >
+                      <div className="exercise-avatar">
+                        {exercise.name.charAt(0).toUpperCase()}
+                      </div>
+                      
+                      <div className="exercise-info">
+                        <Title level={4} variant="default" className="exercise-name">
+                          {exercise.name}
+                        </Title>
+                        <p className="exercise-code">
+                          🏷️ {exercise.code}
+                        </p>
+                      </div>
+                      
+                      <div className="exercise-actions">
+                        <Button
+                          onClick={() => handleEdit(exercise)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          ✏️ Editar
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(exercise)}
+                          variant="danger"
+                          size="sm"
+                        >
+                          🗑️ Eliminar
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
-          ) : (
-            <div className="exercise-list-grid">
-              {filteredExercises.map((exercise) => (
-                <Card
-                  key={exercise.id}
-                  variant="default"
-                  padding="md"
-                  className="exercise-card"
-                >
-                  <div className="exercise-avatar">
-                    {exercise.name.charAt(0).toUpperCase()}
-                  </div>
-                  
-                  <div className="exercise-info">
-                    <Title level={4} variant="default" className="exercise-name">
-                      {exercise.name}
-                    </Title>
-                    <p className="exercise-code">
-                      🏷️ {exercise.code}
-                    </p>
-                  </div>
-                  
-                  <div className="exercise-actions">
-                    <Button
-                      onClick={() => handleEdit(exercise)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      ✏️ Editar
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(exercise)}
-                      variant="danger"
-                      size="sm"
-                    >
-                      🗑️ Eliminar
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
 
-          {/* Pagination Controls */}
-          {!loading && exercises.length > 0 && searchTerm.trim() === "" && (
+            {/* Pagination Controls - Always visible at bottom */}
             <div className="exercise-pagination">
               <Button
                 onClick={() => goToPage(currentPage - 1)}
@@ -377,7 +373,7 @@ export default function ExerciseCrud() {
                 </Button>
               )}
             </div>
-          )}
+          </div>
         </Card>
       </div>
 
