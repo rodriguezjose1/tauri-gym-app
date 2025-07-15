@@ -222,7 +222,7 @@ export default function ExerciseCrud() {
                     Gestión de Ejercicios
                   </Title>
                   <p className="exercise-list-description">
-                    Administra los ejercicios disponibles para tus rutinas y entrenamientos
+                    Administra los ejercicios disponibles para tus rutinas y entrenamientos en Quality GYM
                   </p>
                 </div>
                 <div className="exercise-list-actions">

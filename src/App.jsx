@@ -8,6 +8,7 @@ import { PersonCrud } from "./domains/person";
 import { RoutinePage } from "./domains/routine";
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
+import qualityGymLogo from './assets/qualitygym.png';
 import "./styles/App.css";
 
 function Navigation() {
@@ -17,8 +18,8 @@ function Navigation() {
     <nav className="app-navigation">
       <div className="nav-container">
         <Link to="/" className="nav-brand">
-          <span className="nav-brand-icon">🏋️</span>
-          Gym Manager
+          <img src={qualityGymLogo} alt="Quality GYM" className="nav-brand-logo" />
+          Quality GYM
         </Link>
         
         <ul className="nav-links">

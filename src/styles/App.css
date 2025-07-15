@@ -49,6 +49,15 @@
   color: var(--accent-primary);
 }
 
+.nav-brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
+  vertical-align: middle;
+  transform: translateY(2px);
+}
+
 .nav-brand-icon {
   font-size: 28px;
 }
@@ -126,6 +135,12 @@
     font-size: 20px;
   }
   
+  .nav-brand-logo {
+    width: 24px;
+    height: 24px;
+    transform: translateY(-1px);
+  }
+  
   .nav-brand-icon {
     font-size: 24px;
   }
@@ -151,6 +166,12 @@
   
   .nav-brand {
     font-size: 18px;
+  }
+  
+  .nav-brand-logo {
+    width: 20px;
+    height: 20px;
+    transform: translateY(-1px);
   }
   
   .nav-links {

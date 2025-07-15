@@ -16,7 +16,7 @@ const ConfiguracionesPage = () => {
             </div>
             <div className="configuraciones-header-content">
               <h1>Configuraciones</h1>
-              <p>Personaliza tu experiencia en Gym Manager</p>
+              <p>Personaliza tu experiencia en Quality GYM</p>
             </div>
           </div>
 
@@ -59,7 +59,7 @@ const ConfiguracionesPage = () => {
                       </span>
                     </div>
                     <p>
-                      Recordatorios de entrenamientos y alertas personalizadas.
+                      Recordatorios de entrenamientos y alertas personalizadas de Quality GYM.
                     </p>
                   </div>
                 </div>

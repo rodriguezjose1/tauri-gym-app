@@ -215,7 +215,7 @@ export default function PersonCrud() {
                     Gestión de Personas
                   </Title>
                   <p className="person-list-description">
-                    Administra las personas que participan en los entrenamientos
+                    Administra las personas que participan en los entrenamientos de Quality GYM
                   </p>
                 </div>
                 <div className="person-list-actions">

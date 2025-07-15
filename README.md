@@ -1,4 +1,4 @@
-# 🏋️ Tauri Gym App
+# 💪 Quality GYM
 
 Una aplicación de gestión de gimnasio construida con **Tauri**, **React** y **TypeScript**, diseñada para ayudar a entrenadores y usuarios a gestionar entrenamientos, rutinas, ejercicios y clientes de manera eficiente.
 
