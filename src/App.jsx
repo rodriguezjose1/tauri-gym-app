@@ -59,8 +59,6 @@ function Navigation() {
               Rutinas
             </Link>
           </li>
-          {/* Configuraciones tab hidden for now but functionality maintained */}
-          {/* 
           <li>
             <Link 
               to="/configuraciones" 
@@ -70,7 +68,6 @@ function Navigation() {
               Configuraciones
             </Link>
           </li>
-          */}
         </ul>
       </div>
     </nav>

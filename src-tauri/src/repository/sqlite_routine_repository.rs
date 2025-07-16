@@ -1,5 +1,6 @@
 use rusqlite::{Connection, Result as SqliteResult, params};
-use crate::models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
+use crate::models::routine::{Routine, RoutineWithExercises};
+use crate::models::routine_exercise::{RoutineExercise, RoutineExerciseWithDetails};
 use crate::repository::routine_repository::RoutineRepository;
 
 pub struct SqliteRoutineRepository {

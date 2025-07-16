@@ -5,15 +5,7 @@ export { WorkoutService } from '../domains/workout/services/workoutService';
 export { RoutineService } from '../domains/routine/services/routineService';
 
 // Re-export types for convenience
-export type {
-  Person,
-  Exercise,
-  WorkoutEntry,
-  WorkoutEntryWithDetails,
-  WorkoutEntryForm,
-  WorkoutSessionForm,
-  Routine,
-  RoutineWithExercises,
-  RoutineExerciseWithDetails,
-  RoutineOption
-} from '../shared/types/dashboard'; 
+export type { Person } from '../shared/types/dashboard';
+export type { Exercise } from '../shared/types/dashboard';
+export type { WorkoutEntryWithDetails } from '../shared/types/dashboard';
+export type { Routine } from '../shared/types/dashboard'; 

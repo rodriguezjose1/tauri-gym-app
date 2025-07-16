@@ -12,7 +12,15 @@ use crate::services::routine_service::RoutineService;
 pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService, RoutineService) {
     // Get the current directory and create a data folder
     let current_dir = env::current_dir().expect("Failed to get current directory");
-    let data_dir = current_dir.join("data");
+    
+    // Check if we're in src-tauri directory (development mode)
+    let data_dir = if current_dir.file_name().unwrap() == "src-tauri" {
+        // We're in src-tauri, go up one level to project root
+        current_dir.parent().unwrap().join("data")
+    } else {
+        // We're in project root
+        current_dir.join("data")
+    };
     
     // Create the data directory if it doesn't exist
     std::fs::create_dir_all(&data_dir).expect("Failed to create data directory");

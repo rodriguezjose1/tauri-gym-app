@@ -3,17 +3,23 @@ mod repository;
 mod services;
 mod config;
 
-use tauri::{State, Manager};
-
-use models::person::{Person, PaginatedPersonResponse};
-use models::exercise::{Exercise, PaginatedExerciseResponse};
-use models::workout_entry::{WorkoutEntry, WorkoutEntryWithDetails};
-use models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
+use models::person::Person;
+use models::exercise::Exercise;
+use models::workout_entry::WorkoutEntry;
+use models::routine::Routine;
+use models::routine_exercise::RoutineExercise;
+use repository::sqlite_person_repository::SqlitePersonRepository;
+use repository::sqlite_exercise_repository::SqliteExerciseRepository;
+use repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
+use repository::sqlite_routine_repository::SqliteRoutineRepository;
+use repository::sqlite_routine_exercise_repository::SqliteRoutineExerciseRepository;
 use services::person_service::PersonService;
 use services::exercise_service::ExerciseService;
 use services::workout_entry_service::WorkoutEntryService;
 use services::routine_service::RoutineService;
-
+use services::backup_service::BackupService;
+use std::sync::Arc;
+use tauri::{State, Manager};
 use config::db::setup_services;
 
 // Person commands
@@ -33,7 +39,7 @@ fn get_persons_paginated(service: State<'_, PersonService>, page: i32, page_size
 }
 
 #[tauri::command]
-fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> PaginatedPersonResponse {
+fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> models::person::PaginatedPersonResponse {
     service.list_people_paginated_response(page, page_size)
 }
 
@@ -48,7 +54,7 @@ fn search_persons_paginated(service: State<'_, PersonService>, query: String, pa
 }
 
 #[tauri::command]
-fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> PaginatedPersonResponse {
+fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> models::person::PaginatedPersonResponse {
     service.search_people_paginated_response(&query, page, page_size)
 }
 
@@ -74,7 +80,7 @@ fn get_exercises(service: State<'_, ExerciseService>) -> Vec<Exercise> {
 }
 
 #[tauri::command]
-fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> PaginatedExerciseResponse {
+fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> models::exercise::PaginatedExerciseResponse {
     service.list_exercises_paginated(page, page_size)
 }
 
@@ -89,7 +95,7 @@ fn update_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> R
 }
 
 #[tauri::command]
-fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> PaginatedExerciseResponse {
+fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> models::exercise::PaginatedExerciseResponse {
     service.search_exercises_paginated(&query, page, page_size)
 }
 
@@ -115,12 +121,12 @@ fn get_workout_entries_by_person_and_date_range(
     person_id: i32, 
     start_date: String, 
     end_date: String
-) -> Vec<WorkoutEntryWithDetails> {
+) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
     service.get_workout_entries_by_person_and_date_range(person_id, &start_date, &end_date)
 }
 
 #[tauri::command]
-fn get_workout_entries_by_person(service: State<'_, WorkoutEntryService>, person_id: i32) -> Vec<WorkoutEntryWithDetails> {
+fn get_workout_entries_by_person(service: State<'_, WorkoutEntryService>, person_id: i32) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
     service.get_workout_entries_by_person(person_id)
 }
 
@@ -135,7 +141,7 @@ fn delete_workout_entry(service: State<'_, WorkoutEntryService>, id: i32) -> Res
 }
 
 #[tauri::command]
-fn get_all_workout_entries(service: State<'_, WorkoutEntryService>) -> Vec<WorkoutEntryWithDetails> {
+fn get_all_workout_entries(service: State<'_, WorkoutEntryService>) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
     service.list_all_workout_entries()
 }
 
@@ -171,7 +177,7 @@ fn get_routine_by_id(service: State<'_, RoutineService>, id: i32) -> Option<Rout
 }
 
 #[tauri::command]
-fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Option<RoutineWithExercises> {
+fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Option<models::routine::RoutineWithExercises> {
     service.get_routine_with_exercises(id)
 }
 
@@ -247,7 +253,7 @@ fn remove_exercise_from_routine(service: State<'_, RoutineService>, routine_id: 
 }
 
 #[tauri::command]
-fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Vec<RoutineExerciseWithDetails> {
+fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Vec<models::routine_exercise::RoutineExerciseWithDetails> {
     service.get_routine_exercises(routine_id)
 }
 
@@ -271,15 +277,32 @@ fn create_routine_from_workout(
     service.create_routine_from_workout(name, code, workout_exercises)
 }
 
+#[tauri::command]
+async fn execute_backup(backup_service: tauri::State<'_, BackupService>) -> Result<(), String> {
+    backup_service.execute_backup().await
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let (person_service, exercise_service, workout_entry_service, routine_service) = setup_services();
+            let backup_service = BackupService::new();
             
             app.manage(person_service);
             app.manage(exercise_service);
             app.manage(workout_entry_service);
             app.manage(routine_service);
+            app.manage(backup_service);
+            
+            // Execute startup backup check in background
+            let backup_service_clone = BackupService::new();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = backup_service_clone.execute_backup().await {
+                    log::warn!("Startup backup failed: {}", e);
+                } else {
+                    log::info!("Startup backup completed successfully");
+                }
+            });
             
             Ok(())
         })
@@ -331,7 +354,9 @@ fn main() {
             get_routine_exercises,
             reorder_routine_exercises,
             replace_routine_exercises,
-            create_routine_from_workout
+            create_routine_from_workout,
+            // Backup commands
+            execute_backup
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

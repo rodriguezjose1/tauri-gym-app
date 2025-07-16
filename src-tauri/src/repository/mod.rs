@@ -5,4 +5,6 @@ pub mod sqlite_exercise_repository;
 pub mod workout_entry_repository;
 pub mod sqlite_workout_entry_repository;
 pub mod routine_repository;
-pub mod sqlite_routine_repository; 
+pub mod sqlite_routine_repository;
+pub mod routine_exercise_repository;
+pub mod sqlite_routine_exercise_repository; 

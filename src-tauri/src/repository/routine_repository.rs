@@ -1,4 +1,5 @@
-use crate::models::routine::{Routine, RoutineExercise, RoutineWithExercises, RoutineExerciseWithDetails};
+use crate::models::routine::{Routine, RoutineWithExercises};
+use crate::models::routine_exercise::{RoutineExercise, RoutineExerciseWithDetails};
 
 pub trait RoutineRepository: Send + Sync {
     fn create(&self, routine: Routine) -> Result<i32, String>;
