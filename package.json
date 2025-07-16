@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run"
