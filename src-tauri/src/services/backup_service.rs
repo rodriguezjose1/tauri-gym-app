@@ -155,8 +155,18 @@ impl BackupService {
 
     // Send backup via email
     async fn send_backup_email(&self, backup_data: Vec<u8>, metadata: BackupMetadata) -> Result<(), String> {
-        // Hardcoded configuration
-        let api_key = "re_K5miuiW8_7kV2dBQiC32vhkkjP1Ympmff";
+        // Get API key from environment variable or use a default one
+        let api_key = env::var("RESEND_API_KEY")
+            .unwrap_or_else(|_| {
+                eprintln!("Warning: RESEND_API_KEY not found, backup emails will be disabled");
+                "".to_string()
+            });
+        
+        // If no API key is provided, skip email sending
+        if api_key.is_empty() {
+            return Err("No Resend API key configured. Backup emails are disabled.".to_string());
+        }
+        
         let recipient = "rodriguezjosee8@gmail.com";
         let from_email = "onboarding@resend.dev";
         

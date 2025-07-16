@@ -294,6 +294,9 @@ async fn download_update(updater_service: tauri::State<'_, UpdaterService>, down
 }
 
 fn main() {
+    // Load environment variables from .env file
+    dotenv::dotenv().ok();
+    
     tauri::Builder::default()
         .setup(|app| {
             // Initialize services safely without panic catching
