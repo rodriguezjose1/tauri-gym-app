@@ -4,18 +4,34 @@ use crate::repository::workout_entry_repository::WorkoutEntryRepository;
 
 pub struct SqliteWorkoutEntryRepository {
     db_path: String,
+    is_dummy: bool,
 }
 
 impl SqliteWorkoutEntryRepository {
-    pub fn new(db_path: &str) -> Self {
-        let repo = Self {
+    /// Private constructor
+    fn new(db_path: &str, is_dummy: bool) -> Self {
+        Self {
             db_path: db_path.to_string(),
-        };
-        repo.create_table().expect("Failed to create workout_entries table");
-        repo
+            is_dummy,
+        }
+    }
+
+    /// Safe constructor: returns error if table creation fails
+    pub fn new_safe(db_path: &str) -> Result<Self, String> {
+        let repo = Self::new(db_path, false);
+        if let Err(e) = repo.create_table() {
+            return Err(format!("Failed to create workout_entries table: {}", e));
+        }
+        Ok(repo)
+    }
+
+    /// Dummy constructor: always returns empty results or errors
+    pub fn new_dummy() -> Self {
+        Self::new("", true)
     }
 
     fn create_table(&self) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         let conn = self.get_connection()?;
         
         // Check if we need to migrate from old schema
@@ -59,6 +75,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn check_if_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
+        if self.is_dummy { return Ok(false); }
         // Check if table exists and has TEXT date column
         let mut stmt = conn.prepare(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='workout_entries'"
@@ -75,6 +92,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn check_if_order_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
+        if self.is_dummy { return Ok(false); }
         // Check if table exists but doesn't have order_index column
         let mut stmt = conn.prepare(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='workout_entries'"
@@ -91,6 +109,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn check_if_group_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
+        if self.is_dummy { return Ok(false); }
         // Check if table exists but doesn't have group_number column
         let mut stmt = conn.prepare(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='workout_entries'"
@@ -107,6 +126,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn migrate_order_column(&self, conn: &Connection) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         println!("Adding order_index column to workout_entries table...");
         
         // Add the order_index column with default value 0
@@ -120,6 +140,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn migrate_date_column(&self, conn: &Connection) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         println!("Migrating workout_entries table from TEXT to DATE...");
         
         // Start transaction
@@ -172,6 +193,7 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn migrate_group_column(&self, conn: &Connection) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         println!("Adding group_number column to workout_entries table...");
         
         // Add the group_number column with default value 1
@@ -185,12 +207,16 @@ impl SqliteWorkoutEntryRepository {
     }
 
     fn get_connection(&self) -> SqliteResult<Connection> {
+        if self.is_dummy {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         Connection::open(&self.db_path)
     }
 }
 
 impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     fn create(&self, workout_entry: WorkoutEntry) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -213,6 +239,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn create_batch(&self, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         if workout_entries.is_empty() {
             return Ok(());
         }
@@ -250,6 +277,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn get_by_id(&self, id: i32) -> Option<WorkoutEntry> {
+        if self.is_dummy { return None; }
         let conn = self.get_connection().ok()?;
         
         let mut stmt = conn.prepare(
@@ -278,6 +306,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn get_by_person_and_date_range(&self, person_id: i32, start_date: &str, end_date: &str) -> Vec<WorkoutEntryWithDetails> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -327,6 +356,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn get_by_person(&self, person_id: i32) -> Vec<WorkoutEntryWithDetails> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -376,6 +406,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn update(&self, workout_entry: WorkoutEntry) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -400,6 +431,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute("DELETE FROM workout_entries WHERE id = ?1", params![id])
@@ -409,6 +441,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn delete_by_person_and_date(&self, person_id: i32, date: &str) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -420,6 +453,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn list_all(&self) -> Vec<WorkoutEntryWithDetails> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -468,6 +502,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn replace_session(&self, person_id: i32, date: &str, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         // Start a transaction for the replace operation
@@ -510,6 +545,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn replace_session_granular(&self, ids_to_delete: Vec<i32>, workout_entries_to_insert: Vec<WorkoutEntry>) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         // Start a transaction for the granular replace operation
@@ -555,6 +591,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn update_exercise_order(&self, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
@@ -573,6 +610,7 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
     }
 
     fn renumber_groups(&self, person_id: i32, date: &str) -> Result<(), String> {
+        if self.is_dummy { return Err("WorkoutEntry repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         // Start transaction

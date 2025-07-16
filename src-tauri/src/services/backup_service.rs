@@ -16,19 +16,41 @@ pub struct BackupService {
 
 impl BackupService {
     pub fn new() -> Self {
-        let current_dir = env::current_dir().expect("Failed to get current directory");
+        // Get current directory safely
+        let current_dir = match env::current_dir() {
+            Ok(dir) => dir,
+            Err(_) => {
+                // Fallback to a default path if we can't get current directory
+                eprintln!("Warning: Failed to get current directory, using fallback");
+                return Self {
+                    status_path: "backup_status.json".to_string(),
+                    db_path: "gym_app.db".to_string(),
+                };
+            }
+        };
         
         // Check if we're in src-tauri directory (development mode)
-        let data_dir = if current_dir.file_name().unwrap() == "src-tauri" {
-            // We're in src-tauri, go up one level to project root
-            current_dir.parent().unwrap().join("data")
+        let data_dir = if let Some(file_name) = current_dir.file_name() {
+            if file_name == "src-tauri" {
+                // We're in src-tauri, go up one level to project root
+                if let Some(parent) = current_dir.parent() {
+                    parent.join("data")
+                } else {
+                    current_dir.join("data")
+                }
+            } else {
+                // We're in project root
+                current_dir.join("data")
+            }
         } else {
-            // We're in project root
+            // Fallback
             current_dir.join("data")
         };
         
-        // Ensure data directory exists
-        std::fs::create_dir_all(&data_dir).expect("Failed to create data directory");
+        // Ensure data directory exists (ignore errors)
+        if let Err(e) = std::fs::create_dir_all(&data_dir) {
+            eprintln!("Warning: Failed to create data directory: {}", e);
+        }
         
         Self {
             status_path: data_dir.join("backup_status.json").to_string_lossy().to_string(),

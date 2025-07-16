@@ -5,18 +5,34 @@ use crate::repository::routine_repository::RoutineRepository;
 
 pub struct SqliteRoutineRepository {
     db_path: String,
+    is_dummy: bool,
 }
 
 impl SqliteRoutineRepository {
-    pub fn new(db_path: &str) -> Self {
-        let repo = Self {
+    /// Private constructor
+    fn new(db_path: &str, is_dummy: bool) -> Self {
+        Self {
             db_path: db_path.to_string(),
-        };
-        repo.create_tables().expect("Failed to create routine tables");
-        repo
+            is_dummy,
+        }
+    }
+
+    /// Safe constructor: returns error if table creation fails
+    pub fn new_safe(db_path: &str) -> Result<Self, String> {
+        let repo = Self::new(db_path, false);
+        if let Err(e) = repo.create_tables() {
+            return Err(format!("Failed to create routine tables: {}", e));
+        }
+        Ok(repo)
+    }
+
+    /// Dummy constructor: always returns empty results or errors
+    pub fn new_dummy() -> Self {
+        Self::new("", true)
     }
 
     fn create_tables(&self) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         let conn = self.get_connection()?;
         
         // Create routines table
@@ -74,6 +90,7 @@ impl SqliteRoutineRepository {
     }
 
     fn check_if_routine_group_migration_needed(&self) -> SqliteResult<bool> {
+        if self.is_dummy { return Ok(false); }
         let conn = self.get_connection()?;
         
         let mut stmt = conn.prepare("PRAGMA table_info(routine_exercises)")?;
@@ -88,6 +105,7 @@ impl SqliteRoutineRepository {
     }
 
     fn migrate_routine_group_column(&self) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
         let conn = self.get_connection()?;
         
         println!("Adding group_number column to routine_exercises table...");
@@ -102,12 +120,16 @@ impl SqliteRoutineRepository {
     }
 
     fn get_connection(&self) -> SqliteResult<Connection> {
+        if self.is_dummy {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         Connection::open(&self.db_path)
     }
 }
 
 impl RoutineRepository for SqliteRoutineRepository {
     fn create(&self, routine: Routine) -> Result<i32, String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -121,6 +143,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn get_by_id(&self, id: i32) -> Option<Routine> {
+        if self.is_dummy { return None; }
         let conn = self.get_connection().ok()?;
         
         let mut stmt = conn.prepare(
@@ -139,6 +162,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn get_with_exercises(&self, id: i32) -> Option<RoutineWithExercises> {
+        if self.is_dummy { return None; }
         let routine = self.get_by_id(id)?;
         let exercises = self.get_routine_exercises(id);
         
@@ -153,6 +177,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn update(&self, id: i32, name: String, code: String) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -164,6 +189,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute("DELETE FROM routines WHERE id = ?1", params![id])
@@ -173,6 +199,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn list_all(&self) -> Vec<Routine> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -202,6 +229,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn list_routines_paginated(&self, page: i32, page_size: i32) -> Vec<Routine> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -233,6 +261,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn search_routines(&self, query: &str) -> Vec<Routine> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -266,6 +295,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn search_routines_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Routine> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -300,6 +330,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn add_exercise_to_routine(&self, routine_exercise: RoutineExercise) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -321,6 +352,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn update_routine_exercise(&self, routine_exercise: RoutineExercise) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -342,6 +374,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn remove_exercise_from_routine(&self, routine_id: i32, exercise_id: i32) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -353,6 +386,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn get_routine_exercises(&self, routine_id: i32) -> Vec<RoutineExerciseWithDetails> {
+        if self.is_dummy { return Vec::new(); }
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -395,6 +429,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn reorder_routine_exercises(&self, _routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
@@ -413,6 +448,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn replace_routine_exercises(&self, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
@@ -449,6 +485,7 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn renumber_routine_groups(&self, routine_id: i32) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         // Start transaction

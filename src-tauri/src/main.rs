@@ -296,6 +296,7 @@ async fn download_update(updater_service: tauri::State<'_, UpdaterService>, down
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            // Initialize services safely without panic catching
             let (person_service, exercise_service, workout_entry_service, routine_service) = setup_services();
             let backup_service = BackupService::new();
             let updater_service = UpdaterService::new(app.handle().clone());
@@ -306,16 +307,6 @@ fn main() {
             app.manage(routine_service);
             app.manage(backup_service);
             app.manage(updater_service);
-            
-            // Execute startup backup check in background
-            let backup_service_clone = BackupService::new();
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = backup_service_clone.execute_backup().await {
-                    log::warn!("Startup backup failed: {}", e);
-                } else {
-                    log::info!("Startup backup completed successfully");
-                }
-            });
             
             Ok(())
         })

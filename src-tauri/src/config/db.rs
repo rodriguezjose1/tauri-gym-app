@@ -13,16 +13,58 @@ use crate::services::routine_service::RoutineService;
 
 pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService, RoutineService) {
     let db_path = get_database_path();
-    let db_path_str = db_path.to_str().expect("Failed to convert path to string");
+    let db_path_str = match db_path.to_str() {
+        Some(path) => path,
+        None => {
+            eprintln!("Warning: Failed to convert database path to string");
+            return (
+                PersonService::new(Arc::new(SqlitePersonRepository::new_dummy())),
+                ExerciseService::new(Arc::new(SqliteExerciseRepository::new_dummy())),
+                WorkoutEntryService::new(Arc::new(SqliteWorkoutEntryRepository::new_dummy())),
+                RoutineService::new(Arc::new(SqliteRoutineRepository::new_dummy())),
+            );
+        }
+    };
 
     // Run database migrations if needed
-    run_database_migrations(db_path_str);
+    if let Err(e) = run_database_migrations(db_path_str) {
+        eprintln!("Warning: Database migration failed: {}", e);
+        // Continue anyway, the app should still work
+    }
 
-    // Create repositories
-    let person_repository = Arc::new(SqlitePersonRepository::new(db_path_str));
-    let exercise_repository = Arc::new(SqliteExerciseRepository::new(db_path_str));
-    let workout_entry_repository = Arc::new(SqliteWorkoutEntryRepository::new(db_path_str));
-    let routine_repository = Arc::new(SqliteRoutineRepository::new(db_path_str));
+    // Create repositories with error handling
+    let person_repository = match SqlitePersonRepository::new_safe(db_path_str) {
+        Ok(repo) => Arc::new(repo),
+        Err(e) => {
+            eprintln!("Warning: Failed to create person repository: {}", e);
+            // Create a dummy repository that returns empty results
+            Arc::new(SqlitePersonRepository::new_dummy())
+        }
+    };
+
+    let exercise_repository = match SqliteExerciseRepository::new_safe(db_path_str) {
+        Ok(repo) => Arc::new(repo),
+        Err(e) => {
+            eprintln!("Warning: Failed to create exercise repository: {}", e);
+            Arc::new(SqliteExerciseRepository::new_dummy())
+        }
+    };
+
+    let workout_entry_repository = match SqliteWorkoutEntryRepository::new_safe(db_path_str) {
+        Ok(repo) => Arc::new(repo),
+        Err(e) => {
+            eprintln!("Warning: Failed to create workout entry repository: {}", e);
+            Arc::new(SqliteWorkoutEntryRepository::new_dummy())
+        }
+    };
+
+    let routine_repository = match SqliteRoutineRepository::new_safe(db_path_str) {
+        Ok(repo) => Arc::new(repo),
+        Err(e) => {
+            eprintln!("Warning: Failed to create routine repository: {}", e);
+            Arc::new(SqliteRoutineRepository::new_dummy())
+        }
+    };
 
     // Create services
     let person_service = PersonService::new(person_repository);
@@ -35,18 +77,28 @@ pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService,
 
 fn get_database_path() -> PathBuf {
     // Check if we're in development mode
-    let current_dir = env::current_dir().expect("Failed to get current directory");
+    let current_dir = match env::current_dir() {
+        Ok(dir) => dir,
+        Err(_) => {
+            eprintln!("Warning: Failed to get current directory, using fallback");
+            return PathBuf::from("data/gym_app.db");
+        }
+    };
     
-    if current_dir.file_name().unwrap() == "src-tauri" {
+    if current_dir.file_name().map(|name| name == "src-tauri").unwrap_or(false) {
         // Development mode: use project data directory
-        let data_dir = current_dir.parent().unwrap().join("data");
-        std::fs::create_dir_all(&data_dir).expect("Failed to create data directory");
+        let data_dir = current_dir.parent().unwrap_or(&current_dir).join("data");
+        if let Err(e) = std::fs::create_dir_all(&data_dir) {
+            eprintln!("Warning: Failed to create data directory: {}", e);
+        }
         data_dir.join("gym_app.db")
     } else {
         // Production mode: use system app data directory
         // This ensures the database persists between app updates
         let app_data_dir = get_app_data_directory();
-        std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
+        if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
+            eprintln!("Warning: Failed to create app data directory: {}", e);
+        }
         app_data_dir.join("gym_app.db")
     }
 }
@@ -54,38 +106,56 @@ fn get_database_path() -> PathBuf {
 fn get_app_data_directory() -> PathBuf {
     #[cfg(target_os = "windows")]
     {
-        let appdata = env::var("APPDATA").expect("APPDATA environment variable not found");
+        let appdata = match env::var("APPDATA") {
+            Ok(path) => path,
+            Err(_) => {
+                eprintln!("Warning: APPDATA environment variable not found, using fallback");
+                return PathBuf::from("data");
+            }
+        };
         PathBuf::from(appdata).join("QualityGym")
     }
     
     #[cfg(target_os = "macos")]
     {
-        let home = env::var("HOME").expect("HOME environment variable not found");
+        let home = match env::var("HOME") {
+            Ok(path) => path,
+            Err(_) => {
+                eprintln!("Warning: HOME environment variable not found, using fallback");
+                return PathBuf::from("data");
+            }
+        };
         PathBuf::from(home).join("Library").join("Application Support").join("QualityGym")
     }
     
     #[cfg(target_os = "linux")]
     {
-        let home = env::var("HOME").expect("HOME environment variable not found");
+        let home = match env::var("HOME") {
+            Ok(path) => path,
+            Err(_) => {
+                eprintln!("Warning: HOME environment variable not found, using fallback");
+                return PathBuf::from("data");
+            }
+        };
         PathBuf::from(home).join(".config").join("quality-gym")
     }
     
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
         // Fallback for other platforms
-        let current_dir = env::current_dir().expect("Failed to get current directory");
+        let current_dir = match env::current_dir() {
+            Ok(dir) => dir,
+            Err(_) => {
+                eprintln!("Warning: Failed to get current directory, using fallback");
+                return PathBuf::from("data");
+            }
+        };
         current_dir.join("data")
     }
 }
 
-fn run_database_migrations(db_path: &str) {
-    let conn = match Connection::open(db_path) {
-        Ok(conn) => conn,
-        Err(e) => {
-            eprintln!("Failed to open database for migrations: {}", e);
-            return;
-        }
-    };
+fn run_database_migrations(db_path: &str) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(db_path)?;
 
     // Create migrations table if it doesn't exist
     if let Err(e) = conn.execute(
@@ -97,7 +167,7 @@ fn run_database_migrations(db_path: &str) {
         [],
     ) {
         eprintln!("Failed to create migrations table: {}", e);
-        return;
+        return Err(e);
     }
 
     // No migrations needed for initial version
@@ -133,4 +203,5 @@ fn run_database_migrations(db_path: &str) {
     //         }
     //     }
     // }
+    Ok(())
 }

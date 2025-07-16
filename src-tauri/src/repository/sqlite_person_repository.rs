@@ -4,18 +4,31 @@ use crate::repository::person_repository::PersonRepository;
 
 pub struct SqlitePersonRepository {
     db_path: String,
+    is_dummy: bool,
 }
 
 impl SqlitePersonRepository {
-    pub fn new(db_path: &str) -> Self {
+    pub fn new_safe(db_path: &str) -> Result<Self, String> {
         let repo = Self {
             db_path: db_path.to_string(),
+            is_dummy: false,
         };
-        repo.create_table().expect("Failed to create people table");
-        repo
+        repo.create_table().map_err(|e| format!("Failed to create people table: {}", e))?;
+        Ok(repo)
+    }
+
+    pub fn new_dummy() -> Self {
+        Self {
+            db_path: String::new(),
+            is_dummy: true,
+        }
     }
 
     fn create_table(&self) -> SqliteResult<()> {
+        if self.is_dummy {
+            return Ok(());
+        }
+        
         let conn = Connection::open(&self.db_path)?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS people (
@@ -30,12 +43,19 @@ impl SqlitePersonRepository {
     }
 
     fn get_connection(&self) -> SqliteResult<Connection> {
+        if self.is_dummy {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         Connection::open(&self.db_path)
     }
 }
 
 impl PersonRepository for SqlitePersonRepository {
     fn create(&self, person: Person) -> Result<(), String> {
+        if self.is_dummy {
+            return Ok(());
+        }
+        
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -47,6 +67,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn get_by_id(&self, id: i32) -> Option<Person> {
+        if self.is_dummy {
+            return None;
+        }
+        
         let conn = self.get_connection().ok()?;
         
         let mut stmt = conn.prepare("SELECT id, name, last_name, phone FROM people WHERE id = ?1").ok()?;
@@ -64,6 +88,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn list_all(&self) -> Vec<Person> {
+        if self.is_dummy {
+            return Vec::new();
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -90,6 +118,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn search(&self, query: &str) -> Vec<Person> {
+        if self.is_dummy {
+            return Vec::new();
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -122,6 +154,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn update(&self, person: Person) -> Result<(), String> {
+        if self.is_dummy {
+            return Ok(());
+        }
+        
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute(
@@ -133,6 +169,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
+        if self.is_dummy {
+            return Ok(());
+        }
+        
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
         conn.execute("DELETE FROM people WHERE id = ?1", params![id])
@@ -142,6 +182,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn search_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Person> {
+        if self.is_dummy {
+            return Vec::new();
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -176,6 +220,10 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn list_paginated(&self, page: i32, page_size: i32) -> Vec<Person> {
+        if self.is_dummy {
+            return Vec::new();
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return Vec::new(),
@@ -208,22 +256,26 @@ impl PersonRepository for SqlitePersonRepository {
     }
 
     fn count_all(&self) -> i32 {
+        if self.is_dummy {
+            return 0;
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return 0,
         };
 
-        match conn.query_row(
-            "SELECT COUNT(*) FROM people",
-            [],
-            |row| Ok(row.get::<_, i32>(0)?)
-        ) {
+        match conn.query_row("SELECT COUNT(*) FROM people", [], |row| row.get(0)) {
             Ok(count) => count,
             Err(_) => 0,
         }
     }
 
     fn search_count(&self, query: &str) -> i32 {
+        if self.is_dummy {
+            return 0;
+        }
+        
         let conn = match self.get_connection() {
             Ok(conn) => conn,
             Err(_) => return 0,
@@ -232,10 +284,9 @@ impl PersonRepository for SqlitePersonRepository {
         let search_pattern = format!("%{}%", query.to_lowercase());
         
         match conn.query_row(
-            "SELECT COUNT(*) FROM people 
-             WHERE LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1",
-            params![search_pattern],
-            |row| Ok(row.get::<_, i32>(0)?)
+            "SELECT COUNT(*) FROM people WHERE LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1",
+            params![search_pattern, search_pattern],
+            |row| row.get(0)
         ) {
             Ok(count) => count,
             Err(_) => 0,
