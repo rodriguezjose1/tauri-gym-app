@@ -8,17 +8,12 @@ use models::exercise::Exercise;
 use models::workout_entry::WorkoutEntry;
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
-use repository::sqlite_person_repository::SqlitePersonRepository;
-use repository::sqlite_exercise_repository::SqliteExerciseRepository;
-use repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
-use repository::sqlite_routine_repository::SqliteRoutineRepository;
-use repository::sqlite_routine_exercise_repository::SqliteRoutineExerciseRepository;
 use services::person_service::PersonService;
 use services::exercise_service::ExerciseService;
 use services::workout_entry_service::WorkoutEntryService;
 use services::routine_service::RoutineService;
 use services::backup_service::BackupService;
-use std::sync::Arc;
+use services::updater_service::UpdaterService;
 use tauri::{State, Manager};
 use config::db::setup_services;
 
@@ -277,9 +272,25 @@ fn create_routine_from_workout(
     service.create_routine_from_workout(name, code, workout_exercises)
 }
 
+// Backup commands
 #[tauri::command]
 async fn execute_backup(backup_service: tauri::State<'_, BackupService>) -> Result<(), String> {
     backup_service.execute_backup().await
+}
+
+// Updater commands
+#[tauri::command]
+async fn check_for_updates(updater_service: tauri::State<'_, UpdaterService>) -> Result<Option<serde_json::Value>, String> {
+    match updater_service.check_for_updates().await {
+        Ok(Some(update_info)) => Ok(Some(serde_json::to_value(update_info).map_err(|e| e.to_string())?)),
+        Ok(None) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+#[tauri::command]
+async fn download_update(updater_service: tauri::State<'_, UpdaterService>, download_url: String) -> Result<(), String> {
+    updater_service.download_update(download_url).await
 }
 
 fn main() {
@@ -287,12 +298,14 @@ fn main() {
         .setup(|app| {
             let (person_service, exercise_service, workout_entry_service, routine_service) = setup_services();
             let backup_service = BackupService::new();
+            let updater_service = UpdaterService::new(app.handle().clone());
             
             app.manage(person_service);
             app.manage(exercise_service);
             app.manage(workout_entry_service);
             app.manage(routine_service);
             app.manage(backup_service);
+            app.manage(updater_service);
             
             // Execute startup backup check in background
             let backup_service_clone = BackupService::new();
@@ -356,7 +369,10 @@ fn main() {
             replace_routine_exercises,
             create_routine_from_workout,
             // Backup commands
-            execute_backup
+            execute_backup,
+            // Updater commands
+            check_for_updates,
+            download_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

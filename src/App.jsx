@@ -8,6 +8,7 @@ import { PersonCrud } from "./domains/person";
 import { RoutinePage } from "./domains/routine";
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
+import Updater from './components/Updater';
 import qualityGymLogo from './assets/qualitygym.png';
 import "./styles/App.css";
 
@@ -90,6 +91,7 @@ function App() {
                 <Route path="/configuraciones" element={<ConfiguracionesPage />} />
               </Routes>
             </main>
+            <Updater />
           </div>
         </ToastProvider>
       </BrowserRouter>

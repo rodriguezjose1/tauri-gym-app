@@ -100,37 +100,37 @@ fn run_database_migrations(db_path: &str) {
         return;
     }
 
-    // Run migrations in order
-    let migrations = vec![
-        ("001_initial", "SELECT 1"), // Placeholder for future migrations
-        // Add future migrations here:
-        // ("002_add_new_column", "ALTER TABLE table_name ADD COLUMN new_column TEXT"),
-    ];
-
-    for (version, sql) in migrations {
-        // Check if migration already applied
-        let applied = conn.query_row(
-            "SELECT COUNT(*) FROM migrations WHERE version = ?",
-            [version],
-            |row| row.get::<_, i32>(0),
-        ).unwrap_or(0) > 0;
-
-        if !applied {
-            // Apply migration
-            if let Err(e) = conn.execute(sql, []) {
-                eprintln!("Failed to apply migration {}: {}", version, e);
-                continue;
-            }
-
-            // Record migration as applied
-            if let Err(e) = conn.execute(
-                "INSERT INTO migrations (version) VALUES (?)",
-                [version],
-            ) {
-                eprintln!("Failed to record migration {}: {}", version, e);
-            } else {
-                println!("Applied migration: {}", version);
-            }
-        }
-    }
+    // No migrations needed for initial version
+    // Add future migrations here when needed:
+    // let migrations = vec![
+    //     ("001_add_new_column", "ALTER TABLE table_name ADD COLUMN new_column TEXT"),
+    // ];
+    
+    // Uncomment the following code when you need to add migrations:
+    // for (version, sql) in migrations {
+    //     // Check if migration already applied
+    //     let applied = conn.query_row(
+    //         "SELECT COUNT(*) FROM migrations WHERE version = ?",
+    //         [version],
+    //         |row| row.get::<_, i32>(0),
+    //     ).unwrap_or(0) > 0;
+    //
+    //     if !applied {
+    //         // Apply migration
+    //         if let Err(e) = conn.execute(sql, []) {
+    //             eprintln!("Failed to apply migration {}: {}", version, e);
+    //             continue;
+    //         }
+    //
+    //         // Record migration as applied
+    //         if let Err(e) = conn.execute(
+    //             "INSERT INTO migrations (version) VALUES (?)",
+    //             [version],
+    //         ) {
+    //             eprintln!("Failed to record migration {}: {}", version, e);
+    //         } else {
+    //             println!("Applied migration: {}", version);
+    //         }
+    //     }
+    // }
 }
