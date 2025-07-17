@@ -228,7 +228,7 @@ export default function ExerciseCrud() {
                 <div className="exercise-list-actions">
                   <Button
                     onClick={handleOpenCreateModal}
-                    variant="success"
+                    variant="primary"
                     size="md"
                   >
                     ➕ Nuevo Ejercicio
@@ -287,7 +287,7 @@ export default function ExerciseCrud() {
                   {searchTerm.trim() === "" && (
                     <Button
                       onClick={handleOpenCreateModal}
-                      variant="success"
+                      variant="primary"
                       size="md"
                     >
                       ➕ Crear Primer Ejercicio
@@ -399,7 +399,7 @@ export default function ExerciseCrud() {
                   code: editingExercise ? prev.code : generateCodeFromName(newName)
                 }));
               }}
-              variant="success"
+              variant="primary"
               fullWidth
               required
               disabled={loading}
@@ -410,7 +410,7 @@ export default function ExerciseCrud() {
               placeholder="Ej: PRESS_BANCA"
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-              variant="success"
+              variant="primary"
               rightIcon="🏷️"
               fullWidth
               required
@@ -422,7 +422,7 @@ export default function ExerciseCrud() {
           <div className="exercise-form-actions">
             <Button
               type="submit"
-              variant="success"
+              variant="primary"
               size="md"
               disabled={loading || !form.name.trim() || !form.code.trim()}
             >

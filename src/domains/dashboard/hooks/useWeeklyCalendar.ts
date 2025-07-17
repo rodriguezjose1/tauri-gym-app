@@ -52,10 +52,10 @@ export const useWeeklyCalendar = ({
   const dateRangeTitle = useMemo(() => {
     if (threeWeeks.length === 0) return '';
     
-    const firstWeek = threeWeeks[0];
-    const lastWeek = threeWeeks[threeWeeks.length - 1];
-    const startDate = firstWeek[0];
-    const endDate = lastWeek[6];
+    // Since weeks are generated in reverse order (current week first, then older weeks),
+    // we need to take the last week for the earliest date and first week for the latest date
+    const earliestDate = threeWeeks[threeWeeks.length - 1][0]; // First day of last week (oldest)
+    const latestDate = threeWeeks[0][6]; // Last day of first week (newest)
     
     const formatDate = (date: Date) => {
       return date.toLocaleDateString('es-ES', { 
@@ -64,7 +64,7 @@ export const useWeeklyCalendar = ({
       });
     };
     
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    return `${formatDate(earliestDate)} - ${formatDate(latestDate)}`;
   }, [threeWeeks]);
 
   // Navigation functions

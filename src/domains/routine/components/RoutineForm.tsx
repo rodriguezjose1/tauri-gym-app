@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Input, Button, ErrorMessage, Modal } from '../../../shared/components/base';
 import { RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
 import { ROUTINE_UI_LABELS, ROUTINE_ERROR_MESSAGES } from '../../../shared/constants';
+import '../../../styles/RoutineForm.css';
 
 // Constantes locales para validación
 const FORM_VALIDATION = {

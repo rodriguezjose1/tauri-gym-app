@@ -23,9 +23,28 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const selectedItemRef = useRef<HTMLDivElement>(null);
 
   const ITEMS_PER_PAGE = 10;
+
+  // Function to scroll selected item into view
+  const scrollSelectedItemIntoView = () => {
+    if (selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  };
+
+  // Effect to scroll when selectedIndex changes
+  useEffect(() => {
+    if (selectedIndex >= 0) {
+      scrollSelectedItemIntoView();
+    }
+  }, [selectedIndex]);
 
   const searchPersons = async (query: string, page: number = 1, reset: boolean = true) => {
     if (query.trim().length < 2) {
@@ -41,6 +60,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       if (reset) {
         setPersons(data);
         setCurrentPage(1);
+        setSelectedIndex(-1);
       } else {
         setPersons(prev => [...prev, ...data]);
         setCurrentPage(page);
@@ -67,6 +87,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setSearchTerm("");
     setShowDropdown(false);
     setShowSearchInput(false);
+    setSelectedIndex(-1);
   };
 
   const handleClearSelection = () => {
@@ -75,6 +96,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setPersons([]);
     setShowDropdown(false);
     setShowSearchInput(false);
+    setSelectedIndex(-1);
   };
 
   const handleChangeUser = () => {
@@ -82,6 +104,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setSearchTerm("");
     setPersons([]);
     setShowDropdown(false);
+    setSelectedIndex(-1);
   };
 
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +119,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       setPersons([]);
       setHasMore(true);
       setCurrentPage(1);
+      setSelectedIndex(-1);
     }
   };
 
@@ -110,12 +134,42 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setSearchTerm("");
     setPersons([]);
     setShowDropdown(false);
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown || persons.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < persons.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < persons.length) {
+          handlePersonSelect(persons[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+        break;
+    }
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+        setSelectedIndex(-1);
       }
     };
 
@@ -137,6 +191,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
               value={searchTerm}
               onChange={handleSearchChange}
               onFocus={handleSearchFocus}
+              onKeyDown={handleKeyDown}
               variant="primary"
               fullWidth
             />
@@ -171,11 +226,12 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
                 </div>
               ) : (
                 <>
-                  {persons.map((person) => (
+                  {persons.map((person, index) => (
                     <div
                       key={person.id}
                       onClick={() => handlePersonSelect(person)}
-                      className="person-search-item"
+                      className={`person-search-item ${index === selectedIndex ? 'person-search-item-selected' : ''}`}
+                      ref={index === selectedIndex ? selectedItemRef : null}
                     >
                       <div className="person-search-item-name">
                         {person.name} {person.last_name}

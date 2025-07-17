@@ -33,7 +33,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0; /* Remove unnecessary margin bottom */
+  margin-bottom: 16px; /* Add space between title and calendar */
 }
 
 .dashboard-calendar-actions {
@@ -178,7 +178,9 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 32px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
 }
 
 /* Modal Overlays */

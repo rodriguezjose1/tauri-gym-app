@@ -192,7 +192,7 @@ export const RoutineManager: React.FC = () => {
                     size="md"
                     disabled={routineData.loading}
                   >
-                    Nueva Rutina
+                    ➕ Nueva Rutina
                   </Button>
                 </div>
               </div>

@@ -23,11 +23,11 @@ function Navigation() {
           <img src={qualityGymLogo} alt="Quality GYM" className="nav-brand-logo" />
           Quality GYM
         </Link>
-        
+
         <ul className="nav-links">
           <li>
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className={`nav-link ${location.pathname === '/' ? 'active calendar' : ''}`}
             >
               <span className="nav-link-icon">📅</span>
@@ -35,8 +35,8 @@ function Navigation() {
             </Link>
           </li>
           <li>
-            <Link 
-              to="/personas" 
+            <Link
+              to="/personas"
               className={`nav-link ${location.pathname === '/personas' ? 'active persons' : ''}`}
             >
               <span className="nav-link-icon">👥</span>
@@ -44,8 +44,8 @@ function Navigation() {
             </Link>
           </li>
           <li>
-            <Link 
-              to="/exercises" 
+            <Link
+              to="/exercises"
               className={`nav-link ${location.pathname === '/exercises' ? 'active exercises' : ''}`}
             >
               <span className="nav-link-icon">🏋️</span>
@@ -53,8 +53,8 @@ function Navigation() {
             </Link>
           </li>
           <li>
-            <Link 
-              to="/routines" 
+            <Link
+              to="/routines"
               className={`nav-link ${location.pathname === '/routines' ? 'active routines' : ''}`}
             >
               <span className="nav-link-icon">📋</span>

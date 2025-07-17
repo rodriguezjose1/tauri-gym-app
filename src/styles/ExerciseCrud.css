@@ -133,7 +133,7 @@
 .exercise-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: #4CAF50;
+  border-color: var(--accent-primary);
 }
 
 .exercise-avatar {

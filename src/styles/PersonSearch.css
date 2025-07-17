@@ -146,6 +146,15 @@
   background-color: var(--bg-hover);
 }
 
+.person-search-item-selected {
+  background-color: var(--accent-bg);
+  border-left: 3px solid var(--accent-primary);
+}
+
+.person-search-item-selected:hover {
+  background-color: var(--accent-bg);
+}
+
 .person-search-item:last-child {
   border-bottom: none;
 }

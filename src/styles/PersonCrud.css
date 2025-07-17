@@ -133,14 +133,14 @@
 .person-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: #2196F3;
+  border-color: var(--accent-primary);
 }
 
 .person-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #2196F3;
+  background: var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;

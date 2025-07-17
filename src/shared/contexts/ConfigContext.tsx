@@ -74,10 +74,10 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       root.style.setProperty('--border-light', '#333333');
       root.style.setProperty('--accent-primary', '#3b82f6');
       root.style.setProperty('--accent-secondary', '#1d4ed8');
-      root.style.setProperty('--success-color', '#10b981');
+      root.style.setProperty('--success-color', '#3b82f6');
       root.style.setProperty('--error-color', '#ef4444');
       root.style.setProperty('--warning-color', '#f59e0b');
-      root.style.setProperty('--info-color', '#06b6d4');
+      root.style.setProperty('--info-color', '#3b82f6');
       root.style.setProperty('--shadow-light', 'rgba(0, 0, 0, 0.3)');
       root.style.setProperty('--shadow-medium', 'rgba(0, 0, 0, 0.5)');
       root.style.setProperty('--hover-bg', '#404040');
@@ -92,10 +92,10 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       root.style.setProperty('--border-light', '#e5e7eb');
       root.style.setProperty('--accent-primary', '#3b82f6');
       root.style.setProperty('--accent-secondary', '#1d4ed8');
-      root.style.setProperty('--success-color', '#10b981');
+      root.style.setProperty('--success-color', '#3b82f6');
       root.style.setProperty('--error-color', '#ef4444');
       root.style.setProperty('--warning-color', '#f59e0b');
-      root.style.setProperty('--info-color', '#06b6d4');
+      root.style.setProperty('--info-color', '#3b82f6');
       root.style.setProperty('--shadow-light', 'rgba(0, 0, 0, 0.1)');
       root.style.setProperty('--shadow-medium', 'rgba(0, 0, 0, 0.2)');
       root.style.setProperty('--hover-bg', '#f3f4f6');
