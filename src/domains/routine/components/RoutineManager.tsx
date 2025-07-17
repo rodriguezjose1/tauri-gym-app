@@ -1,20 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button, Input, Select, Card, Title } from '../../../shared/components/base';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Card, Input, Title } from '../../../shared/components/base';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import ToastContainer from "../../../shared/components/notifications/ToastContainer";
-import { RoutineExercise } from './RoutineExercise';
-import { RoutineList } from './RoutineList';
-import { RoutineForm } from './RoutineForm';
-import { ExerciseSearch } from './ExerciseSearch';
+import { useToast } from '../../../shared/contexts/ToastContext';
+import { Exercise, RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
+import '../../../styles/RoutineManager.css';
+import { useExercisesData } from '../../exercise/hooks/useExercisesData';
 import { useRoutineData } from '../hooks/useRoutineData';
 import { useRoutineExercises } from '../hooks/useRoutineExercises';
 import { useRoutineUI } from '../hooks/useRoutineUI';
-import { useToast } from '../../../shared/contexts/ToastContext';
-import { useExercisesData } from '../../exercise/hooks/useExercisesData';
-import { ROUTINE_UI_LABELS } from '../../../shared/constants';
-import { Exercise } from '../../../shared/types/dashboard';
-import { RoutineExerciseWithDetails } from '../../../services';
-import '../../../styles/RoutineManager.css';
+import { ExerciseSearch } from './ExerciseSearch';
+import { RoutineExercise } from './RoutineExercise';
+import { RoutineForm } from './RoutineForm';
+import { RoutineList } from './RoutineList';
 
 // Simple Group Component for Routine Exercises
 const RoutineGroup: React.FC<{
