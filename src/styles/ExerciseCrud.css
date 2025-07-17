@@ -62,6 +62,12 @@
   padding-bottom: 16px;
   border-bottom: 1px solid #404040;
   gap: 16px;
+  position: sticky;
+  top: 80px; /* Account for navbar height */
+  background-color: var(--bg-primary);
+  z-index: 10;
+  padding-top: 16px;
+  margin-top: -16px;
 }
 
 .exercise-list-title-section {

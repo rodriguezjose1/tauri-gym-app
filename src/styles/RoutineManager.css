@@ -39,11 +39,17 @@
 .routine-manager-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color, #404040);
-  gap: 24px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 16px;
+  position: sticky;
+  top: 80px; /* Account for navbar height */
+  background-color: var(--bg-primary);
+  z-index: 10;
+  padding-top: 16px;
+  margin-top: -16px;
 }
 
 .routine-manager-title-section {
@@ -86,11 +92,11 @@
 /* Stats */
 .routine-manager-stats {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #404040);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .routine-manager-count {
