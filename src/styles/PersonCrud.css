@@ -81,7 +81,17 @@
 }
 
 .person-list-actions {
+  flex: 1;
+  max-width: 400px;
+}
+
+.person-list-create-action {
   flex-shrink: 0;
+}
+
+.person-list-create-action .ui-button {
+  width: 200px;
+  justify-content: center;
 }
 
 .person-list-stats {
@@ -106,7 +116,18 @@
 
 /* Search */
 .person-search-container {
-  margin-bottom: 24px;
+  margin-bottom: 0px;
+}
+
+.person-search-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.person-search-button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .person-search-results {

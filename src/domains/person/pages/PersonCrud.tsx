@@ -219,6 +219,26 @@ export default function PersonCrud() {
                   </p>
                 </div>
                 <div className="person-list-actions">
+                  <form onSubmit={(e) => { e.preventDefault(); }} className="person-search-form">
+                    <Input
+                      placeholder="Buscar personas..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      variant="primary"
+                      leftIcon="🔍"
+                      fullWidth
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={loading}
+                      className="person-search-button"
+                    >
+                      Buscar
+                    </Button>
+                  </form>
+                </div>
+                <div className="person-list-create-action">
                   <Button
                     onClick={handleOpenCreateModal}
                     variant="primary"
@@ -237,24 +257,6 @@ export default function PersonCrud() {
                   <span className="person-page-info">
                     Página {currentPage}
                   </span>
-                )}
-              </div>
-
-              {/* Search Field */}
-              <div className="person-search-container">
-                <Input
-                  label="Buscar personas"
-                  placeholder="Buscar por nombre, apellido o teléfono..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  variant="primary"
-                  leftIcon="🔍"
-                  fullWidth
-                />
-                {searchTerm.trim() !== "" && (
-                  <p className="person-search-results">
-                    Mostrando resultados para: "{searchTerm}"
-                  </p>
                 )}
               </div>
               

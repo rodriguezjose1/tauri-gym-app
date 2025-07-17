@@ -168,7 +168,7 @@ export const RoutineManager: React.FC = () => {
                 <div className="routine-manager-actions">
                   <form onSubmit={handleSearch} className="routine-manager-search-form">
                     <Input
-                      placeholder="Buscar por nombre o código..."
+                      placeholder="Buscar rutinas..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       variant="primary"
@@ -184,6 +184,8 @@ export const RoutineManager: React.FC = () => {
                       Buscar
                     </Button>
                   </form>
+                </div>
+                <div className="routine-manager-create-action">
                   <Button
                     onClick={routineUI.openCreateForm}
                     variant="primary"

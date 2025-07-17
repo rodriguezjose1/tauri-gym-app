@@ -3,7 +3,7 @@
 .dashboard-container {
   width: 100%;
   padding: 20px;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
   min-height: calc(100vh - var(--layout-nav-height, 80px));
 }
 
@@ -17,23 +17,23 @@
 /* Calendar Card */
 .dashboard-calendar-card {
   background: var(--bg-primary);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px var(--shadow-light), 0 1px 3px var(--shadow-medium);
+  border: 1px solid transparent;
   width: 100%;
   flex: 1;
 }
 
 /* Calendar Header */
 .dashboard-calendar-header {
-  margin-bottom: 0; /* Remove unnecessary margin bottom */
+  padding-bottom: 16px;
 }
 
 .dashboard-calendar-title-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px; /* Add space between title and calendar */
+  margin-bottom: 0; /* Remove space between title and calendar */
 }
 
 .dashboard-calendar-actions {
@@ -50,7 +50,7 @@
 .weekly-calendar-header-compact {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   margin-bottom: 0; /* Remove unnecessary margin bottom */
 }
 
@@ -59,7 +59,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  min-height: 56px; /* Ensure consistent height for proper alignment */
+  min-height: 48px; /* Reduced height for less spacing */
 }
 
 .weekly-calendar-person-section {

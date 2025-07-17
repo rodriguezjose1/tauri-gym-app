@@ -226,6 +226,26 @@ export default function ExerciseCrud() {
                   </p>
                 </div>
                 <div className="exercise-list-actions">
+                  <form onSubmit={(e) => { e.preventDefault(); }} className="exercise-search-form">
+                    <Input
+                      placeholder="Buscar ejercicios..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      variant="primary"
+                      leftIcon="🔍"
+                      fullWidth
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={loading}
+                      className="exercise-search-button"
+                    >
+                      Buscar
+                    </Button>
+                  </form>
+                </div>
+                <div className="exercise-list-create-action">
                   <Button
                     onClick={handleOpenCreateModal}
                     variant="primary"
@@ -244,24 +264,6 @@ export default function ExerciseCrud() {
                   <span className="exercise-page-info">
                     Página {currentPage}
                   </span>
-                )}
-              </div>
-
-              {/* Search Field */}
-              <div className="exercise-crud-search-container">
-                <Input
-                  label="Buscar ejercicios"
-                  placeholder="Buscar por nombre o código..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  variant="primary"
-                  leftIcon="🔍"
-                  fullWidth
-                />
-                {searchTerm.trim() !== "" && (
-                  <p className="exercise-crud-search-results">
-                    Mostrando resultados para: "{searchTerm}"
-                  </p>
                 )}
               </div>
               

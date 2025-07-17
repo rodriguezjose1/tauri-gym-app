@@ -81,7 +81,17 @@
 }
 
 .exercise-list-actions {
+  flex: 1;
+  max-width: 400px;
+}
+
+.exercise-list-create-action {
   flex-shrink: 0;
+}
+
+.exercise-list-create-action .ui-button {
+  width: 200px;
+  justify-content: center;
 }
 
 .exercise-list-stats {
@@ -107,6 +117,17 @@
 /* Search */
 .exercise-crud-search-container {
   margin-bottom: 24px;
+}
+
+.exercise-search-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.exercise-search-button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .exercise-crud-search-results {
