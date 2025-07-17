@@ -61,7 +61,7 @@ function Navigation() {
               Rutinas
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link 
               to="/configuraciones" 
               className={`nav-link ${location.pathname === '/configuraciones' ? 'active settings' : ''}`}
@@ -69,7 +69,7 @@ function Navigation() {
               <span className="nav-link-icon">⚙️</span>
               Configuraciones
             </Link>
-          </li>
+          </li> */}
         </ul>
       </div>
     </nav>
