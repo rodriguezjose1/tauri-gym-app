@@ -2,7 +2,7 @@
 
 .dashboard-container {
   width: 100%;
-  padding: 20px;
+  padding: 24px;
   background-color: var(--bg-primary);
   min-height: calc(100vh - var(--layout-nav-height, 80px));
 }
