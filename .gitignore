@@ -27,7 +27,5 @@ dist-ssr
 data/
 *.db
 
-# Environment variables
-.env
-.env.local
-.env.production
+# API Keys (local only, not committed to repository)
+src-tauri/src/config/api_keys.rs

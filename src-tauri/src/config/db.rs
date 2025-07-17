@@ -75,7 +75,7 @@ pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService,
     (person_service, exercise_service, workout_entry_service, routine_service)
 }
 
-fn get_database_path() -> PathBuf {
+pub fn get_database_path() -> PathBuf {
     // Check if we're in development mode
     let current_dir = match env::current_dir() {
         Ok(dir) => dir,

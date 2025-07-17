@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import { Dashboard } from "./domains/dashboard";
@@ -11,6 +11,7 @@ import { ToastProvider } from './shared/contexts/ToastContext';
 import Updater from './components/Updater';
 import qualityGymLogo from './assets/qualitygym.png';
 import "./styles/App.css";
+import { invoke } from '@tauri-apps/api/core';
 
 function Navigation() {
   const location = useLocation();
@@ -76,6 +77,20 @@ function Navigation() {
 }
 
 function App() {
+  useEffect(() => {
+    const backup = async () => {
+      try {
+        console.log('Attempting to execute backup...');
+        await invoke('execute_backup');
+        console.log('Database backup successful');
+      } catch (error) {
+        console.error('Error backing up database:', error);
+      }
+    };
+
+    backup();
+  }, []);
+
   return (
     <ChakraProvider value={defaultSystem}>
       <BrowserRouter>

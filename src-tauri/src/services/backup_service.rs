@@ -8,6 +8,8 @@ use serde_json;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::Write;
+use crate::config::db::get_database_path;
+use crate::config::api_keys::RESEND_API_KEY;
 
 pub struct BackupService {
     status_path: String,
@@ -16,45 +18,13 @@ pub struct BackupService {
 
 impl BackupService {
     pub fn new() -> Self {
-        // Get current directory safely
-        let current_dir = match env::current_dir() {
-            Ok(dir) => dir,
-            Err(_) => {
-                // Fallback to a default path if we can't get current directory
-                eprintln!("Warning: Failed to get current directory, using fallback");
-                return Self {
-                    status_path: "backup_status.json".to_string(),
-                    db_path: "gym_app.db".to_string(),
-                };
-            }
-        };
-        
-        // Check if we're in src-tauri directory (development mode)
-        let data_dir = if let Some(file_name) = current_dir.file_name() {
-            if file_name == "src-tauri" {
-                // We're in src-tauri, go up one level to project root
-                if let Some(parent) = current_dir.parent() {
-                    parent.join("data")
-                } else {
-                    current_dir.join("data")
-                }
-            } else {
-                // We're in project root
-                current_dir.join("data")
-            }
-        } else {
-            // Fallback
-            current_dir.join("data")
-        };
-        
-        // Ensure data directory exists (ignore errors)
-        if let Err(e) = std::fs::create_dir_all(&data_dir) {
-            eprintln!("Warning: Failed to create data directory: {}", e);
-        }
+        // Use the same path logic as the database
+        let db_path = get_database_path();
+        let data_dir = db_path.parent().unwrap_or(&db_path).to_path_buf();
         
         Self {
             status_path: data_dir.join("backup_status.json").to_string_lossy().to_string(),
-            db_path: data_dir.join("gym_app.db").to_string_lossy().to_string(),
+            db_path: db_path.to_string_lossy().to_string(),
         }
     }
 
@@ -155,26 +125,22 @@ impl BackupService {
 
     // Send backup via email
     async fn send_backup_email(&self, backup_data: Vec<u8>, metadata: BackupMetadata) -> Result<(), String> {
-        // Get API key from environment variable or use a default one
-        let api_key = env::var("RESEND_API_KEY")
-            .unwrap_or_else(|_| {
-                eprintln!("Warning: RESEND_API_KEY not found, backup emails will be disabled");
-                "".to_string()
-            });
-        
-        // If no API key is provided, skip email sending
-        if api_key.is_empty() {
-            return Err("No Resend API key configured. Backup emails are disabled.".to_string());
-        }
+        // Use the embedded API key
+        let api_key = RESEND_API_KEY;
+        println!("🔑 Using API key: {}", if api_key.len() > 10 { &api_key[0..10] } else { "SHORT_KEY" });
         
         let recipient = "rodriguezjosee8@gmail.com";
+        // Use a development-friendly sender email
         let from_email = "onboarding@resend.dev";
+
         
         let client = reqwest::Client::new();
         
         // Check if backup data is too large
         let data_size_mb = backup_data.len() as f64 / 1024.0 / 1024.0;
-        if data_size_mb > 10.0 {
+        println!("📊 Backup size: {:.2} MB", data_size_mb);
+        
+        if data_size_mb > 100.0 {
             // If backup is too large, send without attachment
             let email_data = serde_json::json!({
                 "from": from_email,
@@ -189,6 +155,7 @@ impl BackupService {
                 )
             });
             
+            println!("📧 Sending email without attachment...");
             let response = client
                 .post("https://api.resend.com/emails")
                 .header("Authorization", format!("Bearer {}", api_key))
@@ -198,11 +165,16 @@ impl BackupService {
                 .await
                 .map_err(|e| format!("Failed to send email: {}", e))?;
 
-            if response.status().is_success() {
+            let status = response.status();
+            println!("📨 Response status: {}", status);
+            let response_text = response.text().await.unwrap_or_else(|_| "No response body".to_string());
+            println!("📨 Response body: {}", response_text);
+
+            if status.is_success() {
                 println!("✅ Email sent successfully via Resend (without attachment due to size)!");
                 Ok(())
             } else {
-                Err(format!("Resend returned error: {}", response.status()))
+                Err(format!("Resend returned error: {}, {}", status, response_text))
             }
         } else {
             // Try with attachment for smaller files
@@ -235,7 +207,12 @@ impl BackupService {
                 .await
                 .map_err(|e| format!("Failed to send email: {}", e))?;
 
-            if response.status().is_success() {
+            let status = response.status();
+            let response_text = response.text().await.unwrap_or_else(|_| "No response body".to_string());
+            println!("📨 Response status: {}", status);
+            println!("📨 Response body: {}", response_text);
+
+            if status.is_success() {
                 println!("✅ Email sent successfully via Resend with attachment!");
                 Ok(())
             } else {
@@ -262,11 +239,16 @@ impl BackupService {
                     .await
                     .map_err(|e| format!("Failed to send email: {}", e))?;
 
-                if response_no_attachment.status().is_success() {
+                let status_no_attachment = response_no_attachment.status();
+                let response_text_no_attachment = response_no_attachment.text().await.unwrap_or_else(|_| "No response body".to_string());
+                println!("📨 No-attachment response status: {}", status_no_attachment);
+                println!("📨 No-attachment response body: {}", response_text_no_attachment);
+
+                if status_no_attachment.is_success() {
                     println!("✅ Email sent successfully via Resend (without attachment)!");
                     Ok(())
                 } else {
-                    Err(format!("Resend returned error: {}", response_no_attachment.status()))
+                    Err(format!("Resend returned error: {}, {}", status_no_attachment, response_text_no_attachment))
                 }
             }
         }
@@ -274,31 +256,40 @@ impl BackupService {
 
     // Main backup execution function - runs automatically on startup
     pub async fn execute_backup(&self) -> Result<(), String> {
+        println!("🔍 Starting backup check...");
         let mut status = self.load_status();
+        println!("📊 Current status: {:?}", status);
         
         // Check if backup should run (only if day changed)
         if !self.should_run_backup() {
-            println!("Backup not needed today");
+            println!("⏭️ Backup not needed today");
             return Ok(());
         }
 
-        println!("Starting automatic backup...");
+        println!("🚀 Starting automatic backup...");
 
         // Check internet connectivity
+        println!("🌐 Checking internet connectivity...");
         if !self.check_internet_connectivity().await {
             let error_msg = "No internet connection available for backup".to_string();
+            println!("❌ {}", error_msg);
             status.last_error = Some(error_msg.clone());
             status.last_backup_success = false;
             self.save_status(&status)?;
             return Err(error_msg);
         }
+        println!("✅ Internet connectivity OK");
 
         // Create backup
+        println!("📦 Creating backup...");
         let (backup_data, metadata) = self.create_backup()?;
+        println!("✅ Backup created successfully");
 
         // Send backup via email
+        println!("📧 Sending backup via email...");
         match self.send_backup_email(backup_data, metadata).await {
             Ok(()) => {
+                println!("✅ Backup completed successfully!");
                 status.last_backup_date = Some(Utc::now());
                 status.last_backup_success = true;
                 status.last_error = None;
@@ -309,6 +300,7 @@ impl BackupService {
                 Ok(())
             },
             Err(e) => {
+                println!("❌ Backup failed: {}", e);
                 status.last_backup_success = false;
                 status.last_error = Some(e.clone());
                 
