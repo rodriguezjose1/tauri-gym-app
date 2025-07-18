@@ -60,6 +60,7 @@ export const useDashboardDataComposer = () => {
     loadPeople: peopleHook.loadPeople,
     loadExercises: exercisesHook.loadExercises, // Keep the method available but don't auto-load
     loadRoutines: routinesHook.loadRoutines,
+    loadExerciseCount: routinesHook.loadExerciseCount, // New lazy loading function
     loadWorkoutEntries: workoutHook.loadWorkoutEntries,
     refreshWorkoutData: workoutHook.refreshWorkoutData,
     

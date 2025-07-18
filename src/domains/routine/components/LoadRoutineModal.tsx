@@ -1,8 +1,8 @@
-import React from 'react';
-import { Modal } from '../../../shared/components/base/Modal';
-import { Button } from '../../../shared/components/base/Button';
-import { Input } from '../../../shared/components/base/Input';
+import React, { useState, useEffect } from 'react';
+import { Modal, Button, Input } from '../../../shared/components/base';
 import { Person, RoutineOption } from '../../../shared/types/dashboard';
+import { RoutineService } from '../../../services';
+import '../../../styles/LoadRoutineModal.css';
 
 interface LoadRoutineModalProps {
   isOpen: boolean;
@@ -33,6 +33,39 @@ export const LoadRoutineModal: React.FC<LoadRoutineModalProps> = ({
   onApplyRoutine,
   loadingApply
 }) => {
+  const [routineExerciseCounts, setRoutineExerciseCounts] = useState<{ [key: number]: number }>({});
+  const [loadingCounts, setLoadingCounts] = useState<{ [key: number]: boolean }>({});
+
+  // Load exercise count for a routine
+  const loadRoutineExerciseCount = async (routineId: number) => {
+    if (routineExerciseCounts[routineId] !== undefined || loadingCounts[routineId]) {
+      return;
+    }
+
+    setLoadingCounts(prev => ({ ...prev, [routineId]: true }));
+    try {
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(routineId);
+      const count = routineWithExercises?.exercises?.length || 0;
+      setRoutineExerciseCounts(prev => ({ ...prev, [routineId]: count }));
+    } catch (error) {
+      console.error(`Error loading exercise count for routine ${routineId}:`, error);
+      setRoutineExerciseCounts(prev => ({ ...prev, [routineId]: 0 }));
+    } finally {
+      setLoadingCounts(prev => ({ ...prev, [routineId]: false }));
+    }
+  };
+
+  // Load exercise counts for all routines when modal opens
+  useEffect(() => {
+    if (isOpen && routines.length > 0) {
+      routines.forEach(routine => {
+        if (routine.exerciseCount === 0) {
+          loadRoutineExerciseCount(routine.id);
+        }
+      });
+    }
+  }, [isOpen, routines]);
+
   const handleClose = () => {
     onClose();
   };
@@ -67,11 +100,17 @@ export const LoadRoutineModal: React.FC<LoadRoutineModalProps> = ({
               className="load-routine-select"
             >
               <option value="">-- Seleccionar rutina --</option>
-              {routines.map(routine => (
-                <option key={routine.id} value={routine.id}>
-                  {routine.name} ({routine.exerciseCount} ejercicios)
-                </option>
-              ))}
+              {routines.map(routine => {
+                const count = routineExerciseCounts[routine.id];
+                const isLoading = loadingCounts[routine.id];
+                const displayCount = count !== undefined ? count : (isLoading ? '...' : '0');
+                
+                return (
+                  <option key={routine.id} value={routine.id}>
+                    {routine.name} ({displayCount} ejercicios)
+                  </option>
+                );
+              })}
             </select>
           </div>
 

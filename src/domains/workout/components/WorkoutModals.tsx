@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Input, Modal, Select } from "../../../shared/components/base";
 import { ExerciseAutocomplete } from "../../exercise";
-import { Person, Exercise, WorkoutEntryForm, EditWorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption } from '../../../shared/types/dashboard';
+import { Person, Exercise, WorkoutEntryForm, EditWorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption, RoutineService, ExerciseService } from '../../../services';
 import '../../../styles/WorkoutModals.css';
 
 interface WorkoutModalsProps {
@@ -83,6 +83,95 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
 }) => {
   const [showRoutineSelector, setShowRoutineSelector] = useState(false);
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null);
+  const [routineExerciseCounts, setRoutineExerciseCounts] = useState<{ [key: number]: number }>({});
+  const [loadingCounts, setLoadingCounts] = useState<{ [key: number]: boolean }>({});
+  const [sessionExercises, setSessionExercises] = useState<{ [key: number]: Exercise | null }>({});
+
+  // Load exercise count for a routine
+  const loadRoutineExerciseCount = async (routineId: number) => {
+    if (routineExerciseCounts[routineId] !== undefined || loadingCounts[routineId]) {
+      return;
+    }
+
+    setLoadingCounts(prev => ({ ...prev, [routineId]: true }));
+    try {
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(routineId);
+      const count = routineWithExercises?.exercises?.length || 0;
+      setRoutineExerciseCounts(prev => ({ ...prev, [routineId]: count }));
+    } catch (error) {
+      console.error(`Error loading exercise count for routine ${routineId}:`, error);
+      setRoutineExerciseCounts(prev => ({ ...prev, [routineId]: 0 }));
+    } finally {
+      setLoadingCounts(prev => ({ ...prev, [routineId]: false }));
+    }
+  };
+
+  // Load exercise details for session exercises
+  const loadExerciseDetails = async (exerciseId: number) => {
+    if (sessionExercises[exerciseId] !== undefined) {
+      return sessionExercises[exerciseId];
+    }
+
+    // First try to find the exercise in workoutData (for existing exercises)
+    const existingExercise = workoutData.find(entry => entry.exercise_id === exerciseId);
+    if (existingExercise) {
+      const exercise: Exercise = {
+        id: existingExercise.exercise_id,
+        name: existingExercise.exercise_name,
+        code: existingExercise.exercise_code
+      };
+      setSessionExercises(prev => ({ ...prev, [exerciseId]: exercise }));
+      return exercise;
+    }
+
+    // If not found in workoutData, try to get from API
+    try {
+      // Use search to find the exercise by ID
+      const response = await ExerciseService.searchExercisesPaginated(exerciseId.toString(), 1, 100);
+      const exercise = response.exercises.find(e => e.id === exerciseId);
+      
+      if (exercise) {
+        setSessionExercises(prev => ({ ...prev, [exerciseId]: exercise }));
+        return exercise;
+      } else {
+        setSessionExercises(prev => ({ ...prev, [exerciseId]: null }));
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error loading exercise details for ID ${exerciseId}:`, error);
+      setSessionExercises(prev => ({ ...prev, [exerciseId]: null }));
+      return null;
+    }
+  };
+
+  // Load exercise counts for all routines when session modal opens
+  useEffect(() => {
+    if (showSessionModal && routines.length > 0) {
+      routines.forEach(routine => {
+        if (routine.exerciseCount === 0) {
+          loadRoutineExerciseCount(routine.id);
+        }
+      });
+    }
+  }, [showSessionModal, routines]);
+
+  // Load exercise details when session form changes
+  useEffect(() => {
+    if (showSessionModal && sessionForm.exercises) {
+      sessionForm.exercises.forEach(exercise => {
+        if (exercise.exercise_id && exercise.exercise_id > 0) {
+          loadExerciseDetails(exercise.exercise_id);
+        }
+      });
+    }
+  }, [showSessionModal, sessionForm.exercises]);
+
+  // Load exercise details when edit modal opens
+  useEffect(() => {
+    if (showEditModal && editForm.exercise_id && editForm.exercise_id > 0) {
+      loadExerciseDetails(editForm.exercise_id);
+    }
+  }, [showEditModal, editForm.exercise_id]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -131,7 +220,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                   console.log("Exercise received in modal:", exercise);
                   console.log("Current workoutForm.exercise_id:", workoutForm.exercise_id);
                   if (exercise) {
-                    console.log("Setting exercise_id to:", exercise.id);
+                    console.log("Setting exercise_id to:", exercise.id || 0);
                     onUpdateWorkoutForm('exercise_id', exercise.id || 0);
                     console.log("After update - workoutForm should have exercise_id:", exercise.id);
                   } else {
@@ -258,7 +347,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                   }
                 }}
                 placeholder="Buscar ejercicio..."
-                selectedExercise={null}
+                selectedExercise={sessionExercises[editForm.exercise_id] || null}
               />
             </div>
 
@@ -375,10 +464,16 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                 label=""
                 options={[
                   { value: '', label: 'Seleccionar rutina...' },
-                  ...routines.map(routine => ({
-                    value: routine.id,
-                    label: `${routine.name} (${routine.exerciseCount} ejercicios)`
-                  }))
+                  ...routines.map(routine => {
+                    const count = routineExerciseCounts[routine.id];
+                    const isLoading = loadingCounts[routine.id];
+                    const displayCount = count !== undefined ? count : (isLoading ? '...' : '0');
+                    
+                    return {
+                      value: routine.id,
+                      label: `${routine.name} (${displayCount} ejercicios)`
+                    };
+                  })
                 ]}
                 value={selectedRoutineId || ''}
                 onChange={(value) => setSelectedRoutineId(value ? Number(value) : null)}
@@ -444,7 +539,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                         }
                       }}
                       placeholder="Buscar ejercicio..."
-                      selectedExercise={null}
+                      selectedExercise={sessionExercises[exercise.exercise_id] || null}
                     />
 
                     {/* Group Selection */}

@@ -7,34 +7,19 @@ export const useRoutinesData = () => {
   const [routinesLoading, setRoutinesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load routines
+  // Load routines without exercise count (optimized)
   const loadRoutines = async () => {
     setRoutinesLoading(true);
     try {
       const result = await RoutineService.listRoutinesPaginated(1, 100);
       
-      // Transform routines to include exercise count
-      const routineOptions: RoutineOption[] = await Promise.all(
-        (result as any[]).map(async (routine) => {
-          try {
-            const routineWithExercises = await RoutineService.getRoutineWithExercises(routine.id);
-            return {
-              id: routine.id,
-              name: routine.name,
-              code: routine.code,
-              exerciseCount: routineWithExercises?.exercises?.length || 0
-            };
-          } catch (error) {
-            console.error(`Error fetching exercises for routine ${routine.id}:`, error);
-            return {
-              id: routine.id,
-              name: routine.name,
-              code: routine.code,
-              exerciseCount: 0
-            };
-          }
-        })
-      );
+      // Transform routines without loading exercise count (lazy loading)
+      const routineOptions: RoutineOption[] = result.map((routine: any) => ({
+        id: routine.id,
+        name: routine.name,
+        code: routine.code,
+        exerciseCount: 0 // Will be loaded on demand if needed
+      }));
       
       setRoutines(routineOptions);
     } catch (error) {
@@ -42,6 +27,26 @@ export const useRoutinesData = () => {
       setRoutines([]);
     } finally {
       setRoutinesLoading(false);
+    }
+  };
+
+  // Load exercise count for a specific routine (lazy loading)
+  const loadExerciseCount = async (routineId: number) => {
+    try {
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(routineId);
+      const exerciseCount = routineWithExercises?.exercises?.length || 0;
+      
+      // Update the routine with exercise count
+      setRoutines(prev => prev.map(routine => 
+        routine.id === routineId 
+          ? { ...routine, exerciseCount }
+          : routine
+      ));
+      
+      return exerciseCount;
+    } catch (error) {
+      console.error(`Error loading exercise count for routine ${routineId}:`, error);
+      return 0;
     }
   };
 
@@ -56,18 +61,11 @@ export const useRoutinesData = () => {
   }, []);
 
   return {
-    // Data
     routines,
-    
-    // Loading states
     routinesLoading,
     error,
-    
-    // Actions
     loadRoutines,
-    setRoutines,
-    
-    // Utilities
+    loadExerciseCount,
     getRoutineById
   };
 }; 

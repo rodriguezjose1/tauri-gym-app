@@ -72,28 +72,13 @@ export const useDashboardData = () => {
       const result = await RoutineService.listRoutinesPaginated(1, 100);
       console.log("Routines fetched:", result);
       
-      // Transform routines to include exercise count (same as original)
-      const routineOptions: RoutineOption[] = await Promise.all(
-        (result as any[]).map(async (routine) => {
-          try {
-            const routineWithExercises = await RoutineService.getRoutineWithExercises(routine.id);
-            return {
-              id: routine.id,
-              name: routine.name,
-              code: routine.code,
-              exerciseCount: routineWithExercises?.exercises?.length || 0
-            };
-          } catch (error) {
-            console.error(`Error fetching exercises for routine ${routine.id}:`, error);
-            return {
-              id: routine.id,
-              name: routine.name,
-              code: routine.code,
-              exerciseCount: 0
-            };
-          }
-        })
-      );
+      // Transform routines without loading exercise count (optimized)
+      const routineOptions: RoutineOption[] = result.map((routine: any) => ({
+        id: routine.id,
+        name: routine.name,
+        code: routine.code,
+        exerciseCount: 0 // Will be loaded on demand if needed
+      }));
       
       setRoutines(routineOptions);
     } catch (error) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { PersonSearch } from "../../person";
 import { WorkoutItem } from "../../workout";
 import { useWeeklyCalendar } from "../hooks/useWeeklyCalendar";
-import { WorkoutEntryWithDetails } from '../../../services';
+import { WorkoutEntryWithDetails, RoutineService } from '../../../services';
 import { Button } from "../../../shared/components/base";
 import { useConfig } from "../../../shared/contexts/ConfigContext";
 import "../../../styles/WeeklyCalendar.css";
@@ -26,6 +26,42 @@ const WorkoutGroup: React.FC<{
         )}
       </div>
     </div>
+  );
+};
+
+// Lazy loading component for routine exercise count
+const RoutineExerciseCount: React.FC<{ routineId: number; initialCount: number }> = ({ routineId, initialCount }) => {
+  const [exerciseCount, setExerciseCount] = useState(initialCount);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const loadExerciseCount = async () => {
+    if (hasLoaded || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const routineWithExercises = await RoutineService.getRoutineWithExercises(routineId);
+      const count = routineWithExercises?.exercises?.length || 0;
+      setExerciseCount(count);
+      setHasLoaded(true);
+    } catch (error) {
+      console.error(`Error loading exercise count for routine ${routineId}:`, error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load exercise count when component mounts
+  useEffect(() => {
+    if (initialCount === 0) {
+      loadExerciseCount();
+    }
+  }, [routineId, initialCount]);
+
+  return (
+    <span>
+      {isLoading ? '...' : `${exerciseCount} ejercicios`}
+    </span>
   );
 };
 
