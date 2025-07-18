@@ -40,7 +40,6 @@ interface WorkoutModalsProps {
   // Common props
   selectedPerson: Person | null;
   selectedDate: string;
-  exercises: Exercise[];
   workoutData: WorkoutEntryWithDetails[];
 }
 
@@ -80,7 +79,6 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
   // Common props
   selectedPerson,
   selectedDate,
-  exercises,
   workoutData
 }) => {
   const [showRoutineSelector, setShowRoutineSelector] = useState(false);
@@ -142,7 +140,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                   }
                 }}
                 placeholder="Buscar ejercicio..."
-                selectedExercise={exercises.find(ex => ex.id === workoutForm.exercise_id) || null}
+                selectedExercise={null}
               />
             </div>
 
@@ -260,7 +258,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                   }
                 }}
                 placeholder="Buscar ejercicio..."
-                selectedExercise={exercises.find(ex => ex.id === editForm.exercise_id) || null}
+                selectedExercise={null}
               />
             </div>
 
@@ -446,7 +444,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                         }
                       }}
                       placeholder="Buscar ejercicio..."
-                      selectedExercise={exercises.find(ex => ex.id === exercise.exercise_id) || null}
+                      selectedExercise={null}
                     />
 
                     {/* Group Selection */}

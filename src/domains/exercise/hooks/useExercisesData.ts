@@ -39,10 +39,10 @@ export const useExercisesData = () => {
     return exercises.filter(exercise => exercise.id !== undefined && exerciseIds.includes(exercise.id));
   };
 
-  // Initialize data on mount
-  useEffect(() => {
-    loadExercises();
-  }, []);
+  // Removed automatic loading - ExerciseSearch handles its own paginated loading
+  // useEffect(() => {
+  //   loadExercises();
+  // }, []);
 
   return {
     // Data

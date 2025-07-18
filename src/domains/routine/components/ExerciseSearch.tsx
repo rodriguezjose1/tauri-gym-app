@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
 import { Exercise } from '../../../shared/types/dashboard';
+import { ExerciseService } from '../../../services';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
 
 interface ExerciseWithGroup extends Exercise {
@@ -9,34 +10,184 @@ interface ExerciseWithGroup extends Exercise {
 
 interface ExerciseSearchProps {
   isOpen: boolean;
-  exercises: Exercise[];
-  loading: boolean;
   onAddExercise: (exercise: Exercise, groupNumber: number) => void;
   onClose: () => void;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   isOpen,
-  exercises,
-  loading,
   onAddExercise,
   onClose
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedExercises, setSelectedExercises] = useState<ExerciseWithGroup[]>([]);
+  const [searchResults, setSearchResults] = useState<Exercise[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Filtrar ejercicios basado en búsqueda
-  const filteredExercises = useMemo(() => {
-    return exercises.filter(exercise => {
-      const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (exercise.code && exercise.code.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Load exercises with pagination
+  const loadExercises = useCallback(async (page = 1, append = false) => {
+    try {
+      if (page === 1) {
+        setSearchLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       
-      // Excluir ejercicios ya seleccionados
-      const isNotSelected = !selectedExercises.some(e => e.id === exercise.id);
+      const response = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      console.log('loadExercises response:', { page, response, append });
       
-      return matchesSearch && isNotSelected;
+      if (response.exercises.length === 0 && page > 1) {
+        setHasMore(false);
+        return;
+      }
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...response.exercises]);
+      } else {
+        setSearchResults(response.exercises);
+      }
+      
+      // Original hasMore logic: true if we got full page OR if there are more pages
+      const newHasMore = response.exercises.length === ITEMS_PER_PAGE || page < response.total_pages;
+      console.log('Setting hasMore:', { 
+        exercisesLength: response.exercises.length, 
+        page, 
+        totalPages: response.total_pages, 
+        itemsPerPage: ITEMS_PER_PAGE,
+        newHasMore,
+        gotFullPage: response.exercises.length === ITEMS_PER_PAGE,
+        hasMorePages: page < response.total_pages,
+        reason: response.exercises.length === ITEMS_PER_PAGE ? 'Got full page' : 
+                (page < response.total_pages) ? 'More pages available' : 'No more pages'
+      });
+      setHasMore(newHasMore);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error loading exercises:", error);
+    } finally {
+      setSearchLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, []);
+
+  // Search exercises with pagination
+  const searchExercises = useCallback(async (query: string, page = 1, append = false) => {
+    try {
+      if (page === 1) {
+        setSearchLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      
+      if (query.trim() === "") {
+        await loadExercises(page, append);
+        return;
+      }
+
+      const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
+      console.log('searchExercises response:', { query, page, response, append });
+      
+      if (response.exercises.length === 0 && page > 1) {
+        setHasMore(false);
+        return;
+      }
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...response.exercises]);
+      } else {
+        setSearchResults(response.exercises);
+      }
+      
+      // Original hasMore logic: true if we got full page OR if there are more pages
+      const newHasMore = response.exercises.length === ITEMS_PER_PAGE || page < response.total_pages;
+      console.log('Setting hasMore (search):', { 
+        exercisesLength: response.exercises.length, 
+        page, 
+        totalPages: response.total_pages, 
+        itemsPerPage: ITEMS_PER_PAGE,
+        newHasMore,
+        gotFullPage: response.exercises.length === ITEMS_PER_PAGE,
+        hasMorePages: page < response.total_pages,
+        reason: response.exercises.length === ITEMS_PER_PAGE ? 'Got full page' : 
+                (page < response.total_pages) ? 'More pages available' : 'No more pages'
+      });
+      setHasMore(newHasMore);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error searching exercises:", error);
+    } finally {
+      setSearchLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [loadExercises]);
+
+  // Handle search
+  const handleSearch = () => {
+    if (searchTerm.trim() !== "") {
+      setIsSearchActive(true);
+      searchExercises(searchTerm, 1, false);
+    } else {
+      setIsSearchActive(false);
+      loadExercises(1, false);
+    }
+  };
+
+  // Load more exercises automatically
+  const loadMoreExercises = useCallback(() => {
+    console.log('loadMoreExercises called:', { hasMore, searchLoading, isLoadingMore, currentPage });
+    if (hasMore && !searchLoading && !isLoadingMore) {
+      console.log('Loading more exercises, page:', currentPage + 1);
+      if (isSearchActive) {
+        searchExercises(searchTerm, currentPage + 1, true);
+      } else {
+        loadExercises(currentPage + 1, true);
+      }
+    } else {
+      console.log('Not loading more:', { hasMore, searchLoading, isLoadingMore });
+    }
+  }, [hasMore, searchLoading, isLoadingMore, isSearchActive, searchTerm, currentPage, searchExercises, loadExercises]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (!resultsRef.current) {
+      console.log('No resultsRef.current');
+      return;
+    }
+    
+    const { scrollTop, scrollHeight, clientHeight } = resultsRef.current;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20; // Reduced threshold to 20px
+    
+    console.log('Scroll event:', { 
+      scrollTop, 
+      scrollHeight, 
+      clientHeight, 
+      isNearBottom, 
+      hasMore,
+      isLoadingMore,
+      scrollPercentage: Math.round((scrollTop / (scrollHeight - clientHeight)) * 100),
+      distanceFromBottom: scrollHeight - (scrollTop + clientHeight),
+      canLoadMore: hasMore && !isLoadingMore
     });
-  }, [exercises, searchTerm, selectedExercises]);
+    
+    if (isNearBottom && hasMore && !isLoadingMore) {
+      console.log('Triggering load more from scroll');
+      loadMoreExercises();
+    }
+  }, [loadMoreExercises, hasMore, isLoadingMore]);
+
+  // Filter out already selected exercises
+  const availableExercises = useMemo(() => {
+    return searchResults.filter(exercise => 
+      !selectedExercises.some(selected => selected.id === exercise.id)
+    );
+  }, [searchResults, selectedExercises]);
 
   const handleToggleExercise = (exercise: Exercise) => {
     setSelectedExercises(prev => {
@@ -75,15 +226,47 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   const handleClose = () => {
     setSearchTerm('');
     setSelectedExercises([]);
+    setSearchResults([]);
+    setIsSearchActive(false);
+    setCurrentPage(1);
     onClose();
   };
 
+  // Initialize when modal opens
   useEffect(() => {
     if (isOpen) {
+      console.log('ExerciseSearch modal opened, loading initial exercises');
       setSearchTerm('');
       setSelectedExercises([]);
+      setSearchResults([]);
+      setIsSearchActive(false);
+      setCurrentPage(1);
+      setHasMore(true); // Reset hasMore to true
+      // Load initial exercises
+      loadExercises(1, false);
+      
+      // Check container dimensions after a short delay
+      setTimeout(() => {
+        if (resultsRef.current) {
+          const { scrollHeight, clientHeight } = resultsRef.current;
+          console.log('Container dimensions:', { scrollHeight, clientHeight, hasScroll: scrollHeight > clientHeight });
+        }
+      }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, loadExercises]);
+
+  // Add scroll listener
+  useEffect(() => {
+    const resultsElement = resultsRef.current;
+    if (resultsElement) {
+      console.log('Adding scroll listener to:', resultsElement);
+      resultsElement.addEventListener('scroll', handleScroll);
+      return () => {
+        console.log('Removing scroll listener');
+        resultsElement.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [handleScroll]);
 
   // Agrupar ejercicios seleccionados por grupo para mostrar estadísticas
   const groupedSelectedExercises = useMemo(() => {
@@ -135,6 +318,15 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
                 fullWidth
                 placeholder="Buscar por nombre o código..."
               />
+            </div>
+            <div className="exercise-search-search-button">
+              <Button
+                onClick={handleSearch}
+                variant="primary"
+                disabled={searchLoading}
+              >
+                🔍 Buscar
+              </Button>
             </div>
           </div>
         </div>
@@ -192,13 +384,13 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
           )}
 
           {/* Sección de resultados de búsqueda */}
-          <div className="exercise-search-results">
-            {loading ? (
+          <div className="exercise-search-results" ref={resultsRef}>
+            {searchLoading ? (
               <div className="exercise-search-loading">
                 <div className="exercise-search-spinner"></div>
                 <p>Cargando ejercicios...</p>
               </div>
-            ) : filteredExercises.length === 0 ? (
+            ) : availableExercises.length === 0 ? (
               <div className="exercise-search-empty">
                 <p>No se encontraron ejercicios</p>
                 {searchTerm && (
@@ -209,7 +401,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
               </div>
             ) : (
               <div className="exercise-search-list">
-                {filteredExercises.map(exercise => (
+                {availableExercises.map(exercise => (
                   <Card 
                     key={exercise.id} 
                     variant="default" 
@@ -233,6 +425,14 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
                     </div>
                   </Card>
                 ))}
+                
+                {/* Loading indicator at bottom */}
+                {isLoadingMore && (
+                  <div className="exercise-search-loading-more">
+                    <div className="exercise-search-spinner"></div>
+                    <p>Cargando más ejercicios...</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

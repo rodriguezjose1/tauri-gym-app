@@ -5,7 +5,6 @@ import ToastContainer from "../../../shared/components/notifications/ToastContai
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { Exercise, RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
 import '../../../styles/RoutineManager.css';
-import { useExercisesData } from '../../exercise/hooks/useExercisesData';
 import { useRoutineData } from '../hooks/useRoutineData';
 import { useRoutineExercises } from '../hooks/useRoutineExercises';
 import { useRoutineUI } from '../hooks/useRoutineUI';
@@ -43,7 +42,6 @@ export const RoutineManager: React.FC = () => {
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { exercises, exercisesLoading } = useExercisesData();
   const { addNotification, notifications, removeNotification } = useToast();
   
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -327,8 +325,6 @@ export const RoutineManager: React.FC = () => {
 
       <ExerciseSearch
         isOpen={routineUI.showExerciseSearch}
-        exercises={exercises}
-        loading={exercisesLoading}
         onAddExercise={async (exercise: Exercise, groupNumber: number) => {
           const nextOrderIndex = routineExercises.exercises.length;
           await routineExercises.addExercise(

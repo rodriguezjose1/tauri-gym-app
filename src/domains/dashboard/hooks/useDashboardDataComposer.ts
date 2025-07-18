@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePeopleData } from '../../person/hooks/usePeopleData';
 import { useExercisesData } from '../../exercise/hooks/useExercisesData';
 import { useRoutinesData } from '../../routine/hooks/useRoutinesData';
@@ -10,6 +10,17 @@ export const useDashboardDataComposer = () => {
   const exercisesHook = useExercisesData();
   const routinesHook = useRoutinesData();
   const workoutHook = useWorkoutData({ selectedPerson: peopleHook.selectedPerson });
+
+  // Lazy loading state for exercises - not needed since ExerciseSearch handles its own loading
+  // const [exercisesLoaded, setExercisesLoaded] = useState(false);
+
+  // Load exercises only when needed (when Dashboard is actually being used)
+  // const loadExercisesIfNeeded = async () => {
+  //   if (!exercisesLoaded) {
+  //     await exercisesHook.loadExercises();
+  //     setExercisesLoaded(true);
+  //   }
+  // };
 
   // Enhanced person selection handler that also loads workout data
   const handlePersonSelect = async (person: any) => {
@@ -47,7 +58,7 @@ export const useDashboardDataComposer = () => {
     
     // Data actions - Delegated to specific hooks
     loadPeople: peopleHook.loadPeople,
-    loadExercises: exercisesHook.loadExercises,
+    loadExercises: exercisesHook.loadExercises, // Keep the method available but don't auto-load
     loadRoutines: routinesHook.loadRoutines,
     loadWorkoutEntries: workoutHook.loadWorkoutEntries,
     refreshWorkoutData: workoutHook.refreshWorkoutData,

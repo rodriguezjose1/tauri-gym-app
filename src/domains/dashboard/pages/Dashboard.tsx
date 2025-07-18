@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, Title, Button } from '../../../shared/components/base';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
@@ -20,6 +20,8 @@ export default function DashboardRefactored() {
     operations,
     handlers
   } = useDashboardController();
+
+  // Removed unnecessary exercise loading - ExerciseSearch handles its own paginated loading
 
   return (
     <div className="dashboard-container">
@@ -82,7 +84,6 @@ export default function DashboardRefactored() {
         
         selectedPerson={data.selectedPerson}
         selectedDate={data.selectedDate}
-        exercises={data.exercises}
         workoutData={data.workoutData}
       />
 

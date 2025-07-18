@@ -1,28 +1,27 @@
-import React, { useState, useEffect } from "react";
-import { ExerciseService } from "../services";
-import { Exercise } from "../../../shared/types/dashboard";
+import React, { useState, useEffect, useCallback } from "react";
+import { ExerciseService, Exercise } from "../../../services";
 import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
 import "../../../styles/ExerciseCrud.css";
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", code: "" });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [totalExercises, setTotalExercises] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
     exerciseId: null as number | null,
     exerciseName: ""
   });
-
-  const ITEMS_PER_PAGE = 10;
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Function to generate code from exercise name
   const generateCodeFromName = (name: string): string => {
@@ -33,27 +32,15 @@ export default function ExerciseCrud() {
       .replace(/\s+/g, '_'); // Replace spaces with underscores
   };
 
+  // Initial load - only run once
   useEffect(() => {
-    // Cargar primero todos los ejercicios para obtener el total
-    // y luego cargar la primera página
-    const initializeData = async () => {
-      await loadAllExercises();
-      await loadExercises();
-    };
-    initializeData();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredExercises(exercises);
-    } else {
-      const filtered = allExercises.filter(exercise =>
-        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exercise.code.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredExercises(filtered);
+    if (!isInitialized) {
+      loadExercises();
+      setIsInitialized(true);
     }
-  }, [searchTerm, exercises, allExercises]);
+  }, [isInitialized]);
+
+  // Remove the debounced search effect - search will only work manually
 
   const loadExercises = async (page = 1, append = false) => {
     try {
@@ -82,25 +69,57 @@ export default function ExerciseCrud() {
     }
   };
 
-  const loadAllExercises = async () => {
+  const searchExercises = useCallback(async (query: string, page = 1, append = false) => {
     try {
-      const data = await ExerciseService.getExercises();
-      setAllExercises(data);
-      // No necesitamos establecer totalExercises aquí ya que se establece en loadExercises
+      setLoading(true);
+      
+      if (query.trim() === "") {
+        // Si no hay query, cargar ejercicios normales
+        await loadExercises(page, append);
+        return;
+      }
+
+      const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
+      
+      if (response.exercises.length === 0 && page > 1) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+      
+      if (append) {
+        setExercises(prev => [...prev, ...response.exercises]);
+      } else {
+        setExercises(response.exercises);
+      }
+      
+      setCurrentPage(page);
+      setTotalExercises(response.total);
+      setHasMore(page < response.total_pages);
     } catch (error) {
-      console.error("Error loading all exercises:", error);
+      console.error("Error searching exercises:", error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   const loadMoreExercises = () => {
     if (hasMore && !loading) {
-      loadExercises(currentPage + 1, true);
+      if (isSearchActive) {
+        searchExercises(searchTerm, currentPage + 1, true);
+      } else {
+        loadExercises(currentPage + 1, true);
+      }
     }
   };
 
   const goToPage = (page: number) => {
     if (page >= 1 && !loading) {
-      loadExercises(page, false);
+      if (isSearchActive) {
+        searchExercises(searchTerm, page, false);
+      } else {
+        loadExercises(page, false);
+      }
     }
   };
 
@@ -121,13 +140,8 @@ export default function ExerciseCrud() {
         
         await ExerciseService.updateExercise(updatedExercise);
         
-        // Actualizar la lista local
+        // Actualizar la lista local directamente
         setExercises(prev => prev.map(e => 
-          e.id === editingExercise.id ? updatedExercise : e
-        ));
-        
-        // Actualizar también allExercises para la búsqueda
-        setAllExercises(prev => prev.map(e => 
           e.id === editingExercise.id ? updatedExercise : e
         ));
         
@@ -141,9 +155,18 @@ export default function ExerciseCrud() {
         
         await ExerciseService.createExercise(newExercise);
         
-        // Recargar la lista para obtener el ID asignado
-        await loadExercises();
-        await loadAllExercises();
+        // Solo recargar si estamos en modo búsqueda
+        if (isSearchActive) {
+          await searchExercises(searchTerm);
+        } else {
+          // Para la primera página, solo incrementar el total sin recargar
+          setTotalExercises(prev => prev + 1);
+          // Si estamos en la primera página y hay espacio, agregar al inicio
+          if (currentPage === 1 && exercises.length < ITEMS_PER_PAGE) {
+            // Simular que el nuevo ejercicio se agregó al inicio
+            setExercises(prev => [newExercise, ...prev]);
+          }
+        }
       }
       
       // Limpiar formulario y cerrar modal
@@ -205,9 +228,24 @@ export default function ExerciseCrud() {
     setSearchTerm(e.target.value);
   };
 
+  const handleSearch = () => {
+    if (searchTerm.trim() !== "") {
+      setIsSearchActive(true);
+      searchExercises(searchTerm);
+    } else {
+      setIsSearchActive(false);
+      loadExercises();
+    }
+  };
+
   const clearSearch = () => {
     setSearchTerm("");
+    setIsSearchActive(false);
+    loadExercises(); // Reload default list when clearing
   };
+
+  // No need for filteredExercises anymore since we're using backend search
+  const displayedExercises = exercises;
 
   return (
     <div className="exercise-crud-container">
@@ -226,7 +264,7 @@ export default function ExerciseCrud() {
                   </p>
                 </div>
                 <div className="exercise-list-actions">
-                  <form onSubmit={(e) => { e.preventDefault(); }} className="exercise-search-form">
+                  <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="exercise-search-form">
                     <Input
                       placeholder="Buscar ejercicios..."
                       value={searchTerm}
@@ -236,13 +274,24 @@ export default function ExerciseCrud() {
                       fullWidth
                     />
                     <Button
-                      type="button"
+                      type="submit"
                       variant="primary"
                       disabled={loading}
                       className="exercise-search-button"
                     >
                       Buscar
                     </Button>
+                    {searchTerm.trim() !== "" && (
+                      <Button
+                        type="button"
+                        onClick={clearSearch}
+                        variant="secondary"
+                        size="sm"
+                        className="exercise-clear-search-button"
+                      >
+                        Limpiar
+                      </Button>
+                    )}
                   </form>
                 </div>
                 <div className="exercise-list-create-action">
@@ -258,9 +307,9 @@ export default function ExerciseCrud() {
 
               <div className="exercise-list-stats">
                 <span className="exercise-count">
-                  {searchTerm.trim() !== "" ? filteredExercises.length : totalExercises} {(searchTerm.trim() !== "" ? filteredExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {searchTerm.trim() !== "" ? 'encontrado' : 'total'}
+                  {isSearchActive ? displayedExercises.length : totalExercises} {(isSearchActive ? displayedExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {isSearchActive ? 'encontrados' : 'total'}
                 </span>
-                {searchTerm.trim() === "" && (
+                {!isSearchActive && (
                   <span className="exercise-page-info">
                     Página {currentPage}
                   </span>
@@ -272,21 +321,21 @@ export default function ExerciseCrud() {
                   <div className="exercise-loading-icon">⏳</div>
                   <p className="exercise-loading-text">Cargando ejercicios...</p>
                 </div>
-              ) : (searchTerm.trim() !== "" ? filteredExercises.length === 0 : exercises.length === 0) ? (
+              ) : (isSearchActive ? displayedExercises.length === 0 : exercises.length === 0) ? (
                 <div className="exercise-empty-state">
                   <div className="exercise-empty-icon">
-                    {searchTerm.trim() !== "" ? '🔍' : '🏋️'}
+                    {isSearchActive ? '🔍' : '🏋️'}
                   </div>
                   <Title level={3} variant="secondary" align="center">
-                    {searchTerm.trim() !== "" ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
+                    {isSearchActive ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
                   </Title>
                   <p className="exercise-empty-description">
-                    {searchTerm.trim() !== "" 
+                    {isSearchActive 
                       ? `No hay ejercicios que coincidan con "${searchTerm}"`
                       : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
                     }
                   </p>
-                  {searchTerm.trim() === "" && (
+                  {!isSearchActive && (
                     <Button
                       onClick={handleOpenCreateModal}
                       variant="primary"
@@ -298,7 +347,7 @@ export default function ExerciseCrud() {
                 </div>
               ) : (
                 <div className="exercise-list-grid">
-                  {filteredExercises.map((exercise) => (
+                  {displayedExercises.map((exercise) => (
                     <Card
                       key={exercise.id}
                       variant="default"

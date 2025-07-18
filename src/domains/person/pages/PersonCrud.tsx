@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PersonService, Person } from "../../../services";
 import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
 import "../../../styles/PersonCrud.css";
@@ -7,8 +7,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
-  const [allPersons, setAllPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,17 +21,17 @@ export default function PersonCrud() {
     personId: null as number | null,
     personName: ""
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initial load - only run once
   useEffect(() => {
-    const initializeData = async () => {
-      await Promise.all([
-        loadPersons(),
-        loadAllPersons()
-      ]);
-    };
+    if (!isInitialized) {
+      loadPersons();
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
 
-    initializeData();
-  }, []);
+  // Remove the debounced search effect - search will only work manually
 
   const loadPersons = async (page = 1, append = false) => {
     try {
@@ -60,24 +60,57 @@ export default function PersonCrud() {
     }
   };
 
-  const loadAllPersons = async () => {
+  const searchPersons = useCallback(async (query: string, page = 1, append = false) => {
     try {
-      const allPersonsData = await PersonService.getPersons();
-      setAllPersons(allPersonsData);
+      setLoading(true);
+      
+      if (query.trim() === "") {
+        // Si no hay query, cargar personas normales
+        await loadPersons(page, append);
+        return;
+      }
+
+      const response = await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE);
+      
+      if (response.persons.length === 0 && page > 1) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+      
+      if (append) {
+        setPersons(prev => [...prev, ...response.persons]);
+      } else {
+        setPersons(response.persons);
+      }
+      
+      setTotalPersons(response.total);
+      setHasMore(response.persons.length === ITEMS_PER_PAGE);
+      setCurrentPage(page);
     } catch (error) {
-      console.error("Error loading all persons:", error);
+      console.error("Error searching persons:", error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   const loadMorePersons = () => {
     if (hasMore && !loading) {
-      loadPersons(currentPage + 1, true);
+      if (isSearchActive) {
+        searchPersons(searchTerm, currentPage + 1, true);
+      } else {
+        loadPersons(currentPage + 1, true);
+      }
     }
   };
 
   const goToPage = (page: number) => {
     if (page > 0 && page !== currentPage) {
-      loadPersons(page);
+      if (isSearchActive) {
+        searchPersons(searchTerm, page);
+      } else {
+        loadPersons(page);
+      }
     }
   };
 
@@ -99,13 +132,8 @@ export default function PersonCrud() {
         
         await PersonService.updatePerson(updatedPerson);
         
-        // Actualizar la lista local
+        // Actualizar la lista local directamente
         setPersons(prev => prev.map(p => 
-          p.id === editingPerson.id ? updatedPerson : p
-        ));
-        
-        // Actualizar también allPersons para la búsqueda
-        setAllPersons(prev => prev.map(p => 
           p.id === editingPerson.id ? updatedPerson : p
         ));
         
@@ -120,9 +148,18 @@ export default function PersonCrud() {
         
         await PersonService.createPerson(newPerson);
         
-        // Recargar la lista para obtener el ID asignado
-        await loadPersons();
-        await loadAllPersons();
+        // Solo recargar si estamos en modo búsqueda
+        if (isSearchActive) {
+          await searchPersons(searchTerm);
+        } else {
+          // Para la primera página, solo incrementar el total sin recargar
+          setTotalPersons(prev => prev + 1);
+          // Si estamos en la primera página y hay espacio, agregar al inicio
+          if (currentPage === 1 && persons.length < ITEMS_PER_PAGE) {
+            // Simular que la nueva persona se agregó al inicio
+            setPersons(prev => [newPerson, ...prev]);
+          }
+        }
       }
       
       // Limpiar formulario y cerrar modal
@@ -173,7 +210,6 @@ export default function PersonCrud() {
       setLoading(true);
       await PersonService.deletePerson(deleteConfirm.personId);
       setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
-      setAllPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
@@ -186,21 +222,24 @@ export default function PersonCrud() {
     setSearchTerm(e.target.value);
   };
 
-  const clearSearch = () => {
-    setSearchTerm("");
+  const handleSearch = () => {
+    if (searchTerm.trim() !== "") {
+      setIsSearchActive(true);
+      searchPersons(searchTerm);
+    } else {
+      setIsSearchActive(false);
+      loadPersons();
+    }
   };
 
-  // Filtrar personas basado en el término de búsqueda
-  const filteredPersons = searchTerm.trim() !== "" 
-    ? allPersons.filter(person => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          person.name.toLowerCase().includes(searchLower) ||
-          person.last_name.toLowerCase().includes(searchLower) ||
-          (person.phone && person.phone !== "0" && person.phone.toLowerCase().includes(searchLower))
-        );
-      })
-    : persons;
+  const clearSearch = () => {
+    setSearchTerm("");
+    setIsSearchActive(false);
+    loadPersons(); // Reload default list when clearing
+  };
+
+  // No need for filteredPersons anymore since we're using backend search
+  const displayedPersons = persons;
 
   return (
     <div className="person-crud-container">
@@ -219,7 +258,7 @@ export default function PersonCrud() {
                   </p>
                 </div>
                 <div className="person-list-actions">
-                  <form onSubmit={(e) => { e.preventDefault(); }} className="person-search-form">
+                  <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="person-search-form">
                     <Input
                       placeholder="Buscar personas..."
                       value={searchTerm}
@@ -229,13 +268,24 @@ export default function PersonCrud() {
                       fullWidth
                     />
                     <Button
-                      type="button"
+                      type="submit"
                       variant="primary"
                       disabled={loading}
                       className="person-search-button"
                     >
                       Buscar
                     </Button>
+                    {searchTerm.trim() !== "" && (
+                      <Button
+                        type="button"
+                        onClick={clearSearch}
+                        variant="secondary"
+                        size="sm"
+                        className="person-clear-search-button"
+                      >
+                        Limpiar
+                      </Button>
+                    )}
                   </form>
                 </div>
                 <div className="person-list-create-action">
@@ -251,9 +301,9 @@ export default function PersonCrud() {
 
               <div className="person-list-stats">
                 <span className="person-count">
-                  {searchTerm.trim() !== "" ? filteredPersons.length : totalPersons} {(searchTerm.trim() !== "" ? filteredPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {searchTerm.trim() !== "" ? 'encontrada' : 'total'}
+                  {isSearchActive ? displayedPersons.length : totalPersons} {(isSearchActive ? displayedPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {isSearchActive ? 'encontradas' : 'total'}
                 </span>
-                {searchTerm.trim() === "" && (
+                {!isSearchActive && (
                   <span className="person-page-info">
                     Página {currentPage}
                   </span>
@@ -265,21 +315,21 @@ export default function PersonCrud() {
                   <div className="person-loading-icon">⏳</div>
                   <p className="person-loading-text">Cargando personas...</p>
                 </div>
-              ) : (searchTerm.trim() !== "" ? filteredPersons.length === 0 : persons.length === 0) ? (
+              ) : (isSearchActive ? displayedPersons.length === 0 : persons.length === 0) ? (
                 <div className="person-empty-state">
                   <div className="person-empty-icon">
-                    {searchTerm.trim() !== "" ? '🔍' : '👥'}
+                    {isSearchActive ? '🔍' : '👥'}
                   </div>
                   <Title level={3} variant="secondary" align="center">
-                    {searchTerm.trim() !== "" ? 'No se encontraron personas' : 'No hay personas registradas'}
+                    {isSearchActive ? 'No se encontraron personas' : 'No hay personas registradas'}
                   </Title>
                   <p className="person-empty-description">
-                    {searchTerm.trim() !== "" 
+                    {isSearchActive 
                       ? `No hay personas que coincidan con "${searchTerm}"`
                       : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
                     }
                   </p>
-                  {searchTerm.trim() === "" && (
+                  {!isSearchActive && (
                     <Button
                       onClick={handleOpenCreateModal}
                       variant="primary"
@@ -291,7 +341,7 @@ export default function PersonCrud() {
                 </div>
               ) : (
                 <div className="person-list-grid">
-                  {filteredPersons.map((person) => (
+                  {displayedPersons.map((person) => (
                     <Card
                       key={person.id}
                       variant="default"
