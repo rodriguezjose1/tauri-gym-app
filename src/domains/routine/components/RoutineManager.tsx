@@ -73,6 +73,11 @@ export const RoutineManager: React.FC = () => {
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    routineData.loadRoutines();
+  };
+
   const handleSelectRoutine = (routineId: number) => {
     routineData.selectRoutine(routineId);
   };
@@ -173,14 +178,27 @@ export const RoutineManager: React.FC = () => {
                       leftIcon="🔍"
                       fullWidth
                     />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={routineData.loading}
-                      className="routine-manager-search-button"
-                    >
-                      Buscar
-                    </Button>
+                    <div className="routine-manager-search-buttons">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={routineData.loading}
+                        className="routine-manager-search-button"
+                      >
+                        Buscar
+                      </Button>
+                      {searchTerm && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={handleClearSearch}
+                          disabled={routineData.loading}
+                          className="routine-manager-clear-search-button"
+                        >
+                          Limpiar
+                        </Button>
+                      )}
+                    </div>
                   </form>
                 </div>
                 <div className="routine-manager-create-action">

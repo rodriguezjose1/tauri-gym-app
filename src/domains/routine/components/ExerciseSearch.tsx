@@ -41,7 +41,6 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       }
       
       const response = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
-      console.log('loadExercises response:', { page, response, append });
       
       if (response.exercises.length === 0 && page > 1) {
         setHasMore(false);
@@ -54,19 +53,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
         setSearchResults(response.exercises);
       }
       
-      // Original hasMore logic: true if we got full page OR if there are more pages
       const newHasMore = response.exercises.length === ITEMS_PER_PAGE || page < response.total_pages;
-      console.log('Setting hasMore:', { 
-        exercisesLength: response.exercises.length, 
-        page, 
-        totalPages: response.total_pages, 
-        itemsPerPage: ITEMS_PER_PAGE,
-        newHasMore,
-        gotFullPage: response.exercises.length === ITEMS_PER_PAGE,
-        hasMorePages: page < response.total_pages,
-        reason: response.exercises.length === ITEMS_PER_PAGE ? 'Got full page' : 
-                (page < response.total_pages) ? 'More pages available' : 'No more pages'
-      });
       setHasMore(newHasMore);
       setCurrentPage(page);
     } catch (error) {
@@ -92,7 +79,6 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       }
 
       const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
-      console.log('searchExercises response:', { query, page, response, append });
       
       if (response.exercises.length === 0 && page > 1) {
         setHasMore(false);
@@ -105,19 +91,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
         setSearchResults(response.exercises);
       }
       
-      // Original hasMore logic: true if we got full page OR if there are more pages
       const newHasMore = response.exercises.length === ITEMS_PER_PAGE || page < response.total_pages;
-      console.log('Setting hasMore (search):', { 
-        exercisesLength: response.exercises.length, 
-        page, 
-        totalPages: response.total_pages, 
-        itemsPerPage: ITEMS_PER_PAGE,
-        newHasMore,
-        gotFullPage: response.exercises.length === ITEMS_PER_PAGE,
-        hasMorePages: page < response.total_pages,
-        reason: response.exercises.length === ITEMS_PER_PAGE ? 'Got full page' : 
-                (page < response.total_pages) ? 'More pages available' : 'No more pages'
-      });
       setHasMore(newHasMore);
       setCurrentPage(page);
     } catch (error) {
@@ -141,46 +115,14 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
 
   // Load more exercises automatically
   const loadMoreExercises = useCallback(() => {
-    console.log('loadMoreExercises called:', { hasMore, searchLoading, isLoadingMore, currentPage });
     if (hasMore && !searchLoading && !isLoadingMore) {
-      console.log('Loading more exercises, page:', currentPage + 1);
       if (isSearchActive) {
         searchExercises(searchTerm, currentPage + 1, true);
       } else {
         loadExercises(currentPage + 1, true);
       }
-    } else {
-      console.log('Not loading more:', { hasMore, searchLoading, isLoadingMore });
     }
   }, [hasMore, searchLoading, isLoadingMore, isSearchActive, searchTerm, currentPage, searchExercises, loadExercises]);
-
-  // Infinite scroll handler
-  const handleScroll = useCallback(() => {
-    if (!resultsRef.current) {
-      console.log('No resultsRef.current');
-      return;
-    }
-    
-    const { scrollTop, scrollHeight, clientHeight } = resultsRef.current;
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20; // Reduced threshold to 20px
-    
-    console.log('Scroll event:', { 
-      scrollTop, 
-      scrollHeight, 
-      clientHeight, 
-      isNearBottom, 
-      hasMore,
-      isLoadingMore,
-      scrollPercentage: Math.round((scrollTop / (scrollHeight - clientHeight)) * 100),
-      distanceFromBottom: scrollHeight - (scrollTop + clientHeight),
-      canLoadMore: hasMore && !isLoadingMore
-    });
-    
-    if (isNearBottom && hasMore && !isLoadingMore) {
-      console.log('Triggering load more from scroll');
-      loadMoreExercises();
-    }
-  }, [loadMoreExercises, hasMore, isLoadingMore]);
 
   // Filter out already selected exercises
   const availableExercises = useMemo(() => {
@@ -188,6 +130,32 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       !selectedExercises.some(selected => selected.id === exercise.id)
     );
   }, [searchResults, selectedExercises]);
+
+  // Check if scroll is available
+  const [hasScroll, setHasScroll] = useState(false);
+
+  // Check scroll availability
+  useEffect(() => {
+    if (resultsRef.current) {
+      const { scrollHeight, clientHeight } = resultsRef.current;
+      const hasScrollAvailable = scrollHeight > clientHeight;
+      setHasScroll(hasScrollAvailable);
+    }
+  }, [availableExercises.length, hasMore, currentPage]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (!resultsRef.current) {
+      return;
+    }
+    
+    const { scrollTop, scrollHeight, clientHeight } = resultsRef.current;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50; // Increased threshold to 50px
+    
+    if (isNearBottom && hasMore && !isLoadingMore) {
+      loadMoreExercises();
+    }
+  }, [loadMoreExercises, hasMore, isLoadingMore]);
 
   const handleToggleExercise = (exercise: Exercise) => {
     setSelectedExercises(prev => {
@@ -235,7 +203,6 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   // Initialize when modal opens
   useEffect(() => {
     if (isOpen) {
-      console.log('ExerciseSearch modal opened, loading initial exercises');
       setSearchTerm('');
       setSelectedExercises([]);
       setSearchResults([]);
@@ -249,7 +216,6 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setTimeout(() => {
         if (resultsRef.current) {
           const { scrollHeight, clientHeight } = resultsRef.current;
-          console.log('Container dimensions:', { scrollHeight, clientHeight, hasScroll: scrollHeight > clientHeight });
         }
       }, 100);
     }
@@ -259,14 +225,14 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   useEffect(() => {
     const resultsElement = resultsRef.current;
     if (resultsElement) {
-      console.log('Adding scroll listener to:', resultsElement);
+      
       resultsElement.addEventListener('scroll', handleScroll);
+      
       return () => {
-        console.log('Removing scroll listener');
         resultsElement.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [handleScroll]);
+  }, [handleScroll, availableExercises.length]); // Added availableExercises.length as dependency
 
   // Agrupar ejercicios seleccionados por grupo para mostrar estadísticas
   const groupedSelectedExercises = useMemo(() => {
@@ -431,6 +397,19 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
                   <div className="exercise-search-loading-more">
                     <div className="exercise-search-spinner"></div>
                     <p>Cargando más ejercicios...</p>
+                  </div>
+                )}
+                
+                {/* Load More Button - Only show when no scroll is available */}
+                {hasMore && !isLoadingMore && availableExercises.length > 0 && !hasScroll && (
+                  <div className="exercise-search-load-more">
+                    <Button
+                      onClick={loadMoreExercises}
+                      variant="secondary"
+                      fullWidth
+                    >
+                      📄 Cargar más ejercicios
+                    </Button>
                   </div>
                 )}
               </div>

@@ -40,6 +40,7 @@ export const Select: React.FC<SelectProps> = ({
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const isClickingInsideRef = useRef(false);
 
   useEffect(() => {
     const option = options.find(option => option.value === value);
@@ -49,13 +50,17 @@ export const Select: React.FC<SelectProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        // Only close if we're not clicking inside the dropdown
+        if (!isClickingInsideRef.current) {
+          setIsOpen(false);
+        }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Use click instead of mousedown to prevent flickering
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
@@ -70,7 +75,19 @@ export const Select: React.FC<SelectProps> = ({
       setSelectedOption(option);
       onChange(option.value);
       setIsOpen(false);
+      isClickingInsideRef.current = false;
     }
+  };
+
+  const handleDropdownClick = (event: React.MouseEvent) => {
+    // Prevent the dropdown from closing when clicking inside it
+    event.stopPropagation();
+    isClickingInsideRef.current = true;
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isClickingInsideRef.current = false;
+    }, 100);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -143,7 +160,22 @@ export const Select: React.FC<SelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="ui-select-dropdown">
+        <div 
+          className="ui-select-dropdown" 
+          onClick={handleDropdownClick}
+          style={{
+            zIndex: 999999,
+            position: 'absolute',
+            transform: 'translateZ(0)',
+            willChange: 'transform',
+            isolation: 'isolate',
+            top: '100%',
+            left: 0,
+            right: 0,
+            overflow: 'visible',
+            maxHeight: 'none'
+          }}
+        >
           <ul className="ui-select-options" role="listbox">
             {options.map((option) => (
               <li
@@ -153,7 +185,10 @@ export const Select: React.FC<SelectProps> = ({
                 } ${
                   selectedOption?.value === option.value ? 'ui-select-option--selected' : ''
                 }`}
-                onClick={() => handleOptionSelect(option)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOptionSelect(option);
+                }}
                 role="option"
                 aria-selected={selectedOption?.value === option.value}
               >

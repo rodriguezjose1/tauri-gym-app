@@ -32,6 +32,7 @@ export const useDashboardRoutineOperations = ({
       }
 
       // Convert routine exercises to WorkoutEntryForm
+      // The routine.exercises already contains full exercise details (exercise_name, exercise_code)
       const exerciseForms: WorkoutEntryForm[] = routine.exercises.map((routineExercise, index) => ({
         exercise_id: routineExercise.exercise_id,
         sets: routineExercise.sets || 1,

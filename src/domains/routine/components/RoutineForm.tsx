@@ -27,6 +27,15 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   const [form, setForm] = useState<RoutineFormType>({ name: '', code: '' });
   const [errors, setErrors] = useState<{ name?: string; code?: string }>({});
 
+  // Función para generar código automáticamente desde el nombre
+  const generateCodeFromName = (name: string): string => {
+    return name
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, '') // Remove special characters, keep only letters, numbers, and spaces
+      .trim()
+      .replace(/\s+/g, '_'); // Replace spaces with underscores
+  };
+
   const validateForm = (): boolean => {
     const newErrors: { name?: string; code?: string } = {};
 
@@ -80,7 +89,13 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             label={ROUTINE_UI_LABELS.NAME_LABEL}
             value={form.name}
             onChange={(e) => {
-              setForm(prev => ({ ...prev, name: e.target.value }));
+              const newName = e.target.value;
+              setForm(prev => ({ 
+                ...prev, 
+                name: newName,
+                // Auto-generate code from name
+                code: generateCodeFromName(newName)
+              }));
               if (errors.name) {
                 setErrors(prev => ({ ...prev, name: undefined }));
               }
@@ -99,7 +114,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             label={ROUTINE_UI_LABELS.CODE_LABEL}
             value={form.code}
             onChange={(e) => {
-              setForm(prev => ({ ...prev, code: e.target.value }));
+              setForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }));
               if (errors.code) {
                 setErrors(prev => ({ ...prev, code: undefined }));
               }
@@ -108,6 +123,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             fullWidth
             disabled={loading}
             placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
+            helperText="Se genera automáticamente desde el nombre"
           />
           {errors.code && <ErrorMessage message={errors.code} />}
           <small className="routine-form-help">

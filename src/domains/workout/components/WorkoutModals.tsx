@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button, Input, Modal, Select } from "../../../shared/components/base";
 import { ExerciseAutocomplete } from "../../exercise";
-import { Person, Exercise, WorkoutEntryForm, EditWorkoutEntryForm, WorkoutSessionForm, WorkoutEntryWithDetails, RoutineOption, RoutineService, ExerciseService } from '../../../services';
+import { Person, Exercise, WorkoutEntryWithDetails, RoutineService, ExerciseService } from '../../../services';
+import { WorkoutEntryForm, EditWorkoutEntryForm, WorkoutSessionForm, RoutineOption } from '../../../shared/types/dashboard';
 import '../../../styles/WorkoutModals.css';
 
 interface WorkoutModalsProps {
@@ -144,6 +145,29 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
     }
   };
 
+  // Load exercise details from routine exercises
+  const loadExerciseDetailsFromRoutine = async (routineId: number) => {
+    try {
+      const routine = await RoutineService.getRoutineWithExercises(routineId);
+      if (routine && routine.exercises) {
+        // Create Exercise objects from routine exercises
+        const exerciseDetails: { [key: number]: Exercise } = {};
+        routine.exercises.forEach(routineExercise => {
+          exerciseDetails[routineExercise.exercise_id] = {
+            id: routineExercise.exercise_id,
+            name: routineExercise.exercise_name,
+            code: routineExercise.exercise_code
+          };
+        });
+        
+        // Update session exercises with the loaded details
+        setSessionExercises(prev => ({ ...prev, ...exerciseDetails }));
+      }
+    } catch (error) {
+      console.error(`Error loading exercise details from routine ${routineId}:`, error);
+    }
+  };
+
   // Load exercise counts for all routines when session modal opens
   useEffect(() => {
     if (showSessionModal && routines.length > 0) {
@@ -158,7 +182,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
   // Load exercise details when session form changes
   useEffect(() => {
     if (showSessionModal && sessionForm.exercises) {
-      sessionForm.exercises.forEach(exercise => {
+      sessionForm.exercises.forEach((exercise: WorkoutEntryForm) => {
         if (exercise.exercise_id && exercise.exercise_id > 0) {
           loadExerciseDetails(exercise.exercise_id);
         }
@@ -173,6 +197,24 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
     }
   }, [showEditModal, editForm.exercise_id]);
 
+  // Load exercise details for all exercises in session form when it changes
+  useEffect(() => {
+    if (showSessionModal && sessionForm.exercises) {
+      const loadAllExerciseDetails = async () => {
+        const exerciseIds = sessionForm.exercises
+          .map((exercise: WorkoutEntryForm) => exercise.exercise_id)
+          .filter((id: number) => id && id > 0);
+        
+        // Load details for all exercises in parallel
+        await Promise.all(
+          exerciseIds.map((exerciseId: number) => loadExerciseDetails(exerciseId))
+        );
+      };
+      
+      loadAllExerciseDetails();
+    }
+  }, [showSessionModal, sessionForm.exercises]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { 
@@ -183,8 +225,12 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
     });
   };
 
-  const handleLoadRoutine = () => {
+  const handleLoadRoutine = async () => {
     if (selectedRoutineId) {
+      // Load routine exercises and their details
+      await loadExerciseDetailsFromRoutine(selectedRoutineId);
+      
+      // Call the parent handler to load the routine
       onLoadRoutine(selectedRoutineId);
       setShowRoutineSelector(false);
       setSelectedRoutineId(null);
@@ -483,11 +529,11 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
                 fullWidth
               />
               <Button
-                onClick={() => {
+                onClick={async () => {
                   console.log("Cargar Ejercicios button clicked, selectedRoutineId:", selectedRoutineId);
                   if (selectedRoutineId) {
                     console.log("Calling handleLoadRoutine");
-                    handleLoadRoutine();
+                    await handleLoadRoutine();
                   } else {
                     console.log("No routine selected");
                   }
@@ -511,7 +557,7 @@ export const WorkoutModals: React.FC<WorkoutModalsProps> = ({
           <div className="workout-modal-form-grid">
             {/* Exercise Forms */}
             <div className="workout-modal-exercise-list">
-              {sessionForm.exercises.map((exercise, index) => (
+              {sessionForm.exercises.map((exercise: WorkoutEntryForm, index: number) => (
                 <div key={index} className="workout-modal-exercise-item">
                   <div className="workout-modal-exercise-header">
                     <h4 className="workout-modal-exercise-title">
