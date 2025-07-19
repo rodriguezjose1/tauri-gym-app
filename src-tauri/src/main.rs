@@ -219,8 +219,23 @@ fn delete_routine(service: State<'_, RoutineService>, id: i32) -> Result<(), Str
 }
 
 #[tauri::command]
+fn restore_routine(service: State<'_, RoutineService>, id: i32) -> Result<(), String> {
+    service.restore_routine(id)
+}
+
+#[tauri::command]
 fn list_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
     service.list_routines()
+}
+
+#[tauri::command]
+fn get_deleted_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
+    service.list_deleted_routines()
+}
+
+#[tauri::command]
+fn count_deleted_routines(service: State<'_, RoutineService>) -> i32 {
+    service.count_deleted_routines()
 }
 
 #[tauri::command]
@@ -388,7 +403,10 @@ fn main() {
             get_routine_with_exercises,
             update_routine,
             delete_routine,
+            restore_routine,
             list_routines,
+            get_deleted_routines,
+            count_deleted_routines,
             renumber_routine_groups,
             list_routines_paginated,
             search_routines,

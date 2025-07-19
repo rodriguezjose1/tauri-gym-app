@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { RoutineService } from '../services';
-import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
+import { useToast } from '../../../shared/contexts/ToastContext';
 import { RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
 import { ROUTINE_ERROR_MESSAGES, ROUTINE_UI_LABELS } from '../../../shared/constants';
 
@@ -12,7 +12,7 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
   const [exercises, setExercises] = useState<RoutineExerciseWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   
-  const { addNotification } = useToastNotifications();
+  const { addNotification } = useToast();
 
   const loadExercises = useCallback(async () => {
     if (!routineId) {
@@ -68,47 +68,49 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     }
   }, [routineId, loadExercises, addNotification]);
 
-  // Función simplificada para actualizar ejercicio
   const updateExercise = useCallback(async (
     exerciseId: number,
-    updates: Partial<RoutineExerciseWithDetails>
+    orderIndex: number,
+    sets?: number,
+    reps?: number,
+    weight?: number,
+    notes?: string,
+    groupNumber?: number
   ) => {
     if (!routineId) return;
 
     try {
       setLoading(true);
       
-      // Encontrar el ejercicio actual antes de hacer cambios
+      // Encontrar el ejercicio actual
       const currentExercise = exercises.find(ex => ex.id === exerciseId);
       if (!currentExercise) {
-        console.error('Exercise not found with id:', exerciseId);
-        console.error('Available exercises:', exercises.map(ex => ({ id: ex.id, name: ex.exercise_name })));
         throw new Error('Exercise not found');
       }
-
-      // Sincronizar con el servidor primero
+      
+      // Verificar que el ID del ejercicio existe
+      if (!currentExercise.id) {
+        throw new Error('Exercise ID is required for update');
+      }
+      
       await RoutineService.updateRoutineExercise(
-        exerciseId,
+        currentExercise.id,
         routineId,
-        currentExercise.exercise_id!,
-        updates.order_index ?? currentExercise.order_index ?? 0,
-        updates.sets ?? currentExercise.sets,
-        updates.reps ?? currentExercise.reps,
-        updates.weight ?? currentExercise.weight,
-        updates.notes ?? currentExercise.notes,
-        updates.group_number ?? currentExercise.group_number
+        currentExercise.exercise_id,
+        orderIndex,
+        sets || currentExercise.sets,
+        reps || currentExercise.reps,
+        weight || currentExercise.weight,
+        notes || currentExercise.notes,
+        groupNumber || currentExercise.group_number
       );
-
-      // Actualizar estado local después del éxito
-      setExercises(prev => prev.map(ex => 
-        ex.id === exerciseId ? { ...ex, ...updates } : ex
-      ));
+      
+      // Recargar ejercicios para obtener los datos actualizados
+      await loadExercises();
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_UPDATED_SUCCESS, 'success');
     } catch (error) {
-      console.error('Error updating routine exercise:', error);
-      // Recargar en caso de error para restaurar estado
-      await loadExercises();
+      console.error('Error updating exercise in routine:', error);
       addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(String(error)), 'error');
     } finally {
       setLoading(false);
@@ -125,9 +127,19 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
       const currentExercise = exercises.find(ex => ex.id === exerciseId);
       if (!currentExercise) {
         console.error('Exercise not found with id:', exerciseId);
-        console.error('Available exercises:', exercises.map(ex => ({ id: ex.id, name: ex.exercise_name })));
+        console.error('Available exercises:', exercises.map(ex => ({ id: ex.id, exercise_id: ex.exercise_id, name: ex.exercise_name })));
         throw new Error('Exercise not found');
       }
+      
+      console.log('Removing exercise:', {
+        routineId,
+        exerciseId,
+        currentExercise: {
+          id: currentExercise.id,
+          exercise_id: currentExercise.exercise_id,
+          name: currentExercise.exercise_name
+        }
+      });
       
       // Sincronizar con el servidor primero
       await RoutineService.removeExerciseFromRoutine(routineId, currentExercise.exercise_id);

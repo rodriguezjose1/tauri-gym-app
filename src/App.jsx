@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { Dashboard } from "./domains/dashboard";
-import { ConfiguracionesPage } from "./domains/settings";
-import { ExerciseCrud } from "./domains/exercise";
-import { PersonCrud } from "./domains/person";
-import { RoutinePage } from "./domains/routine";
+import Dashboard from './domains/dashboard/pages/Dashboard';
+import PersonCrud from './domains/person/pages/PersonCrud';
+import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
+import { RoutineManager } from './domains/routine/components/RoutineManager';
+import ConfiguracionesPage from './domains/settings/pages/ConfiguracionesPage';
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
 import Updater from './components/Updater';
@@ -102,7 +102,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/personas" element={<PersonCrud />} />
                 <Route path="/exercises" element={<ExerciseCrud />} />
-                <Route path="/routines" element={<RoutinePage />} />
+                <Route path="/routines" element={<RoutineManager />} />
                 <Route path="/configuraciones" element={<ConfiguracionesPage />} />
               </Routes>
             </main>

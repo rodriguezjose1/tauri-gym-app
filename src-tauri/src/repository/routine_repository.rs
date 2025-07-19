@@ -7,7 +7,10 @@ pub trait RoutineRepository: Send + Sync {
     fn get_with_exercises(&self, id: i32) -> Option<RoutineWithExercises>;
     fn update(&self, id: i32, name: String, code: String) -> Result<(), String>;
     fn delete(&self, id: i32) -> Result<(), String>;
+    fn restore(&self, id: i32) -> Result<(), String>;
     fn list_all(&self) -> Vec<Routine>;
+    fn list_deleted(&self) -> Vec<Routine>;
+    fn count_deleted(&self) -> i32;
     fn list_routines_paginated(&self, page: i32, page_size: i32) -> Vec<Routine>;
     fn search_routines(&self, query: &str) -> Vec<Routine>;
     fn search_routines_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Routine>;

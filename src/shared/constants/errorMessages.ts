@@ -6,6 +6,7 @@ export const ROUTINE_ERROR_MESSAGES = {
   // Routine creation errors
   DUPLICATE_CODE: (code: string) => `El código "${code}" ya existe. Por favor usa un código diferente.`,
   CREATE_ROUTINE_FAILED: (error: string) => `Error al crear la rutina: ${error}`,
+  UPDATE_ROUTINE_FAILED: (error: string) => `Error al actualizar la rutina: ${error}`,
   
   // Routine operations errors
   DELETE_ROUTINE_FAILED: (error: string) => `Error al eliminar la rutina: ${error}`,

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { RoutineService } from '../services';
-import { useToastNotifications } from '../../../shared/hooks/useToastNotifications';
+import { useToast } from '../../../shared/contexts/ToastContext';
 import { Routine, RoutineForm } from '../../../shared/types/dashboard';
 import { ROUTINE_ERROR_MESSAGES } from '../../../shared/constants';
 
@@ -19,6 +19,7 @@ interface UseRoutineDataReturn {
   loadRoutines: () => Promise<void>;
   selectRoutine: (routineId: number) => Promise<void>;
   createRoutine: (form: RoutineForm) => Promise<boolean>;
+  updateRoutine: (routineId: number, form: RoutineForm) => Promise<boolean>;
   deleteRoutine: (routineId: number) => Promise<boolean>;
   searchRoutines: (searchTerm: string) => Promise<void>;
   clearSelection: () => void;
@@ -30,7 +31,7 @@ export const useRoutineData = (): UseRoutineDataReturn => {
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   
-  const { addNotification } = useToastNotifications();
+  const { addNotification } = useToast();
 
   const loadRoutines = useCallback(async () => {
     try {
@@ -83,6 +84,32 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     }
   }, [addNotification]);
 
+  const updateRoutine = useCallback(async (routineId: number, form: RoutineForm): Promise<boolean> => {
+    try {
+      setLoading(true);
+      await RoutineService.updateRoutine(routineId, form.name, form.code);
+      
+      // Actualizar la rutina en el estado local
+      setRoutines(prev => prev.map(r => 
+        r.id === routineId ? { ...r, name: form.name, code: form.code } : r
+      ));
+      
+      // Actualizar la selección si la rutina actual es la seleccionada
+      if (selectedRoutineId === routineId) {
+        setSelectedRoutine({ ...selectedRoutine!, name: form.name, code: form.code });
+      }
+      
+      addNotification(ROUTINE_SUCCESS_MESSAGES.UPDATED, 'success');
+      return true;
+    } catch (error) {
+      console.error('Error updating routine:', error);
+      addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_ROUTINE_FAILED(String(error)), 'error');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedRoutineId, addNotification]);
+
   const deleteRoutine = useCallback(async (routineId: number): Promise<boolean> => {
     try {
       setLoading(true);
@@ -134,6 +161,7 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     loadRoutines,
     selectRoutine,
     createRoutine,
+    updateRoutine,
     deleteRoutine,
     searchRoutines,
     clearSelection

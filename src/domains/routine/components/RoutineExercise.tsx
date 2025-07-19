@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
-import { RoutineExerciseWithDetails } from '../../../services';
+import { DeleteConfirmationModal } from '../../../shared/components/modals';
+import { RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
 
 interface RoutineExerciseProps {
   exercise: RoutineExerciseWithDetails;
@@ -14,6 +15,7 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   onDelete
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editForm, setEditForm] = useState({
     group_number: exercise.group_number || 1
   });
@@ -33,10 +35,20 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
     setIsEditing(false);
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este ejercicio?')) {
-      await onDelete(exercise.id!);
-    }
+  const handleDeleteClick = () => {
+    console.log('Delete button clicked for exercise:', exercise);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    console.log('User confirmed deletion, calling onDelete with exercise.id:', exercise.id);
+    await onDelete(exercise.id!);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteCancel = () => {
+    console.log('User cancelled deletion');
+    setShowDeleteConfirm(false);
   };
 
   if (isEditing) {
@@ -72,40 +84,48 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   }
 
   return (
-    <Card
-      variant="default"
-      padding="md"
-      className="routine-exercise-card"
-    >
-      <div className="routine-exercise-avatar">
-        {exercise.exercise_name.charAt(0).toUpperCase()}
-      </div>
-      
-      <div className="routine-exercise-info">
-        <Title level={4} variant="default" className="routine-exercise-name">
-          {exercise.exercise_name}
-        </Title>
-        <p className="routine-exercise-details">
-          Grupo {exercise.group_number || 1}
-        </p>
-      </div>
-      
-      <div className="routine-exercise-actions">
-        <Button
-          onClick={() => setIsEditing(true)}
-          variant="secondary"
-          size="sm"
-        >
-          ✏️ Editar
-        </Button>
-        <Button
-          onClick={handleDelete}
-          variant="danger"
-          size="sm"
-        >
-          🗑️ Eliminar
-        </Button>
-      </div>
-    </Card>
+    <>
+      <Card
+        variant="default"
+        padding="md"
+        className="routine-exercise-card"
+      >
+        <div className="routine-exercise-info">
+          <Title level={4} variant="default" className="routine-exercise-name">
+            {exercise.exercise_name}
+          </Title>
+          <p className="routine-exercise-details">
+            Grupo {exercise.group_number || 1}
+          </p>
+        </div>
+        
+        <div className="routine-exercise-actions">
+          <Button
+            onClick={() => setIsEditing(true)}
+            variant="secondary"
+            size="sm"
+          >
+            ✏️ Editar
+          </Button>
+          <Button
+            onClick={handleDeleteClick}
+            variant="danger"
+            size="sm"
+          >
+            🗑️ Eliminar
+          </Button>
+        </div>
+      </Card>
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        title="Confirmar Eliminación"
+        message={`¿Estás seguro de que deseas eliminar el ejercicio "${exercise.exercise_name}"?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+      />
+    </>
   );
 }; 

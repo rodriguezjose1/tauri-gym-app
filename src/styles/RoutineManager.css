@@ -100,29 +100,13 @@
   white-space: nowrap;
 }
 
-/* Stats */
-.routine-manager-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.routine-manager-count {
-  color: var(--text-secondary, #b0b0b0);
-  font-size: 14px;
-  font-weight: 500;
-}
-
 /* Content Layout */
 .routine-manager-content {
   display: flex;
   gap: 20px;
   flex: 1;
   min-height: 0;
-  height: calc(100vh - 350px);
+  height: calc(100vh - 280px);
   min-height: 500px;
 }
 
@@ -161,7 +145,7 @@
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color, #404040);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -178,45 +162,24 @@
   font-size: 14px;
 }
 
+.routine-manager-routine-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.routine-manager-edit-routine-button {
+  min-width: 100px;
+}
+
 .routine-manager-add-exercise-button {
-  flex-shrink: 0;
-  margin-left: 16px;
+  min-width: 140px;
 }
 
 .routine-manager-exercises-container {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-}
-
-/* Pagination */
-.routine-manager-pagination {
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-primary, #1a1a1a);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border-color, #404040);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
-  margin-top: auto;
-  flex-shrink: 0;
-}
-
-.routine-manager-pagination-info {
-  color: var(--text-secondary, #b0b0b0);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.routine-manager-selected-info {
-  color: var(--accent-primary, #2196F3);
-  font-size: 14px;
-  font-weight: 500;
 }
 
 /* Loading States */
@@ -338,7 +301,7 @@
   }
   
   .routine-manager-content {
-    height: calc(100vh - 330px);
+    height: calc(100vh - 260px);
   }
 }
 
@@ -348,7 +311,7 @@
   }
   
   .routine-manager-content {
-    height: calc(100vh - 370px);
+    height: calc(100vh - 300px);
   }
 }
 
@@ -371,11 +334,6 @@
   
   .routine-manager-actions {
     align-self: flex-start;
-  }
-  
-  .routine-manager-stats {
-    margin-bottom: 12px;
-    padding-bottom: 8px;
   }
   
   .routine-manager-content {
@@ -401,18 +359,23 @@
     height: auto;
     min-height: 400px;
   }
-  
-  .routine-manager-pagination {
-    padding: 12px 16px;
+
+  .routine-manager-tabs {
     flex-direction: column;
-    gap: 8px;
-    text-align: center;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+    gap: 4px;
   }
-  
-  .routine-manager-pagination-info,
-  .routine-manager-selected-info {
-    font-size: 12px;
+
+  .routine-manager-tab {
+    border-radius: 8px;
+  }
+
+  .routine-manager-tab.active::after {
+    display: none;
+  }
+
+  .routine-manager-tab.active {
+    background-color: var(--accent-primary);
+    color: white;
   }
 }
 
@@ -450,11 +413,6 @@
     flex: 1;
     font-size: 12px;
     padding: 8px 12px;
-  }
-  
-  .routine-manager-stats {
-    margin-bottom: 8px;
-    padding-bottom: 6px;
   }
   
   .routine-manager-content {
@@ -559,32 +517,19 @@
   border: 1px solid var(--border-color, #404040);
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
   transition: all 0.2s ease;
   cursor: pointer;
-  padding: 16px;
+  padding: 12px 16px;
   border-radius: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .routine-exercise-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border-color: var(--accent-primary, #2196F3);
-}
-
-.routine-exercise-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 18px;
-  flex-shrink: 0;
 }
 
 .routine-exercise-info {
@@ -593,21 +538,23 @@
 }
 
 .routine-exercise-name {
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   color: var(--text-primary, #ffffff);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .routine-exercise-details {
   color: var(--text-secondary, #b0b0b0);
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
+  line-height: 1.2;
 }
 
 .routine-exercise-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -699,13 +646,8 @@
   .routine-exercise-card {
     flex-direction: column;
     text-align: center;
-    padding: 16px;
-  }
-  
-  .routine-exercise-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    padding: 12px;
+    gap: 8px;
   }
   
   .routine-exercise-actions {
@@ -730,13 +672,7 @@
 
 @media (max-width: 480px) {
   .routine-exercise-card {
-    padding: 12px;
-  }
-  
-  .routine-exercise-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    padding: 10px 12px;
   }
   
   .routine-exercise-edit-card {
@@ -1367,4 +1303,88 @@
     flex-direction: column;
     gap: 2px;
   }
+} 
+
+/* Tab System */
+.routine-manager-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.routine-manager-tab {
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.routine-manager-tab:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.routine-manager-tab.active {
+  color: var(--accent-primary);
+  background-color: var(--accent-bg);
+  font-weight: 600;
+}
+
+.routine-manager-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--accent-primary);
+}
+
+/* Deleted Routines */
+.routine-manager-deleted-routines {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.routine-manager-routine-item.deleted {
+  opacity: 0.7;
+  background-color: var(--bg-secondary);
+  border-color: var(--border-light);
+}
+
+.routine-manager-routine-item.deleted:hover {
+  opacity: 0.9;
+}
+
+.routine-manager-routine-deleted-status {
+  color: var(--danger-color);
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  font-weight: 500;
+}
+
+.routine-manager-routine-restore {
+  background: var(--success-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.routine-manager-routine-restore:hover {
+  background: var(--success-hover);
+  transform: translateY(-1px);
 } 

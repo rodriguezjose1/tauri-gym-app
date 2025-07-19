@@ -73,6 +73,11 @@ impl SqliteRoutineRepository {
             self.migrate_routine_group_column()?;
         }
 
+        // Check if logical deletion migration is needed
+        if self.check_if_logical_deletion_migration_needed()? {
+            self.migrate_logical_deletion()?;
+        }
+
         // Create indexes for better performance
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_routine_exercises_routine_id 
@@ -116,6 +121,41 @@ impl SqliteRoutineRepository {
         )?;
         
         println!("group_number column added successfully to routine_exercises table");
+        Ok(())
+    }
+
+    fn check_if_logical_deletion_migration_needed(&self) -> SqliteResult<bool> {
+        if self.is_dummy { return Ok(false); }
+        let conn = self.get_connection()?;
+        
+        let mut stmt = conn.prepare("PRAGMA table_info(routines)")?;
+        let column_info: Result<Vec<String>, _> = stmt.query_map([], |row| {
+            Ok(row.get::<_, String>(1)?) // Column name is at index 1
+        })?.collect();
+        
+        match column_info {
+            Ok(columns) => Ok(!columns.contains(&"deleted_at".to_string())),
+            Err(_) => Ok(false),
+        }
+    }
+
+    fn migrate_logical_deletion(&self) -> SqliteResult<()> {
+        if self.is_dummy { return Ok(()); }
+        let conn = self.get_connection()?;
+        
+        println!("Adding logical deletion columns to routines table...");
+        
+        conn.execute(
+            "ALTER TABLE routines ADD COLUMN deleted_at DATETIME",
+            [],
+        )?;
+        
+        conn.execute(
+            "ALTER TABLE routines ADD COLUMN is_active INTEGER DEFAULT 1",
+            [],
+        )?;
+        
+        println!("Logical deletion columns added successfully to routines table");
         Ok(())
     }
 
@@ -192,9 +232,23 @@ impl RoutineRepository for SqliteRoutineRepository {
         if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
-        conn.execute("DELETE FROM routines WHERE id = ?1", params![id])
-            .map_err(|e| e.to_string())?;
+        // Logical deletion instead of physical deletion
+        conn.execute(
+            "UPDATE routines SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1",
+            params![id]
+        ).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn restore(&self, id: i32) -> Result<(), String> {
+        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
         
+        // Restore logically deleted routine
+        conn.execute(
+            "UPDATE routines SET deleted_at = NULL, is_active = 1 WHERE id = ?1",
+            params![id]
+        ).map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -206,7 +260,9 @@ impl RoutineRepository for SqliteRoutineRepository {
         };
         
         let mut stmt = match conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines ORDER BY name"
+            "SELECT id, name, code, created_at, updated_at FROM routines 
+             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
+             ORDER BY name"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
@@ -238,7 +294,9 @@ impl RoutineRepository for SqliteRoutineRepository {
         let offset = (page - 1) * page_size;
         
         let mut stmt = match conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines ORDER BY name LIMIT ?1 OFFSET ?2"
+            "SELECT id, name, code, created_at, updated_at FROM routines 
+             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
+             ORDER BY name LIMIT ?1 OFFSET ?2"
         ) {
             Ok(stmt) => stmt,
             Err(_) => return Vec::new(),
@@ -271,7 +329,8 @@ impl RoutineRepository for SqliteRoutineRepository {
         
         let mut stmt = match conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines 
-             WHERE name LIKE ?1 OR code LIKE ?1 
+             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
+             AND (name LIKE ?1 OR code LIKE ?1) 
              ORDER BY name"
         ) {
             Ok(stmt) => stmt,
@@ -306,7 +365,8 @@ impl RoutineRepository for SqliteRoutineRepository {
         
         let mut stmt = match conn.prepare(
             "SELECT id, name, code, created_at, updated_at FROM routines 
-             WHERE name LIKE ?1 OR code LIKE ?1 
+             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
+             AND (name LIKE ?1 OR code LIKE ?1) 
              ORDER BY name LIMIT ?2 OFFSET ?3"
         ) {
             Ok(stmt) => stmt,
@@ -523,5 +583,54 @@ impl RoutineRepository for SqliteRoutineRepository {
         
         tx.commit().map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    fn list_deleted(&self) -> Vec<Routine> {
+        if self.is_dummy { return Vec::new(); }
+        let conn = match self.get_connection() {
+            Ok(conn) => conn,
+            Err(_) => return Vec::new(),
+        };
+        
+        let mut stmt = match conn.prepare(
+            "SELECT id, name, code, created_at, updated_at FROM routines 
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             ORDER BY deleted_at DESC"
+        ) {
+            Ok(stmt) => stmt,
+            Err(_) => return Vec::new(),
+        };
+        
+        let routine_iter = match stmt.query_map([], |row| {
+            Ok(Routine {
+                id: Some(row.get(0)?),
+                name: row.get(1)?,
+                code: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        }) {
+            Ok(iter) => iter,
+            Err(_) => return Vec::new(),
+        };
+        
+        routine_iter.filter_map(|routine| routine.ok()).collect()
+    }
+
+    fn count_deleted(&self) -> i32 {
+        if self.is_dummy { return 0; }
+        let conn = match self.get_connection() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+        
+        let count: Result<i32, _> = conn.query_row(
+            "SELECT COUNT(*) FROM routines 
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
+            [],
+            |row| row.get(0),
+        );
+        
+        count.unwrap_or(0)
     }
 } 

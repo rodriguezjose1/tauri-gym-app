@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input, Button, ErrorMessage, Modal } from '../../../shared/components/base';
-import { RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
+import { RoutineForm as RoutineFormType, Routine } from '../../../shared/types/dashboard';
 import { ROUTINE_UI_LABELS, ROUTINE_ERROR_MESSAGES } from '../../../shared/constants';
 import '../../../styles/RoutineForm.css';
 
@@ -14,6 +14,7 @@ const FORM_VALIDATION = {
 interface RoutineFormProps {
   isOpen: boolean;
   loading: boolean;
+  editingRoutine?: Routine | null;
   onSubmit: (form: RoutineFormType) => Promise<boolean>;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ interface RoutineFormProps {
 export const RoutineForm: React.FC<RoutineFormProps> = ({
   isOpen,
   loading,
+  editingRoutine,
   onSubmit,
   onCancel
 }) => {
@@ -35,6 +37,19 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       .trim()
       .replace(/\s+/g, '_'); // Replace spaces with underscores
   };
+
+  // Cargar datos de la rutina cuando se abre el modal de edición
+  useEffect(() => {
+    if (editingRoutine) {
+      setForm({
+        name: editingRoutine.name,
+        code: editingRoutine.code
+      });
+    } else {
+      setForm({ name: '', code: '' });
+    }
+    setErrors({});
+  }, [editingRoutine, isOpen]);
 
   const validateForm = (): boolean => {
     const newErrors: { name?: string; code?: string } = {};
@@ -76,11 +91,17 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
     onCancel();
   };
 
+  const isEditMode = !!editingRoutine;
+  const title = isEditMode ? 'Editar Rutina' : ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE;
+  const submitButtonText = loading 
+    ? (isEditMode ? 'Actualizando...' : ROUTINE_UI_LABELS.CREATING_BUTTON)
+    : (isEditMode ? 'Actualizar Rutina' : ROUTINE_UI_LABELS.CREATE_BUTTON);
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title={ROUTINE_UI_LABELS.NEW_ROUTINE_TITLE}
+      title={title}
       size="md"
     >
       <form onSubmit={handleSubmit} className="routine-form">
@@ -93,8 +114,8 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
               setForm(prev => ({ 
                 ...prev, 
                 name: newName,
-                // Auto-generate code from name
-                code: generateCodeFromName(newName)
+                // Auto-generate code from name only when creating new routine
+                code: isEditMode ? prev.code : generateCodeFromName(newName)
               }));
               if (errors.name) {
                 setErrors(prev => ({ ...prev, name: undefined }));
@@ -123,7 +144,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             fullWidth
             disabled={loading}
             placeholder={ROUTINE_UI_LABELS.CODE_PLACEHOLDER}
-            helperText="Se genera automáticamente desde el nombre"
+            helperText={isEditMode ? "Puedes editar el código manualmente" : "Se genera automáticamente desde el nombre"}
           />
           {errors.code && <ErrorMessage message={errors.code} />}
           <small className="routine-form-help">
@@ -145,7 +166,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             variant="primary"
             disabled={loading || !form.name.trim()}
           >
-            {loading ? ROUTINE_UI_LABELS.CREATING_BUTTON : ROUTINE_UI_LABELS.CREATE_BUTTON}
+            {submitButtonText}
           </Button>
         </div>
       </form>

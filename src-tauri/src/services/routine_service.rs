@@ -50,8 +50,20 @@ impl RoutineService {
         self.repository.delete(id)
     }
 
+    pub fn restore_routine(&self, id: i32) -> Result<(), String> {
+        self.repository.restore(id)
+    }
+
     pub fn list_routines(&self) -> Vec<Routine> {
         self.repository.list_all()
+    }
+
+    pub fn list_deleted_routines(&self) -> Vec<Routine> {
+        self.repository.list_deleted()
+    }
+
+    pub fn count_deleted_routines(&self) -> i32 {
+        self.repository.count_deleted()
     }
 
     pub fn list_routines_paginated(&self, page: i32, page_size: i32) -> Vec<Routine> {

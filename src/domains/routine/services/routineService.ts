@@ -12,7 +12,10 @@ const requestNames = {
   getRoutineWithExercises: "get_routine_with_exercises",
   updateRoutine: "update_routine",
   deleteRoutine: "delete_routine",
+  restoreRoutine: "restore_routine",
   listRoutines: "list_routines",
+  getDeletedRoutines: "get_deleted_routines",
+  countDeletedRoutines: "count_deleted_routines",
   listRoutinesPaginated: "list_routines_paginated",
   searchRoutines: "search_routines",
   searchRoutinesPaginated: "search_routines_paginated",
@@ -83,6 +86,18 @@ export class RoutineService {
     } catch (error) {
       console.error("Error deleting routine:", error);
       throw new Error(`Error al eliminar la rutina: ${error}`);
+    }
+  }
+
+  /**
+   * Restaura una rutina eliminada lógicamente
+   */
+  static async restoreRoutine(id: number): Promise<void> {
+    try {
+      await invoke(requestNames.restoreRoutine, { id });
+    } catch (error) {
+      console.error("Error restoring routine:", error);
+      throw new Error(`Error al restaurar la rutina: ${error}`);
     }
   }
 
@@ -272,6 +287,30 @@ export class RoutineService {
     } catch (error) {
       console.error("Error renumbering routine groups:", error);
       throw new Error(`Error al renumerar grupos de rutina: ${error}`);
+    }
+  }
+
+  /**
+   * Obtiene todas las rutinas eliminadas lógicamente
+   */
+  static async getDeletedRoutines(): Promise<Routine[]> {
+    try {
+      return await invoke(requestNames.getDeletedRoutines) as Routine[];
+    } catch (error) {
+      console.error("Error getting deleted routines:", error);
+      throw new Error(`Error al obtener rutinas eliminadas: ${error}`);
+    }
+  }
+
+  /**
+   * Cuenta el número de rutinas eliminadas lógicamente
+   */
+  static async countDeletedRoutines(): Promise<number> {
+    try {
+      return await invoke(requestNames.countDeletedRoutines) as number;
+    } catch (error) {
+      console.error("Error counting deleted routines:", error);
+      throw new Error(`Error al contar rutinas eliminadas: ${error}`);
     }
   }
 } 

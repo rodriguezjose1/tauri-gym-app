@@ -3,7 +3,7 @@ import { Button, Card, Input, Title } from '../../../shared/components/base';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import ToastContainer from "../../../shared/components/notifications/ToastContainer";
 import { useToast } from '../../../shared/contexts/ToastContext';
-import { Exercise, RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
+import { Exercise, RoutineExerciseWithDetails, Routine, RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
 import '../../../styles/RoutineManager.css';
 import { useRoutineData } from '../hooks/useRoutineData';
 import { useRoutineExercises } from '../hooks/useRoutineExercises';
@@ -12,6 +12,7 @@ import { ExerciseSearch } from './ExerciseSearch';
 import { RoutineExercise } from './RoutineExercise';
 import { RoutineForm } from './RoutineForm';
 import { RoutineList } from './RoutineList';
+import { RoutineService } from '../services/routineService';
 
 // Simple Group Component for Routine Exercises
 const RoutineGroup: React.FC<{
@@ -38,11 +39,24 @@ const RoutineGroup: React.FC<{
 export const RoutineManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [emptyGroups, setEmptyGroups] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
+  const [deletedRoutines, setDeletedRoutines] = useState<Routine[]>([]);
+  const [deletedRoutinesCount, setDeletedRoutinesCount] = useState(0);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState<{
+    isOpen: boolean;
+    routineId: number | null;
+    routineName: string;
+  }>({
+    isOpen: false,
+    routineId: null,
+    routineName: ''
+  });
   
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { addNotification, notifications, removeNotification } = useToast();
+  const { addNotification, notifications, removeNotification, clearAllNotifications } = useToast();
   
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -54,8 +68,14 @@ export const RoutineManager: React.FC = () => {
     routineName: ''
   });
 
+  // Clear any stale notifications when component mounts
+  useEffect(() => {
+    clearAllNotifications();
+  }, [clearAllNotifications]);
+
   useEffect(() => {
     routineData.loadRoutines();
+    loadDeletedRoutinesCount();
   }, []);
 
   useEffect(() => {
@@ -63,6 +83,79 @@ export const RoutineManager: React.FC = () => {
       routineExercises.loadExercises();
     }
   }, [routineData.selectedRoutineId, routineExercises.loadExercises]);
+
+  const loadDeletedRoutinesCount = async () => {
+    try {
+      const count = await RoutineService.countDeletedRoutines();
+      setDeletedRoutinesCount(count);
+    } catch (error) {
+      console.error("Error loading deleted routines count:", error);
+      setDeletedRoutinesCount(0);
+    }
+  };
+
+  const loadDeletedRoutines = async () => {
+    try {
+      const routines = await RoutineService.getDeletedRoutines();
+      setDeletedRoutines(routines);
+      setDeletedRoutinesCount(routines.length);
+    } catch (error) {
+      console.error("Error loading deleted routines:", error);
+      setDeletedRoutines([]);
+      setDeletedRoutinesCount(0);
+    }
+  };
+
+  const handleTabChange = (tab: 'active' | 'deleted') => {
+    setActiveTab(tab);
+    setSearchTerm('');
+    if (tab === 'deleted') {
+      loadDeletedRoutines();
+    } else {
+      routineData.loadRoutines();
+    }
+  };
+
+  const handleRestoreClick = (routineId: number, routineName: string) => {
+    setRestoreConfirm({
+      isOpen: true,
+      routineId,
+      routineName
+    });
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (restoreConfirm.routineId) {
+      try {
+        await RoutineService.restoreRoutine(restoreConfirm.routineId);
+        setDeletedRoutines(prev => prev.filter(r => r.id !== restoreConfirm.routineId));
+        setDeletedRoutinesCount(prev => prev - 1);
+        addNotification(
+          `Rutina "${restoreConfirm.routineName}" restaurada correctamente`,
+          'success'
+        );
+      } catch (error) {
+        console.error("Error restoring routine:", error);
+        addNotification(
+          'Error al restaurar la rutina',
+          'error'
+        );
+      }
+    }
+    setRestoreConfirm({
+      isOpen: false,
+      routineId: null,
+      routineName: ''
+    });
+  };
+
+  const handleRestoreCancel = () => {
+    setRestoreConfirm({
+      isOpen: false,
+      routineId: null,
+      routineName: ''
+    });
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +191,7 @@ export const RoutineManager: React.FC = () => {
           `Rutina "${deleteConfirmation.routineName}" eliminada correctamente`,
           'success'
         );
+        setDeletedRoutinesCount(prev => prev + 1);
       } else {
         addNotification(
           'Error al eliminar la rutina',
@@ -118,6 +212,24 @@ export const RoutineManager: React.FC = () => {
       routineId: null,
       routineName: ''
     });
+  };
+
+  const handleEditRoutine = (routine: Routine) => {
+    setEditingRoutine(routine);
+  };
+
+  const handleEditSubmit = async (form: RoutineFormType) => {
+    if (!editingRoutine) return false;
+    
+    const success = await routineData.updateRoutine(editingRoutine.id!, form);
+    if (success) {
+      setEditingRoutine(null);
+    }
+    return success;
+  };
+
+  const handleEditCancel = () => {
+    setEditingRoutine(null);
   };
 
   const groupExercisesByGroup = (exercises: RoutineExerciseWithDetails[], emptyGroups: number[] = []) => {
@@ -151,6 +263,34 @@ export const RoutineManager: React.FC = () => {
 
   const isButtonDisabled = routineData.loading || routineExercises.loading;
 
+  const handleExerciseUpdate = async (exerciseId: number, updates: Partial<RoutineExerciseWithDetails>) => {
+    // Encontrar el ejercicio actual para obtener los valores por defecto
+    const currentExercise = routineExercises.exercises.find(ex => ex.id === exerciseId);
+    if (!currentExercise) {
+      console.error('Exercise not found for update:', exerciseId);
+      return;
+    }
+
+    // Extraer los valores actualizados o usar los valores actuales como fallback
+    const orderIndex = currentExercise.order_index;
+    const sets = updates.sets ?? currentExercise.sets;
+    const reps = updates.reps ?? currentExercise.reps;
+    const weight = updates.weight ?? currentExercise.weight;
+    const notes = updates.notes ?? currentExercise.notes;
+    const groupNumber = updates.group_number ?? currentExercise.group_number;
+
+    // Llamar al método updateExercise con parámetros individuales
+    await routineExercises.updateExercise(
+      exerciseId,
+      orderIndex,
+      sets,
+      reps,
+      weight,
+      notes,
+      groupNumber
+    );
+  };
+
   return (
     <div className="routine-manager-container">
       <div className="routine-manager-wrapper">
@@ -168,6 +308,23 @@ export const RoutineManager: React.FC = () => {
                     Administra las rutinas de entrenamiento y sus ejercicios
                   </p>
                 </div>
+                
+                {/* Tab System */}
+                <div className="routine-manager-tabs">
+                  <button
+                    className={`routine-manager-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('active')}
+                  >
+                    Rutinas Activas ({routineData.routines.length})
+                  </button>
+                  <button
+                    className={`routine-manager-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('deleted')}
+                  >
+                    Rutinas Eliminadas ({deletedRoutinesCount})
+                  </button>
+                </div>
+                
                 <div className="routine-manager-actions">
                   <form onSubmit={handleSearch} className="routine-manager-search-form">
                     <Input
@@ -213,31 +370,72 @@ export const RoutineManager: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="routine-manager-stats">
-                <span className="routine-manager-count">
-                  {routineData.routines.length} {routineData.routines.length === 1 ? 'rutina' : 'rutinas'}
-                </span>
-              </div>
-
               {/* Content Layout */}
               <div className="routine-manager-content">
                 {/* Left Panel - Routines List */}
                 <div className="routine-manager-left-panel">
-                  <RoutineList
-                    routines={routineData.routines}
-                    selectedRoutineId={routineData.selectedRoutineId}
-                    loading={routineData.loading}
-                    onSelectRoutine={handleSelectRoutine}
-                    onDeleteRoutine={handleDeleteClick}
-                    onCreateNew={routineUI.openCreateForm}
-                    hideCreateButton={true}
-                  />
+                  {activeTab === 'active' ? (
+                    <RoutineList
+                      routines={routineData.routines}
+                      selectedRoutineId={routineData.selectedRoutineId}
+                      loading={routineData.loading}
+                      onSelectRoutine={handleSelectRoutine}
+                      onDeleteRoutine={handleDeleteClick}
+                      onCreateNew={routineUI.openCreateForm}
+                      hideCreateButton={true}
+                    />
+                  ) : (
+                    <div className="routine-manager-deleted-routines">
+                      {deletedRoutines.length === 0 ? (
+                        <div className="routine-manager-empty-state">
+                          <div className="routine-manager-empty-icon">🗑️</div>
+                          <Title level={4} variant="secondary" align="center">
+                            No hay rutinas eliminadas
+                          </Title>
+                          <p className="routine-manager-empty-description">
+                            Las rutinas eliminadas aparecerán aquí
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="routine-manager-routines-list">
+                          {deletedRoutines.map((routine) => (
+                            <div
+                              key={routine.id}
+                              className="routine-manager-routine-item deleted"
+                            >
+                              <div className="routine-manager-routine-info">
+                                <div className="routine-manager-routine-name">
+                                  {routine.name}
+                                </div>
+                                {routine.code && (
+                                  <div className="routine-manager-routine-code">
+                                    Código: {routine.code}
+                                  </div>
+                                )}
+                                <div className="routine-manager-routine-deleted-status">
+                                  🗑️ Eliminada
+                                </div>
+                              </div>
+                              <button
+                                className="routine-manager-routine-restore"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRestoreClick(routine.id!, routine.name);
+                                }}
+                              >
+                                🔄 Restaurar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Panel - Routine Details */}
                 <div className="routine-manager-right-panel">
-                  {routineData.selectedRoutine ? (
+                  {activeTab === 'active' && routineData.selectedRoutine ? (
                     <div className="routine-manager-routine-details">
                       <div className="routine-manager-routine-header">
                         <div className="routine-manager-routine-info">
@@ -251,14 +449,24 @@ export const RoutineManager: React.FC = () => {
                           )}
                         </div>
                         
-                        <Button
-                          onClick={routineUI.openExerciseSearch}
-                          variant="primary"
-                          disabled={isButtonDisabled}
-                          className="routine-manager-add-exercise-button"
-                        >
-                          Agregar Ejercicio
-                        </Button>
+                        <div className="routine-manager-routine-actions">
+                          <Button
+                            onClick={() => handleEditRoutine(routineData.selectedRoutine!)}
+                            variant="secondary"
+                            disabled={isButtonDisabled}
+                            className="routine-manager-edit-routine-button"
+                          >
+                            ✏️ Editar
+                          </Button>
+                          <Button
+                            onClick={routineUI.openExerciseSearch}
+                            variant="primary"
+                            disabled={isButtonDisabled}
+                            className="routine-manager-add-exercise-button"
+                          >
+                            Agregar Ejercicio
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="routine-manager-exercises-container">
@@ -286,7 +494,7 @@ export const RoutineManager: React.FC = () => {
                                     <RoutineExercise
                                       key={exercise.id || exerciseIndex}
                                       exercise={exercise}
-                                      onUpdate={routineExercises.updateExercise}
+                                      onUpdate={handleExerciseUpdate}
                                       onDelete={routineExercises.removeExercise}
                                     />
                                   ))}
@@ -296,6 +504,16 @@ export const RoutineManager: React.FC = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+                  ) : activeTab === 'deleted' ? (
+                    <div className="routine-manager-no-routine">
+                      <div className="routine-manager-no-routine-icon">🗑️</div>
+                      <Title level={4} variant="secondary" align="center">
+                        Gestión de Rutinas Eliminadas
+                      </Title>
+                      <p className="routine-manager-no-routine-description">
+                        Selecciona una rutina eliminada de la lista para restaurarla
+                      </p>
                     </div>
                   ) : (
                     <div className="routine-manager-no-routine">
@@ -310,18 +528,6 @@ export const RoutineManager: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
-
-            {/* Sticky Pagination/Navigation - Always visible at bottom */}
-            <div className="routine-manager-pagination">
-              <span className="routine-manager-pagination-info">
-                {routineData.routines.length} {routineData.routines.length === 1 ? 'rutina' : 'rutinas'} total
-              </span>
-              {routineData.selectedRoutine && (
-                <span className="routine-manager-selected-info">
-                  Editando: {routineData.selectedRoutine.name}
-                </span>
-              )}
             </div>
           </div>
         </Card>
@@ -339,6 +545,15 @@ export const RoutineManager: React.FC = () => {
           return success;
         }}
         onCancel={routineUI.closeCreateForm}
+      />
+
+      {/* Edit Routine Modal */}
+      <RoutineForm
+        isOpen={!!editingRoutine}
+        loading={routineData.loading}
+        editingRoutine={editingRoutine}
+        onSubmit={handleEditSubmit}
+        onCancel={handleEditCancel}
       />
 
       <ExerciseSearch
@@ -365,6 +580,17 @@ export const RoutineManager: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
         isDeleting={routineData.loading}
+      />
+
+      {/* Restore Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={restoreConfirm.isOpen}
+        title="Restaurar Rutina"
+        message={`¿Estás seguro de que deseas restaurar la rutina "${restoreConfirm.routineName}"? La rutina volverá a estar disponible para su uso.`}
+        confirmText="Restaurar"
+        onConfirm={handleRestoreConfirm}
+        onCancel={handleRestoreCancel}
+        isDeleting={false}
       />
 
       <ToastContainer 
