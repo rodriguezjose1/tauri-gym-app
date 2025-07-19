@@ -13,6 +13,7 @@ export const ROUTINE_ERROR_MESSAGES = {
   UPDATE_EXERCISE_FAILED: (error: string) => `Error al actualizar ejercicio: ${error}`,
   REMOVE_EXERCISE_FAILED: (error: string) => `Error al eliminar ejercicio: ${error}`,
   ADD_EXERCISE_FAILED: (error: string) => `Error al agregar ejercicio: ${error}`,
+  EXERCISE_ALREADY_IN_ROUTINE: "Este ejercicio ya está en la rutina",
   
   // Data loading errors
   LOAD_ROUTINES_FAILED: "Error al cargar las rutinas",

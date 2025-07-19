@@ -62,7 +62,14 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
       addNotification(ROUTINE_UI_LABELS.EXERCISE_ADDED_SUCCESS, 'success');
     } catch (error) {
       console.error('Error adding exercise to routine:', error);
-      addNotification(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(String(error)), 'error');
+      
+      // Check for specific duplicate exercise error
+      const errorMessage = String(error);
+      if (errorMessage.includes('Este ejercicio ya está en la rutina')) {
+        addNotification(ROUTINE_ERROR_MESSAGES.EXERCISE_ALREADY_IN_ROUTINE, 'warning');
+      } else {
+        addNotification(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage), 'error');
+      }
     } finally {
       setLoading(false);
     }

@@ -393,6 +393,20 @@ impl RoutineRepository for SqliteRoutineRepository {
         if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         
+        // First, check if the exercise already exists in this routine
+        let mut stmt = conn.prepare(
+            "SELECT COUNT(*) FROM routine_exercises WHERE routine_id = ?1 AND exercise_id = ?2"
+        ).map_err(|e| e.to_string())?;
+        
+        let count: i32 = stmt.query_row(
+            params![routine_exercise.routine_id, routine_exercise.exercise_id], 
+            |row| row.get(0)
+        ).map_err(|e| e.to_string())?;
+        
+        if count > 0 {
+            return Err("Este ejercicio ya está en la rutina".to_string());
+        }
+        
         conn.execute(
             "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
