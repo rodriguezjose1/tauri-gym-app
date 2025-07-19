@@ -11,6 +11,9 @@ const requestNames = {
   searchPersons: "search_persons",
   updatePerson: "update_person",
   deletePerson: "delete_person",
+  restorePerson: "restore_person",
+  getDeletedPeople: "get_deleted_people",
+  countDeletedPeople: "count_deleted_people"
 };
 
 export class PersonService {
@@ -119,6 +122,42 @@ export class PersonService {
     } catch (error) {
       console.error("Error deleting person:", error);
       throw new Error(`Error al eliminar la persona: ${error}`);
+    }
+  }
+
+  /**
+   * Restaura una persona eliminada lógicamente
+   */
+  static async restorePerson(id: number): Promise<void> {
+    try {
+      await invoke(requestNames.restorePerson, { id });
+    } catch (error) {
+      console.error("Error restoring person:", error);
+      throw new Error(`Error al restaurar la persona: ${error}`);
+    }
+  }
+
+  /**
+   * Obtiene todas las personas eliminadas lógicamente
+   */
+  static async getDeletedPeople(): Promise<Person[]> {
+    try {
+      return await invoke(requestNames.getDeletedPeople);
+    } catch (error) {
+      console.error("Error getting deleted people:", error);
+      throw new Error(`Error al obtener personas eliminadas: ${error}`);
+    }
+  }
+
+  /**
+   * Cuenta el número de personas eliminadas lógicamente
+   */
+  static async countDeletedPeople(): Promise<number> {
+    try {
+      return await invoke(requestNames.countDeletedPeople);
+    } catch (error) {
+      console.error("Error counting deleted people:", error);
+      throw new Error(`Error al contar personas eliminadas: ${error}`);
     }
   }
 } 

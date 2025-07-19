@@ -7,6 +7,8 @@ const ITEMS_PER_PAGE = 10;
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
+  const [deletedPersons, setDeletedPersons] = useState<Person[]>([]);
+  const [deletedPersonsCount, setDeletedPersonsCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
@@ -16,7 +18,13 @@ export default function PersonCrud() {
   const [totalPersons, setTotalPersons] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
+    show: false,
+    personId: null as number | null,
+    personName: ""
+  });
+  const [restoreConfirm, setRestoreConfirm] = useState({
     show: false,
     personId: null as number | null,
     personName: ""
@@ -27,9 +35,50 @@ export default function PersonCrud() {
   useEffect(() => {
     if (!isInitialized) {
       loadPersons();
+      loadDeletedPersonsCount();
       setIsInitialized(true);
     }
   }, [isInitialized]);
+
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'active') {
+      loadPersons();
+    } else {
+      loadDeletedPersons();
+    }
+  }, [activeTab]);
+
+  const loadDeletedPersonsCount = async () => {
+    try {
+      const count = await PersonService.countDeletedPeople();
+      setDeletedPersonsCount(count);
+    } catch (error) {
+      console.error("Error loading deleted persons count:", error);
+      setDeletedPersonsCount(0);
+    }
+  };
+
+  const handleTabChange = (tab: 'active' | 'deleted') => {
+    setActiveTab(tab);
+    setSearchTerm("");
+    setIsSearchActive(false);
+  };
+
+  const loadDeletedPersons = async () => {
+    setLoading(true);
+    try {
+      const result = await PersonService.getDeletedPeople();
+      setDeletedPersons(result);
+      setDeletedPersonsCount(result.length);
+    } catch (error) {
+      console.error("Error loading deleted persons:", error);
+      setDeletedPersons([]);
+      setDeletedPersonsCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Remove the debounced search effect - search will only work manually
 
@@ -210,9 +259,36 @@ export default function PersonCrud() {
       setLoading(true);
       await PersonService.deletePerson(deleteConfirm.personId);
       setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
+      setTotalPersons(prev => prev - 1);
+      setDeletedPersonsCount(prev => prev + 1);
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = (person: Person) => {
+    setRestoreConfirm({
+      show: true,
+      personId: person.id || null,
+      personName: `${person.name} ${person.last_name}`
+    });
+  };
+
+  const confirmRestore = async () => {
+    if (!restoreConfirm.personId) return;
+
+    try {
+      setLoading(true);
+      await PersonService.restorePerson(restoreConfirm.personId);
+      setDeletedPersons(prev => prev.filter(p => p.id !== restoreConfirm.personId));
+      setDeletedPersonsCount(prev => prev - 1);
+      setTotalPersons(prev => prev + 1);
+      setRestoreConfirm({ show: false, personId: null, personName: "" });
+    } catch (error) {
+      console.error("Error restoring person:", error);
     } finally {
       setLoading(false);
     }
@@ -257,6 +333,23 @@ export default function PersonCrud() {
                     Administra las personas que participan en los entrenamientos de Quality GYM
                   </p>
                 </div>
+                
+                {/* Tab System */}
+                <div className="person-tabs">
+                  <button
+                    className={`person-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('active')}
+                  >
+                    Personas Activas ({totalPersons})
+                  </button>
+                  <button
+                    className={`person-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('deleted')}
+                  >
+                    Personas Eliminadas ({deletedPersonsCount})
+                  </button>
+                </div>
+                
                 <div className="person-list-actions">
                   <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="person-search-form">
                     <Input
@@ -301,9 +394,16 @@ export default function PersonCrud() {
 
               <div className="person-list-stats">
                 <span className="person-count">
-                  {isSearchActive ? displayedPersons.length : totalPersons} {(isSearchActive ? displayedPersons.length : totalPersons) === 1 ? 'persona' : 'personas'} {isSearchActive ? 'encontradas' : 'total'}
+                  {activeTab === 'active' 
+                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
+                    : deletedPersonsCount
+                  } {(activeTab === 'active' 
+                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
+                    : deletedPersonsCount) === 1 ? 'persona' : 'personas'} {activeTab === 'active' 
+                    ? (isSearchActive ? 'encontradas' : 'total') 
+                    : 'eliminadas'}
                 </span>
-                {!isSearchActive && (
+                {activeTab === 'active' && !isSearchActive && (
                   <span className="person-page-info">
                     Página {currentPage}
                   </span>
@@ -313,111 +413,168 @@ export default function PersonCrud() {
               {loading ? (
                 <div className="person-loading-state">
                   <div className="person-loading-icon">⏳</div>
-                  <p className="person-loading-text">Cargando personas...</p>
-                </div>
-              ) : (isSearchActive ? displayedPersons.length === 0 : persons.length === 0) ? (
-                <div className="person-empty-state">
-                  <div className="person-empty-icon">
-                    {isSearchActive ? '🔍' : '👥'}
-                  </div>
-                  <Title level={3} variant="secondary" align="center">
-                    {isSearchActive ? 'No se encontraron personas' : 'No hay personas registradas'}
-                  </Title>
-                  <p className="person-empty-description">
-                    {isSearchActive 
-                      ? `No hay personas que coincidan con "${searchTerm}"`
-                      : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
-                    }
+                  <p className="person-loading-text">
+                    {activeTab === 'active' ? 'Cargando personas...' : 'Cargando personas eliminadas...'}
                   </p>
-                  {!isSearchActive && (
-                    <Button
-                      onClick={handleOpenCreateModal}
-                      variant="primary"
-                      size="md"
-                    >
-                      ➕ Crear Primera Persona
-                    </Button>
-                  )}
                 </div>
+              ) : activeTab === 'active' ? (
+                // Active people content
+                (isSearchActive ? displayedPersons.length === 0 : persons.length === 0) ? (
+                  <div className="person-empty-state">
+                    <div className="person-empty-icon">
+                      {isSearchActive ? '🔍' : '👥'}
+                    </div>
+                    <Title level={3} variant="secondary" align="center">
+                      {isSearchActive ? 'No se encontraron personas' : 'No hay personas registradas'}
+                    </Title>
+                    <p className="person-empty-description">
+                      {isSearchActive 
+                        ? `No hay personas que coincidan con "${searchTerm}"`
+                        : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
+                      }
+                    </p>
+                    {!isSearchActive && (
+                      <Button
+                        onClick={handleOpenCreateModal}
+                        variant="primary"
+                        size="md"
+                      >
+                        ➕ Crear Primera Persona
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="person-list-grid">
+                    {displayedPersons.map((person) => (
+                      <Card
+                        key={person.id}
+                        variant="default"
+                        padding="md"
+                        className="person-card"
+                      >
+                        <div className="person-avatar">
+                          {person.name.charAt(0).toUpperCase()}
+                        </div>
+                        
+                        <div className="person-info">
+                          <Title level={4} variant="default" className="person-name">
+                            {person.name} {person.last_name}
+                          </Title>
+                          {person.phone && person.phone !== "0" && (
+                            <p className="person-phone">Tel: {person.phone}</p>
+                          )}
+                        </div>
+                        
+                        <div className="person-actions">
+                          <Button
+                            onClick={() => handleEdit(person)}
+                            variant="secondary"
+                            size="sm"
+                          >
+                            ✏️ Editar
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(person)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            🗑️ Eliminar
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="person-list-grid">
-                  {displayedPersons.map((person) => (
-                    <Card
-                      key={person.id}
-                      variant="default"
-                      padding="md"
-                      className="person-card"
-                    >
-                      <div className="person-avatar">
-                        {person.name.charAt(0).toUpperCase()}
-                      </div>
-                      
-                      <div className="person-info">
-                        <Title level={4} variant="default" className="person-name">
-                          {person.name} {person.last_name}
-                        </Title>
-                        {person.phone && person.phone !== "0" && (
-                          <p className="person-phone">Tel: {person.phone}</p>
-                        )}
-                      </div>
-                      
-                      <div className="person-actions">
-                        <Button
-                          onClick={() => handleEdit(person)}
-                          variant="secondary"
-                          size="sm"
-                        >
-                          ✏️ Editar
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(person)}
-                          variant="danger"
-                          size="sm"
-                        >
-                          🗑️ Eliminar
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                // Deleted people content
+                deletedPersons.length === 0 ? (
+                  <div className="person-empty-state">
+                    <div className="person-empty-icon">🗑️</div>
+                    <Title level={3} variant="secondary" align="center">
+                      No hay personas eliminadas
+                    </Title>
+                    <p className="person-empty-description">
+                      Las personas eliminadas aparecerán aquí
+                    </p>
+                  </div>
+                ) : (
+                  <div className="person-list-grid">
+                    {deletedPersons.map((person) => (
+                      <Card
+                        key={person.id}
+                        variant="default"
+                        padding="md"
+                        className="person-card deleted"
+                      >
+                        <div className="person-avatar deleted">
+                          {person.name.charAt(0).toUpperCase()}
+                        </div>
+                        
+                        <div className="person-info">
+                          <Title level={4} variant="default" className="person-name">
+                            {person.name} {person.last_name}
+                          </Title>
+                          {person.phone && person.phone !== "0" && (
+                            <p className="person-phone">Tel: {person.phone}</p>
+                          )}
+                          <p className="person-deleted-status">
+                            🗑️ Eliminada
+                          </p>
+                        </div>
+                        
+                        <div className="person-actions">
+                          <Button
+                            onClick={() => handleRestore(person)}
+                            variant="success"
+                            size="sm"
+                          >
+                            🔄 Restaurar
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )
               )}
             </div>
 
             {/* Pagination Controls - Always visible at bottom */}
-            <div className="person-pagination">
-              <Button
-                onClick={() => goToPage(currentPage - 1)}
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === 1 || loading}
-              >
-                ← Anterior
-              </Button>
-              
-              <span className="person-page-indicator">
-                Página {currentPage} {totalPersons > 0 && `de ${Math.ceil(totalPersons / ITEMS_PER_PAGE)}`}
-              </span>
-              
-              <Button
-                onClick={() => goToPage(currentPage + 1)}
-                variant="secondary"
-                size="sm"
-                disabled={!hasMore || loading}
-              >
-                Siguiente →
-              </Button>
-              
-              {hasMore && (
+            {activeTab === 'active' && (
+              <div className="person-pagination">
                 <Button
-                  onClick={loadMorePersons}
-                  variant="primary"
+                  onClick={() => goToPage(currentPage - 1)}
+                  variant="secondary"
                   size="sm"
-                  disabled={loading}
+                  disabled={currentPage === 1 || loading}
                 >
-                  {loading ? "Cargando..." : "Cargar más"}
+                  ← Anterior
                 </Button>
-              )}
-            </div>
+                
+                <span className="person-page-indicator">
+                  Página {currentPage} {totalPersons > 0 && `de ${Math.ceil(totalPersons / ITEMS_PER_PAGE)}`}
+                </span>
+                
+                <Button
+                  onClick={() => goToPage(currentPage + 1)}
+                  variant="secondary"
+                  size="sm"
+                  disabled={!hasMore || loading}
+                >
+                  Siguiente →
+                </Button>
+                
+                {hasMore && (
+                  <Button
+                    onClick={loadMorePersons}
+                    variant="primary"
+                    size="sm"
+                    disabled={loading}
+                  >
+                    {loading ? "Cargando..." : "Cargar más"}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -514,6 +671,37 @@ export default function PersonCrud() {
               variant="danger"
             >
               Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        isOpen={restoreConfirm.show}
+        onClose={() => setRestoreConfirm({ show: false, personId: null, personName: "" })}
+        title="Confirmar Restauración"
+        size="sm"
+      >
+        <div className="delete-confirmation-content">
+          <div className="delete-confirmation-icon">🔄</div>
+          <p className="delete-confirmation-text">
+            ¿Estás seguro de que quieres restaurar a <strong>{restoreConfirm.personName}</strong>?
+            <br />
+            La persona volverá a estar disponible para su uso.
+          </p>
+          <div className="delete-confirmation-actions">
+            <Button
+              onClick={() => setRestoreConfirm({ show: false, personId: null, personName: "" })}
+              variant="secondary"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmRestore}
+              variant="success"
+            >
+              Restaurar
             </Button>
           </div>
         </div>

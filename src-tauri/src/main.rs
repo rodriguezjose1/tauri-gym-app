@@ -61,6 +61,21 @@ fn delete_person(service: State<'_, PersonService>, id: i32) -> Result<(), Strin
 }
 
 #[tauri::command]
+fn restore_person(service: State<'_, PersonService>, id: i32) -> Result<(), String> {
+    service.restore_person(id)
+}
+
+#[tauri::command]
+fn get_deleted_people(service: State<'_, PersonService>) -> Vec<Person> {
+    service.list_deleted_people()
+}
+
+#[tauri::command]
+fn count_deleted_people(service: State<'_, PersonService>) -> i32 {
+    service.count_deleted_people()
+}
+
+#[tauri::command]
 fn update_person(service: State<'_, PersonService>, person: Person) -> Result<(), String> {
     service.update_person(person)
 }
@@ -340,6 +355,9 @@ fn main() {
             search_persons_paginated,
             search_persons_paginated_response,
             delete_person, 
+            restore_person,
+            get_deleted_people,
+            count_deleted_people,
             update_person,
             // Exercise commands
             create_exercise,

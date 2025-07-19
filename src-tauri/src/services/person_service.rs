@@ -93,4 +93,16 @@ impl PersonService {
     pub fn delete_person(&self, id: i32) -> Result<(), String> {
         self.repository.delete(id)
     }
+
+    pub fn restore_person(&self, id: i32) -> Result<(), String> {
+        self.repository.restore(id)
+    }
+
+    pub fn list_deleted_people(&self) -> Vec<Person> {
+        self.repository.list_deleted()
+    }
+
+    pub fn count_deleted_people(&self) -> i32 {
+        self.repository.count_deleted()
+    }
 }
