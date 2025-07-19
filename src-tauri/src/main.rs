@@ -87,6 +87,21 @@ fn delete_exercise(service: State<'_, ExerciseService>, id: i32) -> Result<(), S
 }
 
 #[tauri::command]
+fn restore_exercise(service: State<'_, ExerciseService>, id: i32) -> Result<(), String> {
+    service.restore_exercise(id)
+}
+
+#[tauri::command]
+fn get_deleted_exercises(service: State<'_, ExerciseService>) -> Vec<Exercise> {
+    service.list_deleted_exercises()
+}
+
+#[tauri::command]
+fn count_deleted_exercises(service: State<'_, ExerciseService>) -> i32 {
+    service.count_deleted_exercises()
+}
+
+#[tauri::command]
 fn update_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> Result<(), String> {
     service.update_exercise(exercise)
 }
@@ -331,6 +346,9 @@ fn main() {
             get_exercises,
             get_exercises_paginated,
             delete_exercise,
+            restore_exercise,
+            get_deleted_exercises,
+            count_deleted_exercises,
             update_exercise,
             search_exercises_paginated,
             // Workout entry commands

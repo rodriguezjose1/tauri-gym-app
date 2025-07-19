@@ -37,8 +37,20 @@ impl ExerciseService {
         self.repository.delete(id)
     }
 
+    pub fn restore_exercise(&self, id: i32) -> Result<(), String> {
+        self.repository.restore(id)
+    }
+
     pub fn update_exercise(&self, exercise: Exercise) -> Result<(), String> {
         self.repository.update(exercise)
+    }
+
+    pub fn list_deleted_exercises(&self) -> Vec<Exercise> {
+        self.repository.list_deleted()
+    }
+
+    pub fn count_deleted_exercises(&self) -> i32 {
+        self.repository.count_deleted()
     }
 
     pub fn search_exercises_paginated(&self, query: &str, page: i32, page_size: i32) -> PaginatedExerciseResponse {

@@ -7,7 +7,10 @@ const requestNames = {
   getExercisesPaginated: "get_exercises_paginated",
   searchExercisesPaginated: "search_exercises_paginated",
   updateExercise: "update_exercise",
-  deleteExercise: "delete_exercise"
+  deleteExercise: "delete_exercise",
+  restoreExercise: "restore_exercise",
+  getDeletedExercises: "get_deleted_exercises",
+  countDeletedExercises: "count_deleted_exercises"
 };
 
 export class ExerciseService {
@@ -80,6 +83,42 @@ export class ExerciseService {
     } catch (error) {
       console.error("Error deleting exercise:", error);
       throw new Error(`Error al eliminar el ejercicio: ${error}`);
+    }
+  }
+
+  /**
+   * Restaura un ejercicio eliminado lógicamente
+   */
+  static async restoreExercise(id: number): Promise<void> {
+    try {
+      await invoke(requestNames.restoreExercise, { id });
+    } catch (error) {
+      console.error("Error restoring exercise:", error);
+      throw new Error(`Error al restaurar el ejercicio: ${error}`);
+    }
+  }
+
+  /**
+   * Obtiene todos los ejercicios eliminados lógicamente
+   */
+  static async getDeletedExercises(): Promise<Exercise[]> {
+    try {
+      return await invoke(requestNames.getDeletedExercises);
+    } catch (error) {
+      console.error("Error getting deleted exercises:", error);
+      throw new Error(`Error al obtener ejercicios eliminados: ${error}`);
+    }
+  }
+
+  /**
+   * Cuenta el número de ejercicios eliminados lógicamente
+   */
+  static async countDeletedExercises(): Promise<number> {
+    try {
+      return await invoke(requestNames.countDeletedExercises);
+    } catch (error) {
+      console.error("Error counting deleted exercises:", error);
+      throw new Error(`Error al contar ejercicios eliminados: ${error}`);
     }
   }
 } 

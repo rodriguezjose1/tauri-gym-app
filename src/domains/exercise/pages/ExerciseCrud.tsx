@@ -7,6 +7,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [deletedExercises, setDeletedExercises] = useState<Exercise[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", code: "" });
@@ -16,7 +17,13 @@ export default function ExerciseCrud() {
   const [totalExercises, setTotalExercises] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
+    show: false,
+    exerciseId: null as number | null,
+    exerciseName: ""
+  });
+  const [restoreConfirm, setRestoreConfirm] = useState({
     show: false,
     exerciseId: null as number | null,
     exerciseName: ""
@@ -40,30 +47,44 @@ export default function ExerciseCrud() {
     }
   }, [isInitialized]);
 
-  // Remove the debounced search effect - search will only work manually
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'active') {
+      loadExercises();
+    } else {
+      loadDeletedExercises();
+    }
+  }, [activeTab]);
 
-  const loadExercises = async (page = 1, append = false) => {
+  const handleTabChange = (tab: 'active' | 'deleted') => {
+    setActiveTab(tab);
+    setSearchTerm("");
+    setIsSearchActive(false);
+  };
+
+  const loadExercises = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
-      
-      if (response.exercises.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setExercises(prev => [...prev, ...response.exercises]);
-      } else {
-        setExercises(response.exercises);
-      }
-      
-      setCurrentPage(page);
-      setTotalExercises(response.total);
-      setHasMore(page < response.total_pages);
+      const result = await ExerciseService.getExercisesPaginated(currentPage, ITEMS_PER_PAGE);
+      setExercises(result.exercises);
+      setTotalExercises(result.total);
+      setHasMore(result.page < result.total_pages);
     } catch (error) {
       console.error("Error loading exercises:", error);
+      setExercises([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDeletedExercises = async () => {
+    setLoading(true);
+    try {
+      const result = await ExerciseService.getDeletedExercises();
+      setDeletedExercises(result);
+    } catch (error) {
+      console.error("Error loading deleted exercises:", error);
+      setDeletedExercises([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +96,7 @@ export default function ExerciseCrud() {
       
       if (query.trim() === "") {
         // Si no hay query, cargar ejercicios normales
-        await loadExercises(page, append);
+        await loadExercises();
         return;
       }
 
@@ -108,7 +129,7 @@ export default function ExerciseCrud() {
       if (isSearchActive) {
         searchExercises(searchTerm, currentPage + 1, true);
       } else {
-        loadExercises(currentPage + 1, true);
+        loadExercises();
       }
     }
   };
@@ -118,7 +139,7 @@ export default function ExerciseCrud() {
       if (isSearchActive) {
         searchExercises(searchTerm, page, false);
       } else {
-        loadExercises(page, false);
+        loadExercises();
       }
     }
   };
@@ -224,6 +245,29 @@ export default function ExerciseCrud() {
     }
   };
 
+  const handleRestore = (exercise: Exercise) => {
+    setRestoreConfirm({
+      show: true,
+      exerciseId: exercise.id || null,
+      exerciseName: exercise.name
+    });
+  };
+
+  const confirmRestore = async () => {
+    if (!restoreConfirm.exerciseId) return;
+
+    try {
+      setLoading(true);
+      await ExerciseService.restoreExercise(restoreConfirm.exerciseId);
+      setDeletedExercises(prev => prev.filter(e => e.id !== restoreConfirm.exerciseId));
+      setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" });
+    } catch (error) {
+      console.error("Error restoring exercise:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -263,6 +307,23 @@ export default function ExerciseCrud() {
                     Administra los ejercicios disponibles para tus rutinas y entrenamientos en Quality GYM
                   </p>
                 </div>
+                
+                {/* Tab System */}
+                <div className="exercise-tabs">
+                  <button
+                    className={`exercise-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('active')}
+                  >
+                    Ejercicios Activos ({totalExercises})
+                  </button>
+                  <button
+                    className={`exercise-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('deleted')}
+                  >
+                    Ejercicios Eliminados ({deletedExercises.length})
+                  </button>
+                </div>
+                
                 <div className="exercise-list-actions">
                   <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="exercise-search-form">
                     <Input
@@ -307,9 +368,16 @@ export default function ExerciseCrud() {
 
               <div className="exercise-list-stats">
                 <span className="exercise-count">
-                  {isSearchActive ? displayedExercises.length : totalExercises} {(isSearchActive ? displayedExercises.length : totalExercises) === 1 ? 'ejercicio' : 'ejercicios'} {isSearchActive ? 'encontrados' : 'total'}
+                  {activeTab === 'active' 
+                    ? (isSearchActive ? displayedExercises.length : totalExercises) 
+                    : deletedExercises.length
+                  } {(activeTab === 'active' 
+                    ? (isSearchActive ? displayedExercises.length : totalExercises) 
+                    : deletedExercises.length) === 1 ? 'ejercicio' : 'ejercicios'} {activeTab === 'active' 
+                    ? (isSearchActive ? 'encontrados' : 'total') 
+                    : 'eliminados'}
                 </span>
-                {!isSearchActive && (
+                {activeTab === 'active' && !isSearchActive && (
                   <span className="exercise-page-info">
                     Página {currentPage}
                   </span>
@@ -319,111 +387,168 @@ export default function ExerciseCrud() {
               {loading ? (
                 <div className="exercise-loading-state">
                   <div className="exercise-loading-icon">⏳</div>
-                  <p className="exercise-loading-text">Cargando ejercicios...</p>
-                </div>
-              ) : (isSearchActive ? displayedExercises.length === 0 : exercises.length === 0) ? (
-                <div className="exercise-empty-state">
-                  <div className="exercise-empty-icon">
-                    {isSearchActive ? '🔍' : '🏋️'}
-                  </div>
-                  <Title level={3} variant="secondary" align="center">
-                    {isSearchActive ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
-                  </Title>
-                  <p className="exercise-empty-description">
-                    {isSearchActive 
-                      ? `No hay ejercicios que coincidan con "${searchTerm}"`
-                      : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
-                    }
+                  <p className="exercise-loading-text">
+                    {activeTab === 'active' ? 'Cargando ejercicios...' : 'Cargando ejercicios eliminados...'}
                   </p>
-                  {!isSearchActive && (
-                    <Button
-                      onClick={handleOpenCreateModal}
-                      variant="primary"
-                      size="md"
-                    >
-                      ➕ Crear Primer Ejercicio
-                    </Button>
-                  )}
                 </div>
+              ) : activeTab === 'active' ? (
+                // Active exercises content
+                (isSearchActive ? displayedExercises.length === 0 : exercises.length === 0) ? (
+                  <div className="exercise-empty-state">
+                    <div className="exercise-empty-icon">
+                      {isSearchActive ? '🔍' : '🏋️'}
+                    </div>
+                    <Title level={3} variant="secondary" align="center">
+                      {isSearchActive ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
+                    </Title>
+                    <p className="exercise-empty-description">
+                      {isSearchActive 
+                        ? `No hay ejercicios que coincidan con "${searchTerm}"`
+                        : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
+                      }
+                    </p>
+                    {!isSearchActive && (
+                      <Button
+                        onClick={handleOpenCreateModal}
+                        variant="primary"
+                        size="md"
+                      >
+                        ➕ Crear Primer Ejercicio
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="exercise-list-grid">
+                    {displayedExercises.map((exercise) => (
+                      <Card
+                        key={exercise.id}
+                        variant="default"
+                        padding="md"
+                        className="exercise-card"
+                      >
+                        <div className="exercise-avatar">
+                          {exercise.name.charAt(0).toUpperCase()}
+                        </div>
+                        
+                        <div className="exercise-info">
+                          <Title level={4} variant="default" className="exercise-name">
+                            {exercise.name}
+                          </Title>
+                          <p className="exercise-code">
+                            🏷️ {exercise.code}
+                          </p>
+                        </div>
+                        
+                        <div className="exercise-actions">
+                          <Button
+                            onClick={() => handleEdit(exercise)}
+                            variant="secondary"
+                            size="sm"
+                          >
+                            ✏️ Editar
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(exercise)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            🗑️ Eliminar
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="exercise-list-grid">
-                  {displayedExercises.map((exercise) => (
-                    <Card
-                      key={exercise.id}
-                      variant="default"
-                      padding="md"
-                      className="exercise-card"
-                    >
-                      <div className="exercise-avatar">
-                        {exercise.name.charAt(0).toUpperCase()}
-                      </div>
-                      
-                      <div className="exercise-info">
-                        <Title level={4} variant="default" className="exercise-name">
-                          {exercise.name}
-                        </Title>
-                        <p className="exercise-code">
-                          🏷️ {exercise.code}
-                        </p>
-                      </div>
-                      
-                      <div className="exercise-actions">
-                        <Button
-                          onClick={() => handleEdit(exercise)}
-                          variant="secondary"
-                          size="sm"
-                        >
-                          ✏️ Editar
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(exercise)}
-                          variant="danger"
-                          size="sm"
-                        >
-                          🗑️ Eliminar
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                // Deleted exercises content
+                deletedExercises.length === 0 ? (
+                  <div className="exercise-empty-state">
+                    <div className="exercise-empty-icon">🗑️</div>
+                    <Title level={3} variant="secondary" align="center">
+                      No hay ejercicios eliminados
+                    </Title>
+                    <p className="exercise-empty-description">
+                      Los ejercicios eliminados aparecerán aquí
+                    </p>
+                  </div>
+                ) : (
+                  <div className="exercise-list-grid">
+                    {deletedExercises.map((exercise) => (
+                      <Card
+                        key={exercise.id}
+                        variant="default"
+                        padding="md"
+                        className="exercise-card deleted"
+                      >
+                        <div className="exercise-avatar deleted">
+                          {exercise.name.charAt(0).toUpperCase()}
+                        </div>
+                        
+                        <div className="exercise-info">
+                          <Title level={4} variant="default" className="exercise-name">
+                            {exercise.name}
+                          </Title>
+                          <p className="exercise-code">
+                            🏷️ {exercise.code}
+                          </p>
+                          <p className="exercise-deleted-status">
+                            🗑️ Eliminado
+                          </p>
+                        </div>
+                        
+                        <div className="exercise-actions">
+                          <Button
+                            onClick={() => handleRestore(exercise)}
+                            variant="success"
+                            size="sm"
+                          >
+                            🔄 Restaurar
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )
               )}
             </div>
 
             {/* Pagination Controls - Always visible at bottom */}
-            <div className="exercise-pagination">
-              <Button
-                onClick={() => goToPage(currentPage - 1)}
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === 1 || loading}
-              >
-                ← Anterior
-              </Button>
-              
-              <span className="exercise-page-indicator">
-                Página {currentPage} {totalExercises > 0 && `de ${Math.ceil(totalExercises / ITEMS_PER_PAGE)}`}
-              </span>
-              
-              <Button
-                onClick={() => goToPage(currentPage + 1)}
-                variant="secondary"
-                size="sm"
-                disabled={!hasMore || loading}
-              >
-                Siguiente →
-              </Button>
-              
-              {hasMore && (
+            {activeTab === 'active' && (
+              <div className="exercise-pagination">
                 <Button
-                  onClick={loadMoreExercises}
-                  variant="success"
+                  onClick={() => goToPage(currentPage - 1)}
+                  variant="secondary"
                   size="sm"
-                  disabled={loading}
+                  disabled={currentPage === 1 || loading}
                 >
-                  {loading ? "Cargando..." : "Cargar más"}
+                  ← Anterior
                 </Button>
-              )}
-            </div>
+                
+                <span className="exercise-page-indicator">
+                  Página {currentPage} {totalExercises > 0 && `de ${Math.ceil(totalExercises / ITEMS_PER_PAGE)}`}
+                </span>
+                
+                <Button
+                  onClick={() => goToPage(currentPage + 1)}
+                  variant="secondary"
+                  size="sm"
+                  disabled={!hasMore || loading}
+                >
+                  Siguiente →
+                </Button>
+                
+                {hasMore && (
+                  <Button
+                    onClick={loadMoreExercises}
+                    variant="success"
+                    size="sm"
+                    disabled={loading}
+                  >
+                    {loading ? "Cargando..." : "Cargar más"}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -519,6 +644,37 @@ export default function ExerciseCrud() {
               variant="danger"
             >
               Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        isOpen={restoreConfirm.show}
+        onClose={() => setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" })}
+        title="Confirmar Restauración"
+        size="sm"
+      >
+        <div className="delete-confirmation-content">
+          <div className="delete-confirmation-icon">🔄</div>
+          <p className="delete-confirmation-text">
+            ¿Estás seguro de que quieres restaurar el ejercicio <strong>{restoreConfirm.exerciseName}</strong>?
+            <br />
+            El ejercicio volverá a estar disponible para su uso.
+          </p>
+          <div className="delete-confirmation-actions">
+            <Button
+              onClick={() => setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" })}
+              variant="secondary"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmRestore}
+              variant="success"
+            >
+              Restaurar
             </Button>
           </div>
         </div>
