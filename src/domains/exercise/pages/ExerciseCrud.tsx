@@ -8,6 +8,7 @@ const ITEMS_PER_PAGE = 10;
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [deletedExercises, setDeletedExercises] = useState<Exercise[]>([]);
+  const [deletedExercisesCount, setDeletedExercisesCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", code: "" });
@@ -43,6 +44,7 @@ export default function ExerciseCrud() {
   useEffect(() => {
     if (!isInitialized) {
       loadExercises();
+      loadDeletedExercisesCount();
       setIsInitialized(true);
     }
   }, [isInitialized]);
@@ -55,6 +57,16 @@ export default function ExerciseCrud() {
       loadDeletedExercises();
     }
   }, [activeTab]);
+
+  const loadDeletedExercisesCount = async () => {
+    try {
+      const count = await ExerciseService.countDeletedExercises();
+      setDeletedExercisesCount(count);
+    } catch (error) {
+      console.error("Error loading deleted exercises count:", error);
+      setDeletedExercisesCount(0);
+    }
+  };
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
     setActiveTab(tab);
@@ -82,9 +94,11 @@ export default function ExerciseCrud() {
     try {
       const result = await ExerciseService.getDeletedExercises();
       setDeletedExercises(result);
+      setDeletedExercisesCount(result.length);
     } catch (error) {
       console.error("Error loading deleted exercises:", error);
       setDeletedExercises([]);
+      setDeletedExercisesCount(0);
     } finally {
       setLoading(false);
     }
@@ -237,6 +251,8 @@ export default function ExerciseCrud() {
       setLoading(true);
       await ExerciseService.deleteExercise(deleteConfirm.exerciseId);
       setExercises(prev => prev.filter(e => e.id !== deleteConfirm.exerciseId));
+      setTotalExercises(prev => prev - 1);
+      setDeletedExercisesCount(prev => prev + 1);
       setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" });
     } catch (error) {
       console.error("Error deleting exercise:", error);
@@ -260,6 +276,8 @@ export default function ExerciseCrud() {
       setLoading(true);
       await ExerciseService.restoreExercise(restoreConfirm.exerciseId);
       setDeletedExercises(prev => prev.filter(e => e.id !== restoreConfirm.exerciseId));
+      setDeletedExercisesCount(prev => prev - 1);
+      setTotalExercises(prev => prev + 1);
       setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" });
     } catch (error) {
       console.error("Error restoring exercise:", error);
@@ -320,7 +338,7 @@ export default function ExerciseCrud() {
                     className={`exercise-tab ${activeTab === 'deleted' ? 'active' : ''}`}
                     onClick={() => handleTabChange('deleted')}
                   >
-                    Ejercicios Eliminados ({deletedExercises.length})
+                    Ejercicios Eliminados ({deletedExercisesCount})
                   </button>
                 </div>
                 
@@ -370,10 +388,10 @@ export default function ExerciseCrud() {
                 <span className="exercise-count">
                   {activeTab === 'active' 
                     ? (isSearchActive ? displayedExercises.length : totalExercises) 
-                    : deletedExercises.length
+                    : deletedExercisesCount
                   } {(activeTab === 'active' 
                     ? (isSearchActive ? displayedExercises.length : totalExercises) 
-                    : deletedExercises.length) === 1 ? 'ejercicio' : 'ejercicios'} {activeTab === 'active' 
+                    : deletedExercisesCount) === 1 ? 'ejercicio' : 'ejercicios'} {activeTab === 'active' 
                     ? (isSearchActive ? 'encontrados' : 'total') 
                     : 'eliminados'}
                 </span>
