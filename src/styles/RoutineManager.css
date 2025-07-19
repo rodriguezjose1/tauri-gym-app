@@ -727,6 +727,25 @@
   height: 600px;
 }
 
+/* Ensure dropdown is visible even when modal has overflow hidden */
+.exercise-search-container .ui-select-container--open {
+  position: relative !important;
+  z-index: 1000000 !important;
+  isolation: isolate !important;
+}
+
+.exercise-search-container .ui-select-container--open .ui-select-dropdown {
+  position: absolute !important;
+  z-index: 1000000 !important;
+  overflow: visible !important;
+  max-height: none !important;
+  /* Force it to be rendered above all content */
+  transform: translateZ(999999px) !important;
+  /* Ensure it's not clipped by any parent */
+  isolation: isolate !important;
+  will-change: transform !important;
+}
+
 .exercise-search-header {
   display: flex;
   justify-content: space-between;
@@ -805,6 +824,66 @@
   flex-shrink: 0;
 }
 
+/* Remove overflow restrictions when dropdown is open */
+.exercise-search-selected-section:has(.ui-select-dropdown) {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+/* Alternative approach using the open class */
+.exercise-search-selected-section .ui-select-container--open {
+  z-index: 1000 !important;
+}
+
+.exercise-search-selected-section .ui-select-container--open ~ * {
+  z-index: auto !important;
+}
+
+/* Force the section to allow overflow when dropdown is open */
+.exercise-search-selected-section .ui-select-container--open {
+  position: relative !important;
+}
+
+.exercise-search-selected-section .ui-select-container--open .ui-select-dropdown {
+  position: absolute !important;
+  z-index: 1000000 !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Remove overflow restrictions from parent section when dropdown is open */
+.exercise-search-selected-section:has(.ui-select-container--open) {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+/* Ensure the parent section doesn't interfere with dropdown */
+.exercise-search-selected-section {
+  position: relative;
+  z-index: 1;
+}
+
+/* When dropdown is open, ensure parent doesn't clip it */
+.exercise-search-selected-section .ui-select-container--open {
+  position: relative !important;
+  z-index: 1000000 !important;
+  isolation: isolate !important;
+}
+
+.exercise-search-selected-section .ui-select-container--open .ui-select-dropdown {
+  position: absolute !important;
+  z-index: 1000000 !important;
+  overflow: visible !important;
+  max-height: none !important;
+  /* Force it to be rendered above all content */
+  transform: translateZ(999999px) !important;
+  /* Ensure it's not clipped by any parent */
+  isolation: isolate !important;
+  will-change: transform !important;
+}
+
 .exercise-search-section-title {
   margin: 0 0 12px 0;
   font-size: 14px;
@@ -877,6 +956,8 @@
   gap: 12px;
   flex-shrink: 0;
   min-width: 0;
+  position: relative;
+  z-index: 1000;
 }
 
 .exercise-search-selected-controls .ui-select-container {
@@ -884,6 +965,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1003;
+  isolation: isolate;
 }
 
 .exercise-search-selected-controls .ui-select-button {
@@ -892,7 +974,7 @@
 }
 
 .exercise-search-selected-controls .ui-select-dropdown {
-  z-index: 100000 !important;
+  z-index: 1000000 !important;
   position: absolute !important;
   transform: translateZ(0) !important;
   will-change: transform !important;
@@ -903,6 +985,8 @@
   left: 0 !important;
   right: 0 !important;
   max-height: none !important;
+  /* Force it to be rendered above all content */
+  transform: translateZ(999999px) !important;
 }
 
 .exercise-search-overlay .ui-select-dropdown {

@@ -40,24 +40,55 @@ export const Select: React.FC<SelectProps> = ({
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const isClickingInsideRef = useRef(false);
 
   useEffect(() => {
     const option = options.find(option => option.value === value);
     setSelectedOption(option || null);
   }, [value, options]);
 
+  // Remove overflow hidden from parent containers when dropdown is open
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      // Find parent containers that might have overflow hidden
+      const parentContainers: HTMLElement[] = [];
+      let parent = buttonRef.current.parentElement;
+      
+      while (parent) {
+        const style = window.getComputedStyle(parent);
+        if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+          parentContainers.push(parent);
+          parent.style.overflow = 'visible';
+          parent.style.overflowY = 'visible';
+        }
+        parent = parent.parentElement;
+      }
+
+      // Restore overflow when dropdown closes
+      return () => {
+        parentContainers.forEach(container => {
+          container.style.overflow = '';
+          container.style.overflowY = '';
+        });
+      };
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        // Only close if we're not clicking inside the dropdown
-        if (!isClickingInsideRef.current) {
-          setIsOpen(false);
-        }
+      // Don't close if clicking on the button itself
+      if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+        return;
       }
+      
+      // Don't close if clicking inside the dropdown
+      if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) {
+        return;
+      }
+      
+      // Close if clicking outside both button and dropdown
+      setIsOpen(false);
     };
 
-    // Use click instead of mousedown to prevent flickering
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
@@ -75,19 +106,7 @@ export const Select: React.FC<SelectProps> = ({
       setSelectedOption(option);
       onChange(option.value);
       setIsOpen(false);
-      isClickingInsideRef.current = false;
     }
-  };
-
-  const handleDropdownClick = (event: React.MouseEvent) => {
-    // Prevent the dropdown from closing when clicking inside it
-    event.stopPropagation();
-    isClickingInsideRef.current = true;
-    
-    // Reset the flag after a short delay
-    setTimeout(() => {
-      isClickingInsideRef.current = false;
-    }, 100);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -121,6 +140,7 @@ export const Select: React.FC<SelectProps> = ({
   const containerClasses = [
     'ui-select-container',
     fullWidth ? 'ui-select-container--full-width' : '',
+    isOpen ? 'ui-select-container--open' : '',
   ].filter(Boolean).join(' ');
 
   const buttonClasses = [
@@ -133,7 +153,7 @@ export const Select: React.FC<SelectProps> = ({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={containerClasses} ref={dropdownRef}>
+    <div className={containerClasses}>
       {label && (
         <label className="ui-select-label">
           {label}
@@ -162,19 +182,7 @@ export const Select: React.FC<SelectProps> = ({
       {isOpen && (
         <div 
           className="ui-select-dropdown" 
-          onClick={handleDropdownClick}
-          style={{
-            zIndex: 999999,
-            position: 'absolute',
-            transform: 'translateZ(0)',
-            willChange: 'transform',
-            isolation: 'isolate',
-            top: '100%',
-            left: 0,
-            right: 0,
-            overflow: 'visible',
-            maxHeight: 'none'
-          }}
+          ref={dropdownRef}
         >
           <ul className="ui-select-options" role="listbox">
             {options.map((option) => (
@@ -185,10 +193,7 @@ export const Select: React.FC<SelectProps> = ({
                 } ${
                   selectedOption?.value === option.value ? 'ui-select-option--selected' : ''
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOptionSelect(option);
-                }}
+                onClick={() => handleOptionSelect(option)}
                 role="option"
                 aria-selected={selectedOption?.value === option.value}
               >
