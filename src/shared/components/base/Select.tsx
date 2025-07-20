@@ -160,49 +160,51 @@ export const Select: React.FC<SelectProps> = ({
         </label>
       )}
       
-      <button
-        ref={buttonRef}
-        type="button"
-        className={buttonClasses}
-        onClick={handleToggle}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-labelledby={label ? undefined : 'select-button'}
-      >
-        <span className="ui-select-value">
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <span className={`ui-select-arrow ${isOpen ? 'ui-select-arrow--open' : ''}`}>
-          ▼
-        </span>
-      </button>
-
-      {isOpen && (
-        <div 
-          className="ui-select-dropdown" 
-          ref={dropdownRef}
+      <div style={{ position: 'relative' }}>
+        <button
+          ref={buttonRef}
+          type="button"
+          className={buttonClasses}
+          onClick={handleToggle}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-labelledby={label ? undefined : 'select-button'}
         >
-          <ul className="ui-select-options" role="listbox">
-            {options.map((option) => (
-              <li
-                key={option.value}
-                className={`ui-select-option ${
-                  option.disabled ? 'ui-select-option--disabled' : ''
-                } ${
-                  selectedOption?.value === option.value ? 'ui-select-option--selected' : ''
-                }`}
-                onClick={() => handleOptionSelect(option)}
-                role="option"
-                aria-selected={selectedOption?.value === option.value}
-              >
-                {option.label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          <span className="ui-select-value">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <span className={`ui-select-arrow ${isOpen ? 'ui-select-arrow--open' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {isOpen && (
+          <div 
+            className="ui-select-dropdown" 
+            ref={dropdownRef}
+          >
+            <ul className="ui-select-options" role="listbox">
+              {options.map((option) => (
+                <li
+                  key={option.value}
+                  className={`ui-select-option ${
+                    option.disabled ? 'ui-select-option--disabled' : ''
+                  } ${
+                    selectedOption?.value === option.value ? 'ui-select-option--selected' : ''
+                  }`}
+                  onClick={() => handleOptionSelect(option)}
+                  role="option"
+                  aria-selected={selectedOption?.value === option.value}
+                >
+                  {option.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {helperText && (
         <p className={`ui-select-helper ${error ? 'ui-select-helper--error' : ''}`}>

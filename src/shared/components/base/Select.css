@@ -130,9 +130,7 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  z-index: 999999;
-  max-height: 200px;
-  overflow-y: auto;
+  z-index: 1000;
   margin-top: 4px;
 }
 
@@ -148,7 +146,6 @@
   isolation: isolate !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  max-height: 200px !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -225,10 +222,6 @@
     padding: 8px 10px;
     font-size: 14px;
     min-height: 36px;
-  }
-  
-  .ui-select-dropdown {
-    max-height: 150px;
   }
   
   .ui-select-option {
