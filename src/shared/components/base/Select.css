@@ -17,181 +17,101 @@
   color: var(--text-primary);
 }
 
-.ui-select-button {
+.ui-select-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+}
+
+.ui-select-native {
   width: 100%;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
   font-family: inherit;
-  text-align: left;
+  transition: all 0.2s ease;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  text-align: left;
+  padding-right: 40px; /* Space for arrow */
 }
 
-.ui-select-button:focus {
+.ui-select-native:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.ui-select-button:hover:not(.ui-select-button--disabled) {
+.ui-select-native:hover:not(.ui-select-native--disabled) {
   border-color: var(--accent-primary);
   background-color: var(--bg-secondary);
 }
 
-.ui-select-button--disabled {
+.ui-select-native--disabled {
   background-color: var(--bg-tertiary);
   color: var(--text-muted);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.ui-select-button--error {
+.ui-select-native--error {
   border-color: var(--error-color);
 }
 
-.ui-select-button--error:focus {
+.ui-select-native--error:focus {
   border-color: var(--error-color);
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
 }
 
-.ui-select-button--open {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
 /* Sizes */
-.ui-select-button--sm {
+.ui-select-native--sm {
   padding: 8px 12px;
   font-size: 14px;
   min-height: 36px;
 }
 
-.ui-select-button--md {
+.ui-select-native--md {
   padding: 12px 16px;
   font-size: 16px;
   min-height: 48px;
 }
 
-.ui-select-button--lg {
+.ui-select-native--lg {
   padding: 16px 20px;
   font-size: 18px;
   min-height: 56px;
 }
 
 /* Variants */
-.ui-select-button--default {
+.ui-select-native--default {
   /* Uses base styles */
 }
 
-.ui-select-button--primary {
+.ui-select-native--primary {
   border-color: var(--accent-primary);
 }
 
-.ui-select-button--primary:focus {
+.ui-select-native--primary:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-.ui-select-value {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: inherit;
-}
-
-.ui-select-value:empty::before {
-  content: attr(data-placeholder);
-  color: var(--text-muted);
-}
-
+/* Custom arrow */
 .ui-select-arrow {
-  margin-left: 8px;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 12px;
   color: var(--text-secondary);
+  pointer-events: none;
   transition: transform 0.2s ease;
-  flex-shrink: 0;
 }
 
-.ui-select-arrow--open {
-  transform: rotate(180deg);
-}
-
-.ui-select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  margin-top: 4px;
-}
-
-/* Force dropdown to be visible outside containers */
-.exercise-search-selected-controls .ui-select-dropdown {
-  z-index: 1000000 !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  right: 0 !important;
-  transform: translateZ(0) !important;
-  will-change: transform !important;
-  isolation: isolate !important;
-  pointer-events: auto !important;
-  overflow: visible !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Ensure the Select container has proper positioning */
-.exercise-search-selected-controls .ui-select-container {
-  position: relative !important;
-  z-index: 1000 !important;
-  isolation: isolate !important;
-}
-
-.ui-select-options {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ui-select-option {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.ui-select-option:last-child {
-  border-bottom: none;
-}
-
-.ui-select-option:hover:not(.ui-select-option--disabled) {
-  background-color: var(--bg-secondary);
-}
-
-.ui-select-option--selected {
-  background-color: var(--accent-bg);
-  color: var(--accent-primary);
-  font-weight: 500;
-}
-
-.ui-select-option--selected:hover {
-  background-color: var(--accent-bg);
-}
-
-.ui-select-option--disabled {
-  color: var(--text-muted);
-  cursor: not-allowed;
-  opacity: 0.5;
+.ui-select-native:focus + .ui-select-arrow {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .ui-select-helper {
@@ -204,52 +124,61 @@
   color: var(--error-color);
 }
 
+/* Remove default select styling */
+.ui-select-native::-ms-expand {
+  display: none;
+}
+
+/* Ensure consistent styling across browsers */
+.ui-select-native option {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 8px 12px;
+}
+
+.ui-select-native option:disabled {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-  .ui-select-button--lg {
+  .ui-select-native--lg {
     padding: 14px 16px;
     font-size: 16px;
     min-height: 48px;
   }
   
-  .ui-select-button--md {
+  .ui-select-native--md {
     padding: 10px 12px;
     font-size: 16px; /* Prevents zoom on iOS */
     min-height: 44px;
   }
   
-  .ui-select-button--sm {
+  .ui-select-native--sm {
     padding: 8px 10px;
     font-size: 14px;
     min-height: 36px;
   }
-  
-  .ui-select-option {
-    padding: 10px 12px;
-  }
 }
 
 @media (max-width: 480px) {
-  .ui-select-button--lg {
+  .ui-select-native--lg {
     padding: 12px 14px;
     font-size: 16px;
     min-height: 44px;
   }
   
-  .ui-select-button--md {
+  .ui-select-native--md {
     padding: 10px 12px;
     font-size: 16px;
     min-height: 40px;
   }
   
-  .ui-select-button--sm {
+  .ui-select-native--sm {
     padding: 8px 10px;
     font-size: 14px;
     min-height: 32px;
-  }
-  
-  .ui-select-option {
-    padding: 8px 10px;
   }
   
   .ui-select-helper {
