@@ -12,6 +12,101 @@ impl RoutineService {
         Self { repository }
     }
 
+    // Validate that routine groups are consecutive
+    fn validate_routine_groups_consecutive(&self, routine_id: i32) -> Result<(), String> {
+        println!("DEBUG: validate_routine_groups_consecutive called for routine_id: {}", routine_id);
+        
+        let exercises = self.repository.get_routine_exercises(routine_id);
+        println!("DEBUG: Found {} exercises in routine", exercises.len());
+        
+        let groups: std::collections::HashSet<i32> = exercises
+            .iter()
+            .map(|e| e.group_number.unwrap_or(1))
+            .collect();
+        
+        println!("DEBUG: Groups found: {:?}", groups);
+        
+        if groups.is_empty() {
+            println!("DEBUG: No groups found, returning Ok");
+            return Ok(());
+        }
+        
+        let min_group = groups.iter().min().unwrap();
+        let max_group = groups.iter().max().unwrap();
+        
+        println!("DEBUG: Min group: {}, Max group: {}", min_group, max_group);
+        
+        // Check that all groups from min to max exist
+        for group_num in *min_group..=*max_group {
+            if !groups.contains(&group_num) {
+                let error_msg = format!(
+                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
+                    group_num
+                );
+                println!("DEBUG: Validation failed: {}", error_msg);
+                return Err(error_msg);
+            }
+        }
+        
+        println!("DEBUG: Validation passed, groups are consecutive");
+        Ok(())
+    }
+
+    // Validate that routine groups are consecutive WITH a new group (before adding)
+    fn validate_routine_groups_consecutive_with_new_group(&self, routine_id: i32, new_group_number: Option<i32>) -> Result<(), String> {
+        println!("DEBUG: validate_routine_groups_consecutive_with_new_group called for routine_id: {} with new_group: {:?}", routine_id, new_group_number);
+        
+        let exercises = self.repository.get_routine_exercises(routine_id);
+        println!("DEBUG: Found {} exercises in routine", exercises.len());
+        
+        let mut groups: std::collections::HashSet<i32> = exercises
+            .iter()
+            .map(|e| e.group_number.unwrap_or(1))
+            .collect();
+        
+        // Add the new group to the set for validation
+        if let Some(new_group) = new_group_number {
+            groups.insert(new_group);
+        }
+        
+        println!("DEBUG: Groups found (including new group): {:?}", groups);
+        
+        if groups.is_empty() {
+            println!("DEBUG: No groups found, returning Ok");
+            return Ok(());
+        }
+        
+        let min_group = groups.iter().min().unwrap();
+        let max_group = groups.iter().max().unwrap();
+        
+        println!("DEBUG: Min group: {}, Max group: {}", min_group, max_group);
+        
+        // Check that all groups from min to max exist
+        for group_num in *min_group..=*max_group {
+            if !groups.contains(&group_num) {
+                let error_msg = format!(
+                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
+                    group_num
+                );
+                println!("DEBUG: Validation failed: {}", error_msg);
+                return Err(error_msg);
+            }
+        }
+        
+        println!("DEBUG: Validation passed, groups are consecutive");
+        Ok(())
+    }
+
+    pub fn get_available_groups(&self, routine_id: i32) -> Result<Vec<i32>, String> {
+        // Validate that routine exists
+        if self.repository.get_by_id(routine_id).is_none() {
+            return Err("La rutina especificada no existe".to_string());
+        }
+
+        // Always return all groups from 1 to 5 for selection
+        Ok(vec![1, 2, 3, 4, 5])
+    }
+
     // Routine operations
     pub fn create_routine(&self, name: String, code: String) -> Result<i32, String> {
         // Validate input
@@ -102,10 +197,25 @@ impl RoutineService {
         notes: Option<String>,
         group_number: Option<i32>,
     ) -> Result<(), String> {
+        println!("DEBUG: add_exercise_to_routine called with group_number: {:?}", group_number);
+        
         // Validate that routine exists
         if self.repository.get_by_id(routine_id).is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
+
+        // Basic validation for group number
+        if let Some(group_num) = group_number {
+            if group_num <= 0 || group_num > 5 {
+                return Err("El número de grupo debe estar entre 1 y 5".to_string());
+            }
+        }
+
+        // Validate consecutiveness BEFORE adding
+        println!("DEBUG: About to validate consecutive groups BEFORE adding");
+        let validation_result = self.validate_routine_groups_consecutive_with_new_group(routine_id, group_number);
+        println!("DEBUG: Validation result: {:?}", validation_result);
+        validation_result?;
 
         let routine_exercise = RoutineExercise::new(
             routine_id,
@@ -118,7 +228,11 @@ impl RoutineService {
             group_number,
         );
 
-        self.repository.add_exercise_to_routine(routine_exercise)
+        println!("DEBUG: About to add exercise to repository");
+        self.repository.add_exercise_to_routine(routine_exercise)?;
+        println!("DEBUG: Exercise added to repository successfully");
+
+        Ok(())
     }
 
     pub fn update_routine_exercise(
@@ -133,6 +247,17 @@ impl RoutineService {
         notes: Option<String>,
         group_number: Option<i32>,
     ) -> Result<(), String> {
+        // Basic validation for group number
+        if let Some(group_num) = group_number {
+            if group_num <= 0 || group_num > 5 {
+                return Err("El número de grupo debe estar entre 1 y 5".to_string());
+            }
+        }
+
+        // Validate consecutiveness BEFORE updating
+        let validation_result = self.validate_routine_groups_consecutive_with_new_group(routine_id, group_number);
+        validation_result?;
+
         let routine_exercise = RoutineExercise {
             id: Some(id),
             routine_id,
@@ -147,7 +272,9 @@ impl RoutineService {
             updated_at: None,
         };
 
-        self.repository.update_routine_exercise(routine_exercise)
+        self.repository.update_routine_exercise(routine_exercise)?;
+
+        Ok(())
     }
 
     pub fn remove_exercise_from_routine(&self, routine_id: i32, exercise_id: i32) -> Result<(), String> {

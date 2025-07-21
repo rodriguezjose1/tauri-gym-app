@@ -1466,6 +1466,59 @@
 }
 
 .routine-manager-routine-restore:hover {
-  background: var(--success-hover);
-  transform: translateY(-1px);
+  background-color: var(--success-color);
+  color: white;
+}
+
+/* Exercise Search Help Message */
+.exercise-search-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-radius: 12px;
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.exercise-search-help-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.exercise-search-help-text {
+  color: white;
+  font-size: 14px;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.exercise-search-help-text strong {
+  font-weight: 600;
+}
+
+/* Responsive adjustments for help message */
+@media (max-width: 768px) {
+  .exercise-search-help {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .exercise-search-help-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .exercise-search-help {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .exercise-search-help-text {
+    font-size: 12px;
+  }
 } 

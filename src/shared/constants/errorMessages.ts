@@ -10,9 +10,22 @@ export const ROUTINE_ERROR_MESSAGES = {
   
   // Routine operations errors
   DELETE_ROUTINE_FAILED: (error: string) => `Error al eliminar la rutina: ${error}`,
-  UPDATE_EXERCISE_FAILED: (error: string) => `Error al actualizar ejercicio: ${error}`,
+  UPDATE_EXERCISE_FAILED: (error: string) => {
+    // Check if it's a group validation error and make it more user-friendly
+    if (error.includes('⚠️ No puedes saltar grupos')) {
+      return error; // Use the backend message directly as it's already user-friendly
+    }
+    // For other errors, show a simpler message
+    return `Error: ${error}`;
+  },
   REMOVE_EXERCISE_FAILED: (error: string) => `Error al eliminar ejercicio: ${error}`,
-  ADD_EXERCISE_FAILED: (error: string) => `Error al agregar ejercicio: ${error}`,
+  ADD_EXERCISE_FAILED: (error: string) => {
+    // Check if it's a group validation error and make it more user-friendly
+    if (error.includes('⚠️ No puedes saltar grupos')) {
+      return error; // Use the backend message directly as it's already user-friendly
+    }
+    return `Error: ${error}`;
+  },
   EXERCISE_ALREADY_IN_ROUTINE: "Este ejercicio ya está en la rutina",
   
   // Data loading errors

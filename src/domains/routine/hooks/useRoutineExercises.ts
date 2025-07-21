@@ -43,8 +43,11 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
   ) => {
     if (!routineId) return;
 
+    console.log('DEBUG: addExercise called with:', { exerciseId, orderIndex, groupNumber });
+
     try {
       setLoading(true);
+      console.log('DEBUG: About to call RoutineService.addExerciseToRoutine');
       await RoutineService.addExerciseToRoutine(
         routineId,
         exerciseId,
@@ -56,20 +59,28 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         groupNumber
       );
       
-      // Recargar ejercicios para obtener los datos actualizados
+      console.log('DEBUG: RoutineService.addExerciseToRoutine completed successfully');
+      
+      // Solo recargar ejercicios si la operación fue exitosa
       await loadExercises();
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_ADDED_SUCCESS, 'success');
     } catch (error) {
-      console.error('Error adding exercise to routine:', error);
+      console.error('DEBUG: Error in addExercise:', error);
       
       // Check for specific duplicate exercise error
       const errorMessage = String(error);
       if (errorMessage.includes('Este ejercicio ya está en la rutina')) {
         addNotification(ROUTINE_ERROR_MESSAGES.EXERCISE_ALREADY_IN_ROUTINE, 'warning');
+      } else if (errorMessage.includes('⚠️ No puedes saltar grupos')) {
+        // Use longer duration for group validation errors so user can read it
+        addNotification(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage), 'error', 10000);
       } else {
         addNotification(ROUTINE_ERROR_MESSAGES.ADD_EXERCISE_FAILED(errorMessage), 'error');
       }
+      // NO recargar ejercicios ni mostrar mensaje de éxito cuando hay error
+      // Propagar el error para que se maneje en el componente padre
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -112,13 +123,22 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         groupNumber || currentExercise.group_number
       );
       
-      // Recargar ejercicios para obtener los datos actualizados
+      // Solo recargar ejercicios si la operación fue exitosa
       await loadExercises();
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_UPDATED_SUCCESS, 'success');
     } catch (error) {
       console.error('Error updating exercise in routine:', error);
-      addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(String(error)), 'error');
+      const errorMessage = String(error);
+      if (errorMessage.includes('⚠️ No puedes saltar grupos')) {
+        // Use longer duration for group validation errors so user can read it
+        addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(errorMessage), 'error', 10000);
+      } else {
+        addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_EXERCISE_FAILED(errorMessage), 'error');
+      }
+      // NO recargar ejercicios ni mostrar mensaje de éxito cuando hay error
+      // Propagar el error para que se maneje en el componente padre
+      throw error;
     } finally {
       setLoading(false);
     }

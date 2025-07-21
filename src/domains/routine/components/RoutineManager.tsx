@@ -559,16 +559,24 @@ export const RoutineManager: React.FC = () => {
       <ExerciseSearch
         isOpen={routineUI.showExerciseSearch}
         onAddExercise={async (exercise: Exercise, groupNumber: number) => {
-          const nextOrderIndex = routineExercises.exercises.length;
-          await routineExercises.addExercise(
-            exercise.id!,
-            nextOrderIndex,
-            undefined, // sets - no usado por el momento
-            undefined, // reps - no usado por el momento
-            undefined, // weight - no usado por el momento
-            undefined, // notes - no usado por el momento
-            groupNumber // group_number - selected group
-          );
+          console.log('DEBUG: RoutineManager onAddExercise called with:', { exerciseId: exercise.id, groupNumber });
+          try {
+            const nextOrderIndex = routineExercises.exercises.length;
+            console.log('DEBUG: About to call routineExercises.addExercise');
+            await routineExercises.addExercise(
+              exercise.id!,
+              nextOrderIndex,
+              undefined, // sets - no usado por el momento
+              undefined, // reps - no usado por el momento
+              undefined, // weight - no usado por el momento
+              undefined, // notes - no usado por el momento
+              groupNumber // group_number - selected group
+            );
+            console.log('DEBUG: routineExercises.addExercise completed successfully');
+          } catch (error) {
+            console.error('DEBUG: Error in RoutineManager onAddExercise:', error);
+            // El error ya se maneja en useRoutineExercises, no necesitamos hacer nada más aquí
+          }
         }}
         onClose={routineUI.closeExerciseSearch}
       />

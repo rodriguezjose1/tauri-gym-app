@@ -10,7 +10,7 @@ interface ExerciseWithGroup extends Exercise {
 
 interface ExerciseSearchProps {
   isOpen: boolean;
-  onAddExercise: (exercise: Exercise, groupNumber: number) => void;
+  onAddExercise: (exercise: Exercise, groupNumber: number) => Promise<void>;
   onClose: () => void;
 }
 
@@ -183,12 +183,17 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
     );
   };
 
-  const handleAddSelectedExercises = () => {
-    selectedExercises.forEach(exercise => {
-      onAddExercise(exercise, exercise.selectedGroup);
-    });
-    setSelectedExercises([]);
-    setSearchTerm('');
+  const handleAddSelectedExercises = async () => {
+    try {
+      for (const exercise of selectedExercises) {
+        await onAddExercise(exercise, exercise.selectedGroup);
+      }
+      setSelectedExercises([]);
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Error adding selected exercises:', error);
+      // No limpiar la selección si hay error para que el usuario pueda intentar de nuevo
+    }
   };
 
   const handleClose = () => {
@@ -298,6 +303,15 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
         </div>
 
         <div className="exercise-search-content">
+          {/* Mensaje de ayuda sobre grupos */}
+          <div className="exercise-search-help">
+            <div className="exercise-search-help-icon">💡</div>
+            <div className="exercise-search-help-text">
+              <strong>Consejo:</strong> Los grupos deben ser consecutivos. Si tienes ejercicios en el grupo 1, 
+              el siguiente debe ir en el grupo 2, luego 3, etc. No puedes saltar grupos.
+            </div>
+          </div>
+
           {/* Sección de ejercicios seleccionados */}
           {selectedExercises.length > 0 && (
             <div className="exercise-search-selected-section">
