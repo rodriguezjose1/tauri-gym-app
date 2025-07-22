@@ -73,59 +73,59 @@
 - [ ✅ ] **Mensajes de error específicos**: Backend bloquea y muestra error claro
 
 ### **Editar Ejercicios de Rutina**
-- [ ] Cambiar grupo de ejercicio existente
-- [ ] Validar consecutividad
-- [ ] Ver mensaje de error si rompe reglas
+- [ ✅ ] Cambiar grupo de ejercicio existente
+- [ ✅ ] Validar consecutividad
+- [ ✅ ] Ver mensaje de error si rompe reglas
 
 ### **Eliminar Rutinas**
-- [ ] Eliminar rutina
-- [ ] Confirmar eliminación
-- [ ] Ver rutina en "Eliminadas"
-- [ ] Restaurar rutina eliminada
+- [ ✅ ] Eliminar rutina
+- [ ✅ ] Confirmar eliminación
+- [ ✅ ] Ver rutina en "Eliminadas"
+- [ ✅ ] Restaurar rutina eliminada
 
 ---
 
 ## 🔄 **3. FUNCIONALIDADES CRUZADAS**
 
 ### **Validación Consistente**
-- [ ] **Dashboard**: Validación al agregar/editar ejercicios
-- [ ] **Rutinas**: Validación al agregar/editar ejercicios
-- [ ] **Mismos mensajes**: "⚠️ El primer ejercicio debe estar en el grupo 1"
-- [ ] **Mismo comportamiento**: Backend bloquea operaciones inválidas
+- [ ✅ ] **Dashboard**: Validación al agregar/editar ejercicios
+- [ ✅ ] **Rutinas**: Validación al agregar/editar ejercicios
+- [ ✅ ] **Mismos mensajes**: "⚠️ El primer ejercicio debe estar en el grupo 1"
+- [ ✅ ] **Mismo comportamiento**: Backend bloquea operaciones inválidas
 
 ### **Manejo de Errores**
-- [ ] **Errores específicos**: Mostrar mensaje del backend
-- [ ] **Errores genéricos**: Mostrar mensaje genérico
-- [ ] **Duración de notificaciones**: 10 segundos para errores de validación
+- [ ✅ ] **Errores específicos**: Mostrar mensaje del backend
+- [ ✅ ] **Errores genéricos**: Mostrar mensaje genérico
+- [ ✅ ] **Duración de notificaciones**: 10 segundos para errores de validación
 
 ### **Experiencia de Usuario**
-- [ ] **Libertad en frontend**: Seleccionar cualquier grupo (1-5)
-- [ ] **Validación en backend**: Bloquear operaciones inválidas
-- [ ] **Mensajes claros**: Indicar exactamente qué grupo falta
+- [ ✅ ] **Libertad en frontend**: Seleccionar cualquier grupo (1-5)
+- [ ✅ ] **Validación en backend**: Bloquear operaciones inválidas
+- [ ✅ ] **Mensajes claros**: Indicar exactamente qué grupo falta
 
 ---
 
 ## 🧪 **4. CASOS DE PRUEBA ESPECÍFICOS**
 
 ### **Grupos Consecutivos - Dashboard**
-- [ ] **Sin ejercicios**: Agregar al grupo 1 ✅, Agregar al grupo 2 ❌
-- [ ] **Con grupo 1**: Agregar al grupo 2 ✅, Agregar al grupo 3 ❌
-- [ ] **Con grupos 1,2**: Agregar al grupo 3 ✅, Agregar al grupo 4 ❌
-- [ ] **Con grupos 1,3**: Agregar al grupo 2 ✅, Agregar al grupo 4 ❌
+- [ ✅ ] **Sin ejercicios**: Agregar al grupo 1 ✅, Agregar al grupo 2 ❌
+- [ ✅ ] **Con grupo 1**: Agregar al grupo 2 ✅, Agregar al grupo 3 ❌
+- [ ✅ ] **Con grupos 1,2**: Agregar al grupo 3 ✅, Agregar al grupo 4 ❌
+- [ ✅ ] **Con grupos 1,3**: Agregar al grupo 2 ✅, Agregar al grupo 4 ❌
 
 ### **Grupos Consecutivos - Rutinas**
-- [ ] **Sin ejercicios**: Agregar al grupo 1 ✅, Agregar al grupo 2 ❌
-- [ ] **Con grupo 1**: Agregar al grupo 2 ✅, Agregar al grupo 3 ❌
-- [ ] **Con grupos 1,2**: Agregar al grupo 3 ✅, Agregar al grupo 4 ❌
+- [ ✅ ] **Sin ejercicios**: Agregar al grupo 1 ✅, Agregar al grupo 2 ❌
+- [ ✅ ] **Con grupo 1**: Agregar al grupo 2 ✅, Agregar al grupo 3 ❌
+- [ ✅ ] **Con grupos 1,2**: Agregar al grupo 3 ✅, Agregar al grupo 4 ❌
 
 ### **Editar Ejercicios**
-- [ ] **Mover del grupo 3 al grupo 2**: ✅ (grupos 1,2,2)
-- [ ] **Mover del grupo 3 al grupo 1**: ✅ (grupos 1,1,2)
-- [ ] **Mover al grupo 4 sin grupo 3**: ❌ (error específico)
+- [ ✅ ] **Mover del grupo 3 al grupo 2**: ✅ (grupos 1,2,2)
+- [ ✅ ] **Mover del grupo 3 al grupo 1**: ✅ (grupos 1,1,2)
+- [ ✅ ] **Mover al grupo 4 sin grupo 3**: ❌ (error específico)
 
 ### **Cargar Rutinas**
-- [ ] **Rutina con grupos consecutivos**: ✅ Cargar exitosamente
-- [ ] **Rutina con grupos no consecutivos**: ❌ Error específico
+- [ ✅ ] **Rutina con grupos consecutivos**: ✅ Cargar exitosamente
+- [ ✅ ] **Rutina con grupos no consecutivos**: ❌ Error específico
 
 ---
 
