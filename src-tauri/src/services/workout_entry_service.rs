@@ -373,6 +373,24 @@ impl WorkoutEntryService {
         // Get existing exercises for this person and date
         let existing_entries = self.repository.get_by_person_and_date_range(person_id, date, date);
         
+        // If no existing exercises, validate that the first new exercise is in group 1
+        if existing_entries.is_empty() {
+            let new_groups: std::collections::HashSet<i32> = new_entries
+                .iter()
+                .map(|e| e.group_number.unwrap_or(1))
+                .collect();
+            
+            if !new_groups.is_empty() {
+                let min_new_group = new_groups.iter().min().unwrap();
+                if *min_new_group != 1 {
+                    return Err(format!(
+                        "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
+                        min_new_group
+                    ));
+                }
+            }
+        }
+        
         // Get all groups (existing + new)
         let mut all_groups: std::collections::HashSet<i32> = existing_entries
             .iter()
