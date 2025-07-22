@@ -22,6 +22,12 @@ export class ExerciseService {
       await invoke(requestNames.createExercise, { exercise });
     } catch (error) {
       console.error("Error creating exercise:", error);
+      
+      // Check if it's a unique constraint error for code
+      if (typeof error === 'string' && error.includes('UNIQUE constraint failed: exercise.code')) {
+        throw new Error('⚠️ Ya existe un ejercicio con ese código. Por favor, usa un código diferente.');
+      }
+      
       throw new Error(`Error al crear el ejercicio: ${error}`);
     }
   }

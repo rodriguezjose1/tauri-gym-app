@@ -77,7 +77,24 @@ export const useRoutineData = (): UseRoutineDataReturn => {
       return true;
     } catch (error) {
       console.error('Error creating routine:', error);
-      addNotification(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(String(error)), 'error');
+      
+      // Extract error message
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(String(error));
+      }
+      
+      // Check if it's a unique constraint error for code
+      if (errorMessage.includes('⚠️ Ya existe una rutina con ese código')) {
+        addNotification(errorMessage, 'error', 10000);
+      } else {
+        addNotification(ROUTINE_ERROR_MESSAGES.CREATE_ROUTINE_FAILED(String(error)), 'error');
+      }
+      
       return false;
     } finally {
       setLoading(false);
@@ -103,7 +120,24 @@ export const useRoutineData = (): UseRoutineDataReturn => {
       return true;
     } catch (error) {
       console.error('Error updating routine:', error);
-      addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_ROUTINE_FAILED(String(error)), 'error');
+      
+      // Extract error message
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = ROUTINE_ERROR_MESSAGES.UPDATE_ROUTINE_FAILED(String(error));
+      }
+      
+      // Check if it's a unique constraint error for code
+      if (errorMessage.includes('⚠️ Ya existe una rutina con ese código')) {
+        addNotification(errorMessage, 'error', 10000);
+      } else {
+        addNotification(ROUTINE_ERROR_MESSAGES.UPDATE_ROUTINE_FAILED(String(error)), 'error');
+      }
+      
       return false;
     } finally {
       setLoading(false);

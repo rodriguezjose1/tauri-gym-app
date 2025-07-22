@@ -37,6 +37,12 @@ export class RoutineService {
       return await invoke(requestNames.createRoutine, { name, code }) as number;
     } catch (error) {
       console.error("Error creating routine:", error);
+      
+      // Check if it's a unique constraint error for code
+      if (typeof error === 'string' && error.includes('UNIQUE constraint failed: routines.code')) {
+        throw new Error('⚠️ Ya existe una rutina con ese código. Por favor, usa un código diferente.');
+      }
+      
       throw new Error(`Error al crear la rutina: ${error}`);
     }
   }
@@ -73,6 +79,12 @@ export class RoutineService {
       await invoke(requestNames.updateRoutine, { id, name, code });
     } catch (error) {
       console.error("Error updating routine:", error);
+      
+      // Check if it's a unique constraint error for code
+      if (typeof error === 'string' && error.includes('UNIQUE constraint failed: routines.code')) {
+        throw new Error('⚠️ Ya existe una rutina con ese código. Por favor, usa un código diferente.');
+      }
+      
       throw new Error(`Error al actualizar la rutina: ${error}`);
     }
   }

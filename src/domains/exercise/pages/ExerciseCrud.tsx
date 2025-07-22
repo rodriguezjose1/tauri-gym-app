@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ExerciseService, Exercise } from "../../../services";
 import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
+import ToastContainer from "../../../shared/components/notifications/ToastContainer";
 import "../../../styles/ExerciseCrud.css";
+import { useToast } from '../../../shared/contexts/ToastContext';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -30,6 +32,8 @@ export default function ExerciseCrud() {
     exerciseName: ""
   });
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const { addNotification, notifications, removeNotification } = useToast();
 
   // Function to generate code from exercise name
   const generateCodeFromName = (name: string): string => {
@@ -210,6 +214,23 @@ export default function ExerciseCrud() {
       
     } catch (error) {
       console.error("Error saving exercise:", error);
+      
+      // Extract error message
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = 'Error al guardar el ejercicio';
+      }
+      
+      // Check if it's a unique constraint error for code
+      if (errorMessage.includes('⚠️ Ya existe un ejercicio con ese código')) {
+        addNotification(errorMessage, 'error', 10000);
+      } else {
+        addNotification('Error al guardar el ejercicio. Inténtalo de nuevo.', 'error', 5000);
+      }
     } finally {
       setLoading(false);
     }
@@ -254,8 +275,10 @@ export default function ExerciseCrud() {
       setTotalExercises(prev => prev - 1);
       setDeletedExercisesCount(prev => prev + 1);
       setDeleteConfirm({ show: false, exerciseId: null, exerciseName: "" });
+      addNotification(`Ejercicio "${deleteConfirm.exerciseName}" eliminado.`, 'success', 5000);
     } catch (error) {
       console.error("Error deleting exercise:", error);
+      addNotification(`Error al eliminar el ejercicio "${deleteConfirm.exerciseName}". Inténtalo de nuevo.`, 'error', 5000);
     } finally {
       setLoading(false);
     }
@@ -279,8 +302,10 @@ export default function ExerciseCrud() {
       setDeletedExercisesCount(prev => prev - 1);
       setTotalExercises(prev => prev + 1);
       setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" });
+      addNotification(`Ejercicio "${restoreConfirm.exerciseName}" restaurado.`, 'success', 5000);
     } catch (error) {
       console.error("Error restoring exercise:", error);
+      addNotification(`Error al restaurar el ejercicio "${restoreConfirm.exerciseName}". Inténtalo de nuevo.`, 'error', 5000);
     } finally {
       setLoading(false);
     }
@@ -311,6 +336,10 @@ export default function ExerciseCrud() {
 
   return (
     <div className="exercise-crud-container">
+      <ToastContainer 
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
       <div className="exercise-crud-wrapper">
         {/* Exercises List */}
         <Card variant="elevated" padding="lg">
