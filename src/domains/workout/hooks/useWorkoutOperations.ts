@@ -97,7 +97,24 @@ export const useWorkoutOperations = ({
       return true;
     } catch (error) {
       console.error(DASHBOARD_ERROR_MESSAGES.CONSOLE_SAVE_WORKOUT_SESSION, error);
-      showToast(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, 'error');
+      
+      // Extract the error message - it could be a string or Error object
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED;
+      }
+      
+      // Check if it's a group validation error and use the backend message directly
+      if (errorMessage.includes('⚠️')) {
+        showToast(errorMessage, 'error');
+      } else {
+        showToast(DASHBOARD_ERROR_MESSAGES.SAVE_SESSION_FAILED, 'error');
+      }
+      
       return false;
     } finally {
       setSavingSession(false);

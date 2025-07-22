@@ -124,7 +124,8 @@ export class WorkoutService {
       await invoke(requestNames.replaceWorkoutSession, { personId: personId, date, workoutEntries: workoutEntries });
     } catch (error) {
       console.error("Error replacing workout session:", error);
-      throw new Error(`Error al reemplazar la sesión de entrenamiento: ${error}`);
+      // Use the backend error message directly
+      throw error;
     }
   }
 
@@ -255,7 +256,8 @@ export class WorkoutService {
 
     } catch (error) {
       console.error("Error saving workout session (merge):", error);
-      throw new Error(`Error al guardar la sesión de entrenamiento: ${error}`);
+      // Use the backend error message directly
+      throw error;
     }
   }
 } 

@@ -37,7 +37,7 @@ export const useDashboardController = () => {
 
   // 3. Modal Layers
   const workoutModal = useWorkoutModal();
-  const sessionModal = useSessionModal();
+  const sessionModal = useSessionModal(showToast);
   const deleteModal = useDeleteModal();
   const routineModal = useRoutineModal();
   const confirmModal = useConfirmModal();

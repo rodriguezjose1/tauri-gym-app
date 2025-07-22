@@ -36,6 +36,16 @@ impl RoutineService {
         
         println!("DEBUG: Min group: {}, Max group: {}", min_group, max_group);
         
+        // First exercise must always be in group 1
+        if *min_group != 1 {
+            let error_msg = format!(
+                "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
+                min_group
+            );
+            println!("DEBUG: Validation failed: {}", error_msg);
+            return Err(error_msg);
+        }
+        
         // Check that all groups from min to max exist
         for group_num in *min_group..=*max_group {
             if !groups.contains(&group_num) {
@@ -80,6 +90,16 @@ impl RoutineService {
         let max_group = groups.iter().max().unwrap();
         
         println!("DEBUG: Min group: {}, Max group: {}", min_group, max_group);
+        
+        // First exercise must always be in group 1
+        if *min_group != 1 {
+            let error_msg = format!(
+                "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
+                min_group
+            );
+            println!("DEBUG: Validation failed: {}", error_msg);
+            return Err(error_msg);
+        }
         
         // Check that all groups from min to max exist
         for group_num in *min_group..=*max_group {

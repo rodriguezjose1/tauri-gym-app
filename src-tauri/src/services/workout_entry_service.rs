@@ -60,6 +60,14 @@ impl WorkoutEntryService {
         // Validate all entries using helper method
         self.validate_workout_entries(&workout_entries)?;
 
+        // Get the first entry to get person_id and date for validation
+        let first_entry = &workout_entries[0];
+        let person_id = first_entry.person_id;
+        let date = &first_entry.date;
+
+        // Validate that new entries can be added to existing session
+        self.validate_new_workout_entries_with_existing(&workout_entries, person_id, date)?;
+
         self.repository.create_batch(workout_entries)
     }
 
@@ -70,6 +78,9 @@ impl WorkoutEntryService {
 
         // Validate all entries using helper method
         self.validate_workout_entries(&workout_entries)?;
+
+        // Validate consecutive groups
+        self.validate_workout_groups_consecutive(&workout_entries)?;
 
         // Validate that all entries are for the same person and date
         let first_entry = &workout_entries[0];
@@ -105,6 +116,9 @@ impl WorkoutEntryService {
 
         // Validate all entries using helper method
         self.validate_workout_entries(&workout_entries)?;
+
+        // Validate consecutive groups
+        self.validate_workout_groups_consecutive(&workout_entries)?;
 
         // Additional validation for replace session
         for (index, workout_entry) in workout_entries.iter().enumerate() {
@@ -281,41 +295,112 @@ impl WorkoutEntryService {
     }
 
     fn validate_workout_entries(&self, workout_entries: &Vec<WorkoutEntry>) -> Result<(), String> {
-        for (index, workout_entry) in workout_entries.iter().enumerate() {
-            if workout_entry.person_id <= 0 {
+        for (index, entry) in workout_entries.iter().enumerate() {
+            if entry.person_id <= 0 {
                 return Err(format!("Invalid person ID in exercise {}", index + 1));
             }
 
-            if workout_entry.exercise_id <= 0 {
+            if entry.exercise_id <= 0 {
                 return Err(format!("Invalid exercise ID in exercise {}", index + 1));
             }
 
-            if workout_entry.date.is_empty() {
+            if entry.date.is_empty() {
                 return Err(format!("Date is required in exercise {}", index + 1));
             }
 
-            if !self.is_valid_date_format(&workout_entry.date) {
+            if !self.is_valid_date_format(&entry.date) {
                 return Err(format!("Invalid date format in exercise {}. Use YYYY-MM-DD", index + 1));
             }
 
-            if let Some(sets) = workout_entry.sets {
+            if let Some(sets) = entry.sets {
                 if sets <= 0 {
                     return Err(format!("Sets must be greater than 0 in exercise {}", index + 1));
                 }
             }
 
-            if let Some(reps) = workout_entry.reps {
+            if let Some(reps) = entry.reps {
                 if reps <= 0 {
                     return Err(format!("Reps must be greater than 0 in exercise {}", index + 1));
                 }
             }
 
-            if let Some(weight) = workout_entry.weight {
+            if let Some(weight) = entry.weight {
                 if weight < 0.0 {
                     return Err(format!("Weight cannot be negative in exercise {}", index + 1));
                 }
             }
         }
+        Ok(())
+    }
+
+    // Validate that workout entry groups are consecutive
+    fn validate_workout_groups_consecutive(&self, workout_entries: &Vec<WorkoutEntry>) -> Result<(), String> {
+        let groups: std::collections::HashSet<i32> = workout_entries
+            .iter()
+            .map(|e| e.group_number.unwrap_or(1))
+            .collect();
+        
+        if groups.is_empty() {
+            return Ok(());
+        }
+        
+        let min_group = groups.iter().min().unwrap();
+        let max_group = groups.iter().max().unwrap();
+        
+        // First exercise must always be in group 1
+        if *min_group != 1 {
+            return Err(format!(
+                "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
+                min_group
+            ));
+        }
+        
+        // Check that all groups from min to max exist
+        for group_num in *min_group..=*max_group {
+            if !groups.contains(&group_num) {
+                return Err(format!(
+                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
+                    group_num
+                ));
+            }
+        }
+        
+        Ok(())
+    }
+
+    // Validate that new workout entries can be added to existing session
+    fn validate_new_workout_entries_with_existing(&self, new_entries: &Vec<WorkoutEntry>, person_id: i32, date: &str) -> Result<(), String> {
+        // Get existing exercises for this person and date
+        let existing_entries = self.repository.get_by_person_and_date_range(person_id, date, date);
+        
+        // Get all groups (existing + new)
+        let mut all_groups: std::collections::HashSet<i32> = existing_entries
+            .iter()
+            .map(|e| e.group_number.unwrap_or(1))
+            .collect();
+        
+        // Add new groups
+        for entry in new_entries {
+            all_groups.insert(entry.group_number.unwrap_or(1));
+        }
+        
+        if all_groups.is_empty() {
+            return Ok(());
+        }
+        
+        let min_group = all_groups.iter().min().unwrap();
+        let max_group = all_groups.iter().max().unwrap();
+        
+        // Check that all groups from min to max exist
+        for group_num in *min_group..=*max_group {
+            if !all_groups.contains(&group_num) {
+                return Err(format!(
+                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
+                    group_num
+                ));
+            }
+        }
+        
         Ok(())
     }
 } 
