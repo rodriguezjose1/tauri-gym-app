@@ -66,7 +66,24 @@ export const useWorkoutOperations = ({
       return true;
     } catch (error) {
       console.error("Error updating workout entry:", error);
-      showToast("Error al actualizar el ejercicio", 'error');
+      
+      // Extract the error message - it could be a string or Error object
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = "Error al actualizar el ejercicio";
+      }
+      
+      // Check if it's a group validation error and use the backend message directly
+      if (errorMessage.includes('⚠️')) {
+        showToast(errorMessage, 'error');
+      } else {
+        showToast("Error al actualizar el ejercicio", 'error');
+      }
+      
       return false;
     } finally {
       setSavingEdit(false);

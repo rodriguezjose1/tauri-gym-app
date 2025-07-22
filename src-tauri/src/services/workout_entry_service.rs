@@ -221,6 +221,9 @@ impl WorkoutEntryService {
             }
         }
 
+        // Validate consecutive groups when updating
+        self.validate_workout_entry_update_with_existing(&workout_entry)?;
+
         self.repository.update(workout_entry)
     }
 
@@ -402,6 +405,63 @@ impl WorkoutEntryService {
             all_groups.insert(entry.group_number.unwrap_or(1));
         }
         
+        if all_groups.is_empty() {
+            return Ok(());
+        }
+        
+        let min_group = all_groups.iter().min().unwrap();
+        let max_group = all_groups.iter().max().unwrap();
+        
+        // Check that all groups from min to max exist
+        for group_num in *min_group..=*max_group {
+            if !all_groups.contains(&group_num) {
+                return Err(format!(
+                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
+                    group_num
+                ));
+            }
+        }
+        
+        Ok(())
+    }
+
+    // Validate that workout entry update maintains consecutive groups
+    fn validate_workout_entry_update_with_existing(&self, updated_entry: &WorkoutEntry) -> Result<(), String> {
+        // Get existing exercises for this person and date (excluding the one being updated)
+        let existing_entries = self.repository.get_by_person_and_date_range(
+            updated_entry.person_id, 
+            &updated_entry.date, 
+            &updated_entry.date
+        );
+        
+        // Filter out the entry being updated
+        let other_entries: Vec<_> = existing_entries
+            .into_iter()
+            .filter(|entry| entry.id != updated_entry.id)
+            .collect();
+        
+        // If no other exercises exist, the updated exercise must be in group 1
+        if other_entries.is_empty() {
+            let new_group = updated_entry.group_number.unwrap_or(1);
+            if new_group != 1 {
+                return Err(format!(
+                    "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
+                    new_group
+                ));
+            }
+            return Ok(());
+        }
+        
+        // Get all groups (other existing + updated)
+        let mut all_groups: std::collections::HashSet<i32> = other_entries
+            .iter()
+            .map(|e| e.group_number.unwrap_or(1))
+            .collect();
+        
+        // Add the updated group
+        all_groups.insert(updated_entry.group_number.unwrap_or(1));
+        
+        // If no groups after update, it's valid
         if all_groups.is_empty() {
             return Ok(());
         }

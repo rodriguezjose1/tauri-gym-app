@@ -41,24 +41,8 @@ export const useWorkoutModal = () => {
       return { isValid: true };
     }
 
-    // Get exercises for the same date
-    const dayExercises = workoutData.filter(entry => entry.date === date);
-    
-    // Get exercises in the current group (excluding the one being moved)
-    const currentGroupExercises = dayExercises.filter(entry => 
-      entry.group_number === currentGroupNumber && entry.id !== currentExerciseId
-    );
-
-    // If there are other exercises in the current group, allow the move
-    if (currentGroupExercises.length > 0) {
-      return { isValid: true };
-    }
-
-    // If this is the last exercise in the group, don't allow moving it
-    return { 
-      isValid: false, 
-      message: `No puedes mover el último ejercicio del Grupo ${currentGroupNumber}. El grupo desaparecería. Agrega otro ejercicio al grupo primero o elimina este ejercicio.`
-    };
+    // Allow all group changes - backend will validate consecutiveness
+    return { isValid: true };
   };
 
   const openWorkoutModal = () => {

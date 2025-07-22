@@ -80,7 +80,8 @@ export class WorkoutService {
       await invoke(requestNames.updateWorkoutEntry, { workoutEntry: workoutEntry });
     } catch (error) {
       console.error("Error updating workout entry:", error);
-      throw new Error(`Error al actualizar la entrada de entrenamiento: ${error}`);
+      // Use the backend error message directly
+      throw error;
     }
   }
 
