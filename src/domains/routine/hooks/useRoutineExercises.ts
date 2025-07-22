@@ -123,6 +123,9 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         groupNumber || currentExercise.group_number
       );
       
+      // Renumerar grupos automáticamente después de actualizar
+      await RoutineService.renumberRoutineGroups(routineId);
+      
       // Solo recargar ejercicios si la operación fue exitosa
       await loadExercises();
       
