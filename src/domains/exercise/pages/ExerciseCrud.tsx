@@ -78,13 +78,19 @@ export default function ExerciseCrud() {
     setIsSearchActive(false);
   };
 
-  const loadExercises = async () => {
+  // Reemplazo loadExercises para aceptar page y append
+  const loadExercises = async (page = 1, append = false) => {
     setLoading(true);
     try {
-      const result = await ExerciseService.getExercisesPaginated(currentPage, ITEMS_PER_PAGE);
-      setExercises(result.exercises);
+      const result = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      if (append) {
+        setExercises(prev => [...prev, ...result.exercises]);
+      } else {
+        setExercises(result.exercises);
+      }
+      setCurrentPage(page);
       setTotalExercises(result.total);
-      setHasMore(result.page < result.total_pages);
+      setHasMore(page < result.total_pages);
     } catch (error) {
       console.error("Error loading exercises:", error);
       setExercises([]);
@@ -142,22 +148,24 @@ export default function ExerciseCrud() {
     }
   }, []);
 
+  // Modifico loadMoreExercises para usar la nueva función
   const loadMoreExercises = () => {
     if (hasMore && !loading) {
       if (isSearchActive) {
         searchExercises(searchTerm, currentPage + 1, true);
       } else {
-        loadExercises();
+        loadExercises(currentPage + 1, true);
       }
     }
   };
 
+  // Modifico goToPage para usar la nueva función
   const goToPage = (page: number) => {
     if (page >= 1 && !loading) {
       if (isSearchActive) {
         searchExercises(searchTerm, page, false);
       } else {
-        loadExercises();
+        loadExercises(page, false);
       }
     }
   };
