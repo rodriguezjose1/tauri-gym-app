@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Card, Title, Button } from '../../../shared/components/base';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
-import { DeleteConfirmationModal } from '../../../shared/components/modals/DeleteConfirmationModal';
+
 import { ConfirmationModal } from '../../../shared/components/modals/ConfirmationModal';
 import { SettingsModal } from '../../settings/components/SettingsModal';
 import { LoadRoutineModal } from '../../routine';
@@ -87,15 +87,7 @@ export default function DashboardRefactored() {
         workoutData={data.workoutData}
       />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={modals.delete.showDeleteModal}
-        onCancel={handlers.cancelDelete}
-        onConfirm={handlers.confirmDelete}
-        isDeleting={operations.workout.deletingWorkout}
-        title="Eliminar Ejercicio"
-        message="¿Estás seguro de que deseas eliminar este ejercicio? Esta acción no se puede deshacer."
-      />
+
 
       {/* Load Routine Modal */}
       <LoadRoutineModal

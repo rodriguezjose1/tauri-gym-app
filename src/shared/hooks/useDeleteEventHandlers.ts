@@ -1,4 +1,5 @@
 import { WorkoutEntryWithDetails } from '../types/dashboard';
+import { DASHBOARD_SUCCESS_MESSAGES } from '../constants/errorMessages';
 
 interface UseDeleteEventHandlersProps {
   workoutToDelete: number | null;
@@ -19,8 +20,11 @@ export const useDeleteEventHandlers = ({
 }: UseDeleteEventHandlersProps) => {
 
   const handleDeleteWorkoutEntry = async (id: number) => {
-    // Allow all deletions - no validation needed
-    openDeleteModal(id);
+    // Eliminar directamente sin mostrar modal de confirmación
+    const success = await deleteWorkoutEntry(id);
+    if (success) {
+      showToast?.(DASHBOARD_SUCCESS_MESSAGES.WORKOUT_DELETED, 'success');
+    }
   };
 
   const confirmDeleteWorkoutEntry = async () => {
