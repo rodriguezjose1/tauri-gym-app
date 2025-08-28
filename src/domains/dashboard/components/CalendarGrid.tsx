@@ -1,6 +1,7 @@
 import React from 'react';
 import { WorkoutEntryWithDetails } from '../../../services';
 import { WorkoutItem } from '../../workout';
+import { formatDateForDB, isToday } from '../../../shared/utils/dateUtils';
 import '../../../styles/CalendarGrid.css';
 
 interface CalendarGridProps {
@@ -24,14 +25,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   showWeekends = true,
   onSelectedDateChange
 }) => {
-  const formatDateForDB = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-  };
 
-  const isToday = (date: Date): boolean => {
-    const today = new Date();
-    return formatDateForDB(date) === formatDateForDB(today);
-  };
+
+
 
   return (
     <div className="calendar-grid">

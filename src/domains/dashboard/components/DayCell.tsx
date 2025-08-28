@@ -1,6 +1,7 @@
 import React from 'react';
 import { WorkoutEntryWithDetails } from '../../../services';
 import { WorkoutItem } from '../../workout';
+import { formatDateForDB } from '../../../shared/utils/dateUtils';
 import '../../../styles/DayCell.css';
 
 interface DayCellProps {
@@ -24,9 +25,7 @@ export const DayCell: React.FC<DayCellProps> = ({
   onAddWorkoutClick,
   onDeleteWorkoutEntry
 }) => {
-  const formatDateForDB = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
+
 
   const dayDateString = formatDateForDB(day);
 

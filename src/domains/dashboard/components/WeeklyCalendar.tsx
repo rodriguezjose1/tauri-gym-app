@@ -5,6 +5,7 @@ import { useWeeklyCalendar } from "../hooks/useWeeklyCalendar";
 import { WorkoutEntryWithDetails, RoutineService } from '../../../services';
 import { Button } from "../../../shared/components/base";
 import { useConfig } from "../../../shared/contexts/ConfigContext";
+import { formatDateStringForDB } from "../../../shared/utils/dateUtils";
 import "../../../styles/WeeklyCalendar.css";
 
 // Simple Group Component for Regular Workouts
@@ -184,8 +185,20 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
             <div className={`weekly-calendar-week ${!showWeekends ? 'hide-weekends' : ''}`}>
               {week.map((day, dayIndex) => {
                 const dayDateString = formatDateForDB(day);
+                
                 const dayWorkouts = currentWorkoutData
-                  .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
+                  .filter(workout => {
+                    const formattedWorkoutDate = formatDateStringForDB(workout.date);
+                    // Debug only for specific dates to avoid console spam
+                    if (workout.date.includes('2025-08-25') || workout.date.includes('2025-08-27')) {
+                      console.log('=== DEBUG DATE MATCHING ===');
+                      console.log('Day date string:', dayDateString);
+                      console.log('Workout date from DB:', workout.date);
+                      console.log('Formatted workout date:', formattedWorkoutDate);
+                      console.log('Match:', formattedWorkoutDate === dayDateString);
+                    }
+                    return formattedWorkoutDate === dayDateString;
+                  })
                   .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
                 const dayOfWeek = day.getDay();

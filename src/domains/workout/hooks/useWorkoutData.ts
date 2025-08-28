@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { WorkoutEntryWithDetails, Person } from '../../../shared/types/dashboard';
 import { WorkoutService } from '../../../services';
+import { formatDateStringForDB } from '../../../shared/utils/dateUtils';
 
 interface UseWorkoutDataProps {
   selectedPerson: Person | null;
@@ -62,8 +63,8 @@ export const useWorkoutData = ({ selectedPerson }: UseWorkoutDataProps) => {
   // Get workout entries for a specific date
   const getWorkoutEntriesForDate = (date: string): WorkoutEntryWithDetails[] => {
     return workoutData.filter(entry => {
-      const entryDate = new Date(entry.date).toISOString().split('T')[0];
-      return entryDate === date;
+      const formattedEntryDate = formatDateStringForDB(entry.date);
+      return formattedEntryDate === date;
     });
   };
 
