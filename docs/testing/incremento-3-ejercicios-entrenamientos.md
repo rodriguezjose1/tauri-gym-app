@@ -4,7 +4,7 @@ Fecha: 2026-10-04. Este incremento amplía el paquete SQLite aislado de `src-tau
 
 ## Contratos cubiertos
 
-El incremento agrega 22 pruebas: 14 contratos esperados y 8 diagnósticos del comportamiento actual.
+El incremento agrega 22 pruebas: 14 contratos iniciales y 8 contratos de regresión surgidos de los diagnósticos.
 
 Los contratos verifican:
 
@@ -18,22 +18,22 @@ Los contratos verifican:
 - Atomicidad ante fallos de inserción, edición, orden y eliminación: la transacción revierte y conserva el estado anterior.
 - Renumeración de grupos limitada a la persona y fecha solicitadas.
 
-## Inconsistencias reproducidas
+## Inconsistencias corregidas
 
-Estas pruebas pasan porque documentan el comportamiento observado. No significan que el comportamiento sea correcto.
+Los ocho diagnósticos fueron corregidos y convertidos en contratos de regresión.
 
-| ID | Comportamiento observado | Riesgo |
-| --- | --- | --- |
-| EX-01 | El catálogo acepta nombre y código vacíos o formados por espacios. | Se pueden crear ejercicios que no pueden identificarse correctamente en la interfaz. |
-| EX-02 | Editar, eliminar o restaurar un ejercicio inexistente devuelve éxito. | La interfaz puede informar una operación que no modificó ninguna fila. |
-| EX-03 | Los errores de lectura del catálogo se convierten en lista vacía o conteo cero. | Un fallo de SQLite parece un catálogo legítimamente vacío. |
-| EX-04 | Página 0 y tamaño negativo son aceptados. | La respuesta de paginación puede ser incoherente o el límite solicitado puede ignorarse. |
-| WO-01 | Fechas con formato correcto pero imposibles, como `2026-02-31`, son aceptadas. | Los entrenamientos pueden quedar asociados a días inexistentes. |
-| WO-02 | `create_batch` acepta elementos de distintas personas y fechas, mientras `create_workout_session` lo rechaza. | Dos entradas equivalentes tienen reglas diferentes según el comando usado. |
-| WO-04 | Editar u ordenar IDs inexistentes devuelve éxito. | El llamador no puede distinguir una actualización real de una operación sin efecto. |
-| WO-05 | Los errores de lectura de entrenamientos se convierten en `None` o listas vacías. | Un fallo de base puede ocultar sesiones existentes y provocar decisiones con estado incompleto. |
+| ID | Contrato final |
+| --- | --- |
+| EX-01 | Crear o editar rechaza nombres y códigos vacíos o formados por espacios. |
+| EX-02 | Editar, eliminar o restaurar exige una fila existente en el estado correspondiente. |
+| EX-03 | Las lecturas del catálogo propagan los errores de SQLite hasta Tauri y la interfaz conserva los datos anteriores. |
+| EX-04 | La página debe ser mayor o igual a 1 y el tamaño debe estar entre 1 y 100. |
+| WO-01 | La fecha debe existir en el calendario gregoriano, incluidos los años bisiestos. |
+| WO-02 | Los lotes, igual que las sesiones, solo aceptan una persona y una fecha. |
+| WO-04 | Editar u ordenar exige que todos los IDs de entrenamiento existan; el cambio de orden se revierte por completo ante un ID ausente. |
+| WO-05 | Las lecturas de entrenamientos propagan errores y los hooks conservan la información cargada. |
 
-EX-03 y WO-05 repiten el problema de propagación que ya se corrigió para personas, pero los repositorios de ejercicios y entrenamientos todavía conservan el contrato anterior.
+Los repositorios, servicios y comandos Tauri usan `Result` para las lecturas de ejercicios y entrenamientos. Los fallos ya no se representan como ausencia de datos.
 
 ## Ejecución
 
@@ -48,4 +48,4 @@ Para ejecutar únicamente este incremento:
 cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked exercises_workouts
 ```
 
-Este incremento no modifica las reglas productivas encontradas como inconsistentes. Las migraciones y compatibilidad con esquemas anteriores pertenecen al incremento 5 de la planificación general.
+Las migraciones y compatibilidad con esquemas anteriores pertenecen al incremento 5 de la planificación general.

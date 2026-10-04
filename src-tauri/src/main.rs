@@ -87,12 +87,12 @@ fn create_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> R
 }
 
 #[tauri::command]
-fn get_exercises(service: State<'_, ExerciseService>) -> Vec<Exercise> {
+fn get_exercises(service: State<'_, ExerciseService>) -> Result<Vec<Exercise>, String> {
     service.list_exercises()
 }
 
 #[tauri::command]
-fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> models::exercise::PaginatedExerciseResponse {
+fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> Result<models::exercise::PaginatedExerciseResponse, String> {
     service.list_exercises_paginated(page, page_size)
 }
 
@@ -107,12 +107,12 @@ fn restore_exercise(service: State<'_, ExerciseService>, id: i32) -> Result<(), 
 }
 
 #[tauri::command]
-fn get_deleted_exercises(service: State<'_, ExerciseService>) -> Vec<Exercise> {
+fn get_deleted_exercises(service: State<'_, ExerciseService>) -> Result<Vec<Exercise>, String> {
     service.list_deleted_exercises()
 }
 
 #[tauri::command]
-fn count_deleted_exercises(service: State<'_, ExerciseService>) -> i32 {
+fn count_deleted_exercises(service: State<'_, ExerciseService>) -> Result<i32, String> {
     service.count_deleted_exercises()
 }
 
@@ -122,7 +122,7 @@ fn update_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> R
 }
 
 #[tauri::command]
-fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> models::exercise::PaginatedExerciseResponse {
+fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> Result<models::exercise::PaginatedExerciseResponse, String> {
     service.search_exercises_paginated(&query, page, page_size)
 }
 
@@ -148,12 +148,12 @@ fn get_workout_entries_by_person_and_date_range(
     person_id: i32, 
     start_date: String, 
     end_date: String
-) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
+) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     service.get_workout_entries_by_person_and_date_range(person_id, &start_date, &end_date)
 }
 
 #[tauri::command]
-fn get_workout_entries_by_person(service: State<'_, WorkoutEntryService>, person_id: i32) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
+fn get_workout_entries_by_person(service: State<'_, WorkoutEntryService>, person_id: i32) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     service.get_workout_entries_by_person(person_id)
 }
 
@@ -168,7 +168,7 @@ fn delete_workout_entry(service: State<'_, WorkoutEntryService>, id: i32) -> Res
 }
 
 #[tauri::command]
-fn get_all_workout_entries(service: State<'_, WorkoutEntryService>) -> Vec<models::workout_entry::WorkoutEntryWithDetails> {
+fn get_all_workout_entries(service: State<'_, WorkoutEntryService>) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     service.list_all_workout_entries()
 }
 

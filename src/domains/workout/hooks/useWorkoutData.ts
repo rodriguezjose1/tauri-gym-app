@@ -42,12 +42,13 @@ export const useWorkoutData = ({ selectedPerson }: UseWorkoutDataProps) => {
         try {
           const fallbackResult = await WorkoutService.getWorkoutEntriesByPerson(targetPersonId);
           setWorkoutData(fallbackResult as WorkoutEntryWithDetails[]);
+          setError(null);
+          return;
         } catch (fallbackError) {
           console.error("Fallback also failed:", fallbackError);
         }
       }
       setError('Error loading workout entries');
-      setWorkoutData([]);
     } finally {
       setWorkoutLoading(false);
     }

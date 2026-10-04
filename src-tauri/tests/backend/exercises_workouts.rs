@@ -117,6 +117,7 @@ impl Fixture {
     fn entries_for(&self, person_id: i32) -> Vec<WorkoutEntryWithDetails> {
         self.workout_service
             .get_workout_entries_by_person(person_id)
+            .unwrap()
     }
 }
 
@@ -138,8 +139,8 @@ mod contracts {
         f.create_exercise("Press banca", "PB");
         f.create_exercise("Remo", "ROW");
 
-        let first = f.exercise_service.list_exercises_paginated(1, 2);
-        let second = f.exercise_service.list_exercises_paginated(2, 2);
+        let first = f.exercise_service.list_exercises_paginated(1, 2).unwrap();
+        let second = f.exercise_service.list_exercises_paginated(2, 2).unwrap();
         assert_eq!((first.total, first.total_pages), (3, 2));
         assert_eq!(exercise_codes(&first), ["PB", "ROW"]);
         assert_eq!(exercise_codes(&second), ["SQ"]);
@@ -147,6 +148,7 @@ mod contracts {
             exercise_codes(
                 &f.exercise_service
                     .search_exercises_paginated("press", 1, 10)
+                    .unwrap()
             ),
             ["PB"]
         );
@@ -159,20 +161,29 @@ mod contracts {
             })
             .unwrap();
         assert_eq!(
-            exercise_codes(&f.exercise_service.search_exercises_paginated("SQF", 1, 10)),
+            exercise_codes(
+                &f.exercise_service
+                    .search_exercises_paginated("SQF", 1, 10)
+                    .unwrap()
+            ),
             ["SQF"]
         );
         f.exercise_service.delete_exercise(squat).unwrap();
-        assert_eq!(f.exercise_service.count_deleted_exercises(), 1);
+        assert_eq!(f.exercise_service.count_deleted_exercises().unwrap(), 1);
         assert!(f
             .exercise_service
             .search_exercises_paginated("SQF", 1, 10)
+            .unwrap()
             .exercises
             .is_empty());
         f.exercise_service.restore_exercise(squat).unwrap();
-        assert_eq!(f.exercise_service.count_deleted_exercises(), 0);
+        assert_eq!(f.exercise_service.count_deleted_exercises().unwrap(), 0);
         assert_eq!(
-            exercise_codes(&f.exercise_service.search_exercises_paginated("SQF", 1, 10)),
+            exercise_codes(
+                &f.exercise_service
+                    .search_exercises_paginated("SQF", 1, 10)
+                    .unwrap()
+            ),
             ["SQF"]
         );
     }
@@ -190,7 +201,7 @@ mod contracts {
             })
             .unwrap_err();
         assert!(error.contains("UNIQUE"));
-        assert_eq!(f.exercise_service.list_exercises().len(), 1);
+        assert_eq!(f.exercise_service.list_exercises().unwrap().len(), 1);
     }
 
     #[test]
@@ -295,7 +306,8 @@ mod contracts {
         }
         let range = f
             .workout_service
-            .get_workout_entries_by_person_and_date_range(ana, "2026-09-11", "2026-09-12");
+            .get_workout_entries_by_person_and_date_range(ana, "2026-09-11", "2026-09-12")
+            .unwrap();
         assert_eq!(range.len(), 1);
         assert_eq!(range[0].date, "2026-09-12");
         assert_eq!(f.entries_for(ana).len(), 2);
@@ -328,12 +340,16 @@ mod contracts {
                 .collect::<Vec<_>>(),
             [second_id, first_id]
         );
-        let mut updated = f.workout_repository.get_by_id(first_id).unwrap();
+        let mut updated = f.workout_repository.get_by_id(first_id).unwrap().unwrap();
         updated.sets = Some(5);
         updated.notes = Some("editado".into());
         f.workout_service.update_workout_entry(updated).unwrap();
         assert_eq!(
-            f.workout_repository.get_by_id(first_id).unwrap().sets,
+            f.workout_repository
+                .get_by_id(first_id)
+                .unwrap()
+                .unwrap()
+                .sets,
             Some(5)
         );
         f.workout_service.delete_workout_entry(second_id).unwrap();
@@ -416,7 +432,7 @@ mod contracts {
         f.workout_service
             .create_workout_entry(f.entry(ana, squat, "2026-09-10"))
             .unwrap();
-        let original = f.workout_repository.get_by_id(1).unwrap();
+        let original = f.workout_repository.get_by_id(1).unwrap().unwrap();
         f.connection().execute_batch("CREATE TRIGGER fail_workout_update BEFORE UPDATE ON workout_entries BEGIN SELECT RAISE(ABORT, 'workout update blocked'); END;").unwrap();
         let mut edited = original.clone();
         edited.sets = Some(9);
@@ -425,14 +441,14 @@ mod contracts {
             .workout_service
             .update_exercise_order(vec![(1, 4)])
             .is_err());
-        let unchanged = f.workout_repository.get_by_id(1).unwrap();
+        let unchanged = f.workout_repository.get_by_id(1).unwrap().unwrap();
         assert_eq!(
             (unchanged.sets, unchanged.order_index),
             (original.sets, original.order_index)
         );
         f.connection().execute_batch("DROP TRIGGER fail_workout_update; CREATE TRIGGER fail_workout_delete BEFORE DELETE ON workout_entries BEGIN SELECT RAISE(ABORT, 'workout delete blocked'); END;").unwrap();
         assert!(f.workout_service.delete_workout_entry(1).is_err());
-        assert!(f.workout_repository.get_by_id(1).is_some());
+        assert!(f.workout_repository.get_by_id(1).unwrap().is_some());
     }
 
     #[test]
@@ -496,7 +512,7 @@ mod contracts {
         let first = Fixture::new();
         let second = Fixture::new();
         first.create_exercise("Sentadilla", "SQ");
-        assert!(second.exercise_service.list_exercises().is_empty());
+        assert!(second.exercise_service.list_exercises().unwrap().is_empty());
         let path = first.directory.path().to_owned();
         drop(first);
         assert!(!path.exists());
@@ -509,29 +525,37 @@ mod contracts {
             .workout_service
             .create_workout_entry(f.entry(999, 999, "2026-09-10"));
         assert!(result.unwrap_err().contains("FOREIGN KEY"));
-        assert!(f.workout_repository.get_by_id(1).is_none());
+        assert!(f.workout_repository.get_by_id(1).unwrap().is_none());
     }
 }
 
-mod diagnostics {
+mod corrected_contracts {
     use super::*;
 
     #[test]
-    fn ex01_blank_exercise_fields_are_accepted() {
+    fn ex01_blank_exercise_fields_are_rejected() {
         let f = Fixture::new();
         assert!(f
             .exercise_service
             .create_exercise(Exercise {
                 id: None,
                 name: " ".into(),
+                code: "SQ".into()
+            })
+            .is_err());
+        assert!(f
+            .exercise_service
+            .create_exercise(Exercise {
+                id: None,
+                name: "Squat".into(),
                 code: " ".into()
             })
-            .is_ok());
-        assert_eq!(f.exercise_service.list_exercises().len(), 1);
+            .is_err());
+        assert!(f.exercise_service.list_exercises().unwrap().is_empty());
     }
 
     #[test]
-    fn ex02_missing_exercise_mutations_report_success() {
+    fn ex02_missing_exercise_mutations_report_errors() {
         let f = Fixture::new();
         assert!(f
             .exercise_service
@@ -540,57 +564,49 @@ mod diagnostics {
                 name: "Missing".into(),
                 code: "MISS".into()
             })
-            .is_ok());
-        assert!(f.exercise_service.delete_exercise(999).is_ok());
-        assert!(f.exercise_service.restore_exercise(999).is_ok());
+            .is_err());
+        assert!(f.exercise_service.delete_exercise(999).is_err());
+        assert!(f.exercise_service.restore_exercise(999).is_err());
     }
 
     #[test]
-    fn ex03_exercise_read_failures_look_like_empty_state() {
+    fn ex03_exercise_read_failures_are_propagated() {
         let f = Fixture::new();
         f.create_exercise("Sentadilla", "SQ");
         f.connection()
             .execute_batch("ALTER TABLE exercise RENAME TO unavailable_exercise;")
             .unwrap();
-        assert!(f.exercise_service.list_exercises().is_empty());
-        assert_eq!(f.exercise_service.list_exercises_paginated(1, 10).total, 0);
+        assert!(f.exercise_service.list_exercises().is_err());
+        assert!(f.exercise_service.list_exercises_paginated(1, 10).is_err());
         assert!(f
             .exercise_service
             .search_exercises_paginated("SQ", 1, 10)
-            .exercises
-            .is_empty());
+            .is_err());
     }
 
     #[test]
-    fn ex04_invalid_exercise_pagination_is_accepted() {
+    fn ex04_invalid_exercise_pagination_is_rejected() {
         let f = Fixture::new();
         f.create_exercise("Sentadilla", "SQ");
-        let zero_page = f.exercise_service.list_exercises_paginated(0, 10);
-        let negative_size = f.exercise_service.list_exercises_paginated(1, -1);
-        assert_eq!(zero_page.exercises.len(), 1);
-        assert_eq!(
-            (negative_size.exercises.len(), negative_size.total_pages),
-            (1, 0)
-        );
+        assert!(f.exercise_service.list_exercises_paginated(0, 10).is_err());
+        assert!(f.exercise_service.list_exercises_paginated(1, -1).is_err());
+        assert!(f.exercise_service.list_exercises_paginated(1, 101).is_err());
     }
 
     #[test]
-    fn wo01_impossible_calendar_date_is_accepted() {
+    fn wo01_impossible_calendar_date_is_rejected() {
         let f = Fixture::new();
         let ana = f.person_id("Ana");
         let squat = f.create_exercise("Sentadilla", "SQ");
         assert!(f
             .workout_service
             .create_workout_entry(f.entry(ana, squat, "2026-02-31"))
-            .is_ok());
-        assert_eq!(
-            f.workout_repository.get_by_id(1).unwrap().date,
-            "2026-02-31"
-        );
+            .is_err());
+        assert!(f.workout_repository.get_by_id(1).unwrap().is_none());
     }
 
     #[test]
-    fn wo02_batch_accepts_mixed_people_and_dates() {
+    fn wo02_batch_rejects_mixed_people_and_dates() {
         let f = Fixture::new();
         let ana = f.person_id("Ana");
         let luis = f.person_id("Luis");
@@ -601,28 +617,38 @@ mod diagnostics {
                 f.entry(ana, squat, "2026-09-10"),
                 f.entry(luis, squat, "2026-09-11")
             ])
-            .is_ok());
-        assert_eq!(f.entries_for(ana).len(), 1);
-        assert_eq!(f.entries_for(luis).len(), 1);
+            .is_err());
+        assert!(f.entries_for(ana).is_empty());
+        assert!(f.entries_for(luis).is_empty());
     }
 
     #[test]
-    fn wo04_missing_update_and_order_ids_report_success() {
+    fn wo04_missing_update_and_order_ids_report_errors() {
         let f = Fixture::new();
         let ana = f.person_id("Ana");
         let squat = f.create_exercise("Sentadilla", "SQ");
+        f.workout_service
+            .create_workout_entry(f.entry(ana, squat, "2026-09-10"))
+            .unwrap();
         let mut missing = f.entry(ana, squat, "2026-09-10");
         missing.id = Some(999);
-        assert!(f.workout_service.update_workout_entry(missing).is_ok());
+        assert!(f.workout_service.update_workout_entry(missing).is_err());
         assert!(f
             .workout_service
-            .update_exercise_order(vec![(999, 1)])
-            .is_ok());
-        assert!(f.entries_for(ana).is_empty());
+            .update_exercise_order(vec![(1, 5), (999, 1)])
+            .is_err());
+        assert_eq!(
+            f.workout_repository
+                .get_by_id(1)
+                .unwrap()
+                .unwrap()
+                .order_index,
+            Some(0)
+        );
     }
 
     #[test]
-    fn wo05_workout_read_failures_look_like_empty_state() {
+    fn wo05_workout_read_failures_are_propagated() {
         let f = Fixture::new();
         let ana = f.person_id("Ana");
         let squat = f.create_exercise("Sentadilla", "SQ");
@@ -632,8 +658,11 @@ mod diagnostics {
         f.connection()
             .execute_batch("ALTER TABLE workout_entries RENAME TO unavailable_workouts;")
             .unwrap();
-        assert!(f.workout_service.get_workout_entry(1).is_none());
-        assert!(f.entries_for(ana).is_empty());
-        assert!(f.workout_service.list_all_workout_entries().is_empty());
+        assert!(f.workout_service.get_workout_entry(1).is_err());
+        assert!(f
+            .workout_service
+            .get_workout_entries_by_person(ana)
+            .is_err());
+        assert!(f.workout_service.list_all_workout_entries().is_err());
     }
 }

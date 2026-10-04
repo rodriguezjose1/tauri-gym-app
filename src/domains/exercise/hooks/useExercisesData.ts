@@ -10,6 +10,7 @@ export const useExercisesData = () => {
   // Load exercises
   const loadExercises = async () => {
     setExercisesLoading(true);
+    setError(null);
     try {
       const result = await ExerciseService.getExercises();
       setExercises(result);
@@ -22,7 +23,7 @@ export const useExercisesData = () => {
         setExercises(fallbackResult.exercises);
       } catch (fallbackError) {
         console.error('Fallback error:', fallbackError);
-        setExercises([]);
+        setError('Error loading exercises');
       }
     } finally {
       setExercisesLoading(false);
@@ -60,4 +61,4 @@ export const useExercisesData = () => {
     getExerciseById,
     getExercisesByIds
   };
-}; 
+};

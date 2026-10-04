@@ -68,7 +68,7 @@ export default function ExerciseCrud() {
       setDeletedExercisesCount(count);
     } catch (error) {
       console.error("Error loading deleted exercises count:", error);
-      setDeletedExercisesCount(0);
+      addNotification('No se pudo obtener la cantidad de ejercicios eliminados.', 'error', 5000);
     }
   };
 
@@ -93,7 +93,7 @@ export default function ExerciseCrud() {
       setHasMore(page < result.total_pages);
     } catch (error) {
       console.error("Error loading exercises:", error);
-      setExercises([]);
+      addNotification('No se pudieron cargar los ejercicios.', 'error', 5000);
     } finally {
       setLoading(false);
     }
@@ -107,8 +107,7 @@ export default function ExerciseCrud() {
       setDeletedExercisesCount(result.length);
     } catch (error) {
       console.error("Error loading deleted exercises:", error);
-      setDeletedExercises([]);
-      setDeletedExercisesCount(0);
+      addNotification('No se pudieron cargar los ejercicios eliminados.', 'error', 5000);
     } finally {
       setLoading(false);
     }
@@ -143,6 +142,7 @@ export default function ExerciseCrud() {
       setHasMore(page < response.total_pages);
     } catch (error) {
       console.error("Error searching exercises:", error);
+      addNotification('No se pudo completar la búsqueda de ejercicios.', 'error', 5000);
     } finally {
       setLoading(false);
     }
@@ -736,4 +736,4 @@ export default function ExerciseCrud() {
       </Modal>
     </div>
   );
-} 
+}

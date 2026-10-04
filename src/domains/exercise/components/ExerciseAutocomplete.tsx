@@ -66,7 +66,6 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     } catch (error) {
       console.error("Error searching exercises:", error);
       setSearchError('No se pudieron buscar los ejercicios. Volvé a escribir para reintentar.');
-      setExercises([]);
       setHasMore(false);
     } finally {
       setLoading(false);

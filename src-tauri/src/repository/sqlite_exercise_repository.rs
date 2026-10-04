@@ -1,6 +1,6 @@
 use crate::models::exercise::Exercise;
 use crate::repository::exercise_repository::ExerciseRepository;
-use rusqlite::{Connection, params, Result as SqliteResult};
+use rusqlite::{params, Connection, Result as SqliteResult};
 
 pub struct SqliteExerciseRepository {
     db_path: String,
@@ -9,20 +9,16 @@ pub struct SqliteExerciseRepository {
 
 impl SqliteExerciseRepository {
     pub fn new(db_path: &str) -> Self {
-        let repo = Self {
-            db_path: db_path.to_string(),
-            is_dummy: false,
-        };
-        repo.create_table().expect("Failed to create exercise table");
-        repo
+        Self::new_safe(db_path).expect("Failed to create exercise table")
     }
 
     pub fn new_safe(db_path: &str) -> Result<Self, String> {
         let repo = Self {
-            db_path: db_path.to_string(),
+            db_path: db_path.into(),
             is_dummy: false,
         };
-        repo.create_table().map_err(|e| format!("Failed to create exercise table: {}", e))?;
+        repo.create_table()
+            .map_err(|e| format!("Failed to create exercise table: {e}"))?;
         Ok(repo)
     }
 
@@ -37,14 +33,17 @@ impl SqliteExerciseRepository {
         if self.is_dummy {
             return Ok(());
         }
-        
         let conn = Connection::open(&self.db_path)?;
-        
-        // Check if logical deletion migration is needed
-        if self.check_if_logical_deletion_migration_needed(&conn)? {
-            self.migrate_logical_deletion(&conn)?;
+        if self.logical_deletion_migration_needed(&conn)? {
+            conn.execute(
+                "ALTER TABLE exercise ADD COLUMN deleted_at DATETIME NULL",
+                [],
+            )?;
+            conn.execute(
+                "ALTER TABLE exercise ADD COLUMN is_active BOOLEAN DEFAULT 1",
+                [],
+            )?;
         } else {
-            // Create new table with logical deletion fields
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS exercise (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,308 +58,167 @@ impl SqliteExerciseRepository {
         Ok(())
     }
 
-    fn check_if_logical_deletion_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
-        if self.is_dummy { return Ok(false); }
-        
-        // Check if table exists but doesn't have logical deletion fields
-        let mut stmt = conn.prepare(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='exercise'"
-        )?;
-        
-        let table_sql: Result<String, _> = stmt.query_row([], |row| {
-            Ok(row.get::<_, String>(0)?)
-        });
-        
-        match table_sql {
+    fn logical_deletion_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
+        let sql = conn.query_row(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='exercise'",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        match sql {
             Ok(sql) => Ok(!sql.contains("deleted_at") && !sql.contains("is_active")),
-            Err(_) => Ok(false), // Table doesn't exist, no migration needed
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
+            Err(error) => Err(error),
         }
     }
 
-    fn migrate_logical_deletion(&self, conn: &Connection) -> SqliteResult<()> {
-        if self.is_dummy { return Ok(()); }
-        println!("Adding logical deletion fields to exercise table...");
-        
-        // Add logical deletion columns
-        conn.execute(
-            "ALTER TABLE exercise ADD COLUMN deleted_at DATETIME NULL",
-            [],
-        )?;
-        
-        conn.execute(
-            "ALTER TABLE exercise ADD COLUMN is_active BOOLEAN DEFAULT 1",
-            [],
-        )?;
-        
-        println!("Logical deletion migration completed successfully!");
-        Ok(())
-    }
-
-    fn get_connection(&self) -> SqliteResult<Connection> {
+    fn connection(&self) -> Result<Connection, String> {
         if self.is_dummy {
-            return Err(rusqlite::Error::InvalidQuery);
+            return Err("Exercise repository unavailable".into());
         }
-        Connection::open(&self.db_path)
+        Connection::open(&self.db_path).map_err(|e| e.to_string())
+    }
+
+    fn map_exercise(row: &rusqlite::Row<'_>) -> rusqlite::Result<Exercise> {
+        Ok(Exercise {
+            id: Some(row.get(0)?),
+            name: row.get(1)?,
+            code: row.get(2)?,
+        })
+    }
+
+    fn query_list(
+        &self,
+        sql: &str,
+        values: &[&dyn rusqlite::ToSql],
+    ) -> Result<Vec<Exercise>, String> {
+        let conn = self.connection()?;
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(values, Self::map_exercise)
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 }
 
 impl ExerciseRepository for SqliteExerciseRepository {
     fn create(&self, exercise: Exercise) -> Result<(), String> {
-        if self.is_dummy {
-            return Ok(());
-        }
-        
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let conn = self.connection()?;
         conn.execute(
             "INSERT INTO exercise (name, code) VALUES (?1, ?2)",
             params![exercise.name, exercise.code],
-        ).map_err(|e| e.to_string())?;
+        )
+        .map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn list(&self) -> Vec<Exercise> {
-        if self.is_dummy {
-            return Vec::new();
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, code FROM exercise 
+    fn list(&self) -> Result<Vec<Exercise>, String> {
+        self.query_list(
+            "SELECT id, name, code FROM exercise
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-        
-        let exercise_iter = match stmt.query_map([], |row| {
-            Ok(Exercise {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-            })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        exercise_iter.filter_map(|exercise| exercise.ok()).collect()
+             ORDER BY name",
+            &[],
+        )
     }
 
-    fn list_paginated(&self, page: i32, page_size: i32) -> Vec<Exercise> {
-        if self.is_dummy {
-            return Vec::new();
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-
-        let offset = (page - 1) * page_size;
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, code FROM exercise 
+    fn list_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Exercise>, String> {
+        let offset = (page - 1)
+            .checked_mul(page_size)
+            .ok_or("Pagination overflow")?;
+        self.query_list(
+            "SELECT id, name, code FROM exercise
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name
-             LIMIT ?1 OFFSET ?2"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
+             ORDER BY name LIMIT ?1 OFFSET ?2",
+            &[&page_size, &offset],
+        )
+    }
 
-        let exercise_iter = match stmt.query_map(params![page_size, offset], |row| {
-            Ok(Exercise {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-            })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        exercise_iter.filter_map(|exercise| exercise.ok()).collect()
+    fn count(&self) -> Result<i32, String> {
+        self.connection()?.query_row(
+            "SELECT COUNT(*) FROM exercise WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
+            [], |row| row.get(0),
+        ).map_err(|e| e.to_string())
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
-        if self.is_dummy {
-            return Ok(());
-        }
-        
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        // Logical deletion instead of physical deletion
-        conn.execute(
-            "UPDATE exercise SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1",
-            params![id]
+        let changed = self.connection()?.execute(
+            "UPDATE exercise SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1 AND (is_active = 1 OR is_active IS NULL)", [id],
         ).map_err(|e| e.to_string())?;
-        Ok(())
+        if changed == 0 {
+            Err("Active exercise not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn restore(&self, id: i32) -> Result<(), String> {
-        if self.is_dummy {
-            return Ok(());
-        }
-        
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        // Restore logically deleted exercise
-        conn.execute(
-            "UPDATE exercise SET deleted_at = NULL, is_active = 1 WHERE id = ?1",
-            params![id]
+        let changed = self.connection()?.execute(
+            "UPDATE exercise SET deleted_at = NULL, is_active = 1 WHERE id = ?1 AND is_active = 0", [id],
         ).map_err(|e| e.to_string())?;
-        Ok(())
+        if changed == 0 {
+            Err("Deleted exercise not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn update(&self, exercise: Exercise) -> Result<(), String> {
-        if self.is_dummy {
-            return Ok(());
+        let changed = self
+            .connection()?
+            .execute(
+                "UPDATE exercise SET name = ?1, code = ?2 WHERE id = ?3",
+                params![exercise.name, exercise.code, exercise.id],
+            )
+            .map_err(|e| e.to_string())?;
+        if changed == 0 {
+            Err("Exercise not found".into())
+        } else {
+            Ok(())
         }
-        
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
-        conn.execute(
-            "UPDATE exercise SET name = ?1, code = ?2 WHERE id = ?3",
-            params![exercise.name, exercise.code, exercise.id],
-        ).map_err(|e| e.to_string())?;
-        Ok(())
     }
 
-    fn count(&self) -> i32 {
-        if self.is_dummy {
-            return 0;
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
-        
-        let count: Result<i32, _> = conn.query_row(
-            "SELECT COUNT(*) FROM exercise 
-             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
-            [],
-            |row| row.get(0),
-        );
-        
-        count.unwrap_or(0)
-    }
-
-    fn search_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Exercise> {
-        if self.is_dummy {
-            return Vec::new();
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-
-        let offset = (page - 1) * page_size;
-        let search_pattern = format!("%{}%", query);
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, code FROM exercise 
-             WHERE (name LIKE ?1 OR code LIKE ?1) 
+    fn search_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Exercise>, String> {
+        let offset = (page - 1)
+            .checked_mul(page_size)
+            .ok_or("Pagination overflow")?;
+        let pattern = format!("%{query}%");
+        self.query_list(
+            "SELECT id, name, code FROM exercise
+             WHERE (name LIKE ?1 OR code LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name
-             LIMIT ?2 OFFSET ?3"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-
-        let exercise_iter = match stmt.query_map(params![search_pattern, page_size, offset], |row| {
-            Ok(Exercise {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-            })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        exercise_iter.filter_map(|exercise| exercise.ok()).collect()
+             ORDER BY name LIMIT ?2 OFFSET ?3",
+            &[&pattern, &page_size, &offset],
+        )
     }
 
-    fn search_count(&self, query: &str) -> i32 {
-        if self.is_dummy {
-            return 0;
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
-        
-        let search_pattern = format!("%{}%", query);
-        
-        let count: Result<i32, _> = conn.query_row(
-            "SELECT COUNT(*) FROM exercise 
-             WHERE (name LIKE ?1 OR code LIKE ?1) 
+    fn search_count(&self, query: &str) -> Result<i32, String> {
+        let pattern = format!("%{query}%");
+        self.connection()?
+            .query_row(
+                "SELECT COUNT(*) FROM exercise WHERE (name LIKE ?1 OR code LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
-            params![search_pattern],
-            |row| row.get(0),
-        );
-        
-        count.unwrap_or(0)
+                [pattern],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())
     }
 
-    fn list_deleted(&self) -> Vec<Exercise> {
-        if self.is_dummy {
-            return Vec::new();
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, code FROM exercise 
-             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             ORDER BY deleted_at DESC"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-        
-        let exercise_iter = match stmt.query_map([], |row| {
-            Ok(Exercise {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-            })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        exercise_iter.filter_map(|exercise| exercise.ok()).collect()
+    fn list_deleted(&self) -> Result<Vec<Exercise>, String> {
+        self.query_list(
+            "SELECT id, name, code FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0 ORDER BY deleted_at DESC",
+            &[],
+        )
     }
 
-    fn count_deleted(&self) -> i32 {
-        if self.is_dummy {
-            return 0;
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
-        
-        let count: Result<i32, _> = conn.query_row(
-            "SELECT COUNT(*) FROM exercise 
-             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
-            [],
-            |row| row.get(0),
-        );
-        
-        count.unwrap_or(0)
+    fn count_deleted(&self) -> Result<i32, String> {
+        self.connection()?.query_row(
+            "SELECT COUNT(*) FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
+            [], |row| row.get(0),
+        ).map_err(|e| e.to_string())
     }
-} 
+}
