@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 coverage/
+src-tauri/tests/backend/target/
 *.local
 
 # Editor directories and files

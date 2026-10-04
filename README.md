@@ -35,6 +35,16 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## Testing
+
+```bash
+npm run test:run      # Frontend
+npm run test:backend  # Person services/repositories with isolated real SQLite files
+npm run test:all      # Both suites
+```
+
+Backend tests import production Rust files directly and do not require Tauri API keys or access the app database. Rust/Cargo and a C compiler are required. Some tests characterize known inconsistencies; passing them does not mean those issues are fixed. See [backend testing findings](docs/testing/incremento-2-backend.md).
+
 ## Features
 
 - Person management

@@ -17,7 +17,9 @@
     "test:coverage": "vitest run --coverage",
     "test:persistence": "vitest run src/domains/person/hooks/usePeopleData.test.js src/domains/dashboard/pages/Dashboard.persistence.test.jsx",
     "test:dates": "vitest run src/shared/utils/dateUtils.test.js src/domains/workout/hooks/useWorkoutData.test.js src/domains/dashboard/components/Calendar.dates.test.jsx",
-    "test:dashboard": "vitest run src/test/Dashboard.test.jsx src/test/Dashboard.integration.test.jsx"
+    "test:dashboard": "vitest run src/test/Dashboard.test.jsx src/test/Dashboard.integration.test.jsx",
+    "test:backend": "cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked",
+    "test:all": "npm run test:run && npm run test:backend"
   },
   "dependencies": {
     "@chakra-ui/form-control": "^2.2.0",
