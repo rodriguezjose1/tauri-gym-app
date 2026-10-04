@@ -26,6 +26,11 @@ export default function DashboardRefactored() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-wrapper">
+        {data.persistenceWarning && (
+          <p role="alert" className="dashboard-persistence-warning">
+            {data.persistenceWarning}
+          </p>
+        )}
         {/* Weekly Calendar Card */}
         <Card variant="elevated" padding="lg" className="dashboard-calendar-card">
           <div className="dashboard-calendar-header">
@@ -136,4 +141,4 @@ export default function DashboardRefactored() {
       />
     </div>
   );
-} 
+}

@@ -55,6 +55,7 @@ export const useDashboardDataComposer = () => {
     routinesLoading: routinesHook.routinesLoading,
     workoutLoading: workoutHook.workoutLoading,
     error: peopleHook.error || exercisesHook.error || routinesHook.error || workoutHook.error,
+    persistenceWarning: peopleHook.persistenceWarning,
     
     // Data actions - Delegated to specific hooks
     loadPeople: peopleHook.loadPeople,
@@ -82,4 +83,4 @@ export const useDashboardDataComposer = () => {
     setRoutines: routinesHook.setRoutines,
     setWorkoutData: workoutHook.setWorkoutData
   };
-}; 
+};

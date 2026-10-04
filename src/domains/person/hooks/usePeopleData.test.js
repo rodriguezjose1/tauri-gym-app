@@ -61,8 +61,11 @@ describe('selección persistida: hook productivo usePeopleData', () => {
 
   it('restaura una persona desde sessionStorage', async () => {
     sessionStorage.setItem(key, JSON.stringify(ana))
+    const write = vi.spyOn(Storage.prototype, 'setItem')
     const { result } = await mount()
     expect(result.current.selectedPerson).toEqual(ana)
+    expect(write).not.toHaveBeenCalled()
+    expect(result.current.persistenceWarning).toBeNull()
   })
 
   it('persiste selección, cambio y limpieza usando el almacenamiento de jsdom', async () => {
@@ -114,40 +117,101 @@ describe('selección persistida: hook productivo usePeopleData', () => {
   })
 })
 
-// Diagnostic assertions document existing defects; they do not endorse crashes.
-// See docs/testing/incremento-1.md (SESION-01 through SESION-03).
-describe('diagnóstico de persistencia: comportamiento actual sin corregir', () => {
-  it('SESION-01: JSON corrupto impide montar el hook', () => {
+describe('recuperación de persistencia sin interrumpir la selección', () => {
+  it('SESION-01: descarta JSON corrupto y permite seleccionar otra persona', async () => {
     sessionStorage.setItem(key, '{invalid')
-    expect(() => renderHook(usePeopleData)).toThrow(SyntaxError)
-  })
-
-  it('SESION-02: lectura bloqueada impide montar el hook', () => {
-    const failure = new DOMException('Storage blocked', 'SecurityError')
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw failure })
-    expect(() => renderHook(usePeopleData)).toThrow(expect.objectContaining({ name: failure.name, message: failure.message }))
-  })
-
-  it('SESION-02: cuota agotada propaga el error al seleccionar y no persiste', async () => {
+    sessionStorage.setItem('unrelated', 'keep')
     const { result } = await mount()
-    const failure = new DOMException('Storage full', 'QuotaExceededError')
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw failure })
-    expect(() => act(() => result.current.handlePersonSelect(ana))).toThrow(expect.objectContaining({ name: failure.name, message: failure.message }))
+    expect(result.current.selectedPerson).toBeNull()
     expect(sessionStorage.getItem(key)).toBeNull()
-  })
-
-  it('SESION-02: fallo al borrar conserva la selección anterior en storage', async () => {
-    sessionStorage.setItem(key, JSON.stringify(ana))
-    const { result } = await mount()
-    const failure = new DOMException('Storage blocked', 'SecurityError')
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw failure })
-    expect(() => act(() => result.current.setSelectedPerson(null))).toThrow(expect.objectContaining({ name: failure.name, message: failure.message }))
+    expect(sessionStorage.getItem('unrelated')).toBe('keep')
+    act(() => result.current.handlePersonSelect(ana))
     expect(JSON.parse(sessionStorage.getItem(key))).toEqual(ana)
   })
 
-  it('SESION-03: JSON válido sin estructura de persona se acepta como selección', async () => {
-    sessionStorage.setItem(key, JSON.stringify({ unexpected: true }))
+  it('SESION-02: lectura bloqueada permite continuar y no borra el dato anterior', async () => {
+    sessionStorage.setItem(key, JSON.stringify(ana))
+    const failure = new DOMException('Storage blocked', 'SecurityError')
+    const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw failure })
     const { result } = await mount()
-    expect(result.current.selectedPerson).toEqual({ unexpected: true })
+    expect(result.current.selectedPerson).toBeNull()
+    expect(result.current.persistenceWarning).toMatch(/no se pudo recuperar/i)
+    read.mockRestore()
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual(ana)
+    act(() => result.current.handlePersonSelect(luis))
+    expect(result.current.selectedPerson).toEqual(luis)
+    expect(result.current.persistenceWarning).toBeNull()
+  })
+
+  it('SESION-02: cuota agotada conserva selección en memoria y permite recuperarse', async () => {
+    const { result } = await mount()
+    const failure = new DOMException('Storage full', 'QuotaExceededError')
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw failure })
+    act(() => result.current.handlePersonSelect(ana))
+    expect(result.current.selectedPerson).toEqual(ana)
+    expect(result.current.persistenceWarning).toMatch(/no se pudo guardar/i)
+    expect(sessionStorage.getItem(key)).toBeNull()
+    await act(async () => result.current.loadPeople())
+    expect(result.current.persistenceWarning).toMatch(/no se pudo guardar/i)
+    write.mockRestore()
+    act(() => result.current.handlePersonSelect(luis))
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual(luis)
+    expect(result.current.persistenceWarning).toBeNull()
+  })
+
+  it('SESION-02: fallo al borrar limpia en memoria y avisa que podría reaparecer', async () => {
+    sessionStorage.setItem(key, JSON.stringify(ana))
+    const { result } = await mount()
+    const failure = new DOMException('Storage blocked', 'SecurityError')
+    const remove = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw failure })
+    act(() => result.current.setSelectedPerson(null))
+    expect(result.current.selectedPerson).toBeNull()
+    expect(result.current.persistenceWarning).toMatch(/podría reaparecer/i)
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual(ana)
+    remove.mockRestore()
+    act(() => result.current.setSelectedPerson(null))
+    expect(sessionStorage.getItem(key)).toBeNull()
+    expect(result.current.persistenceWarning).toBeNull()
+  })
+
+  it.each([null, [], true, 42, 'Ana', {}, { unexpected: true },
+    { ...ana, id: 0 }, { ...ana, id: -1 }, { ...ana, id: 1.5 },
+    { ...ana, id: '1' }, { ...ana, name: null }, { ...ana, name: ' ' },
+    { ...ana, last_name: [] }, { ...ana, phone: 123 },
+  ])('SESION-03: descarta estructuras inválidas: %j', async (value) => {
+    sessionStorage.setItem(key, JSON.stringify(value))
+    const { result } = await mount()
+    expect(result.current.selectedPerson).toBeNull()
+    expect(sessionStorage.getItem(key)).toBeNull()
+  })
+
+  it('permite continuar si no se puede descartar una entrada corrupta', async () => {
+    sessionStorage.setItem(key, '{invalid')
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('blocked') })
+    const { result } = await mount()
+    expect(result.current.selectedPerson).toBeNull()
+    expect(result.current.persistenceWarning).toMatch(/no se pudo borrar/i)
+    act(() => result.current.handlePersonSelect(ana))
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual(ana)
+    expect(result.current.persistenceWarning).toBeNull()
+  })
+
+  it('contiene también el error del getter sessionStorage', async () => {
+    const storage = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new DOMException('blocked', 'SecurityError') })
+    const { result } = await mount()
+    act(() => result.current.handlePersonSelect(ana))
+    expect(result.current.selectedPerson).toEqual(ana)
+    expect(result.current.persistenceWarning).toMatch(/no se pudo guardar/i)
+    storage.mockRestore()
+  })
+
+  it('mantiene el contrato del setter funcional al actualizar y limpiar', async () => {
+    sessionStorage.setItem(key, JSON.stringify(ana))
+    const { result } = await mount()
+    act(() => result.current.setSelectedPerson(previous => ({ ...previous, phone: '123' })))
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual({ ...ana, phone: '123' })
+    act(() => result.current.setSelectedPerson(() => null))
+    expect(result.current.selectedPerson).toBeNull()
+    expect(sessionStorage.getItem(key)).toBeNull()
   })
 })
