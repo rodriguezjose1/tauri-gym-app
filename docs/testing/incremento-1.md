@@ -4,6 +4,8 @@ Fecha: 2026-10-04. Alcance: pruebas y herramientas; sin cambios de código produ
 
 **Actualización posterior:** SESION-01, SESION-02 y SESION-03 fueron corregidos en el flujo activo del Dashboard; FECHA-01 y FECHA-02 también fueron corregidos. Ver [corrección de persistencia](correccion-persistencia.md) y [corrección de fechas](correccion-fechas.md). Los resultados y diagnósticos que siguen son la línea base histórica del incremento 1; las pruebas ahora verifican los contratos corregidos, no los defectos anteriores.
 
+**Punto 3 completado:** las suites obsoletas fueron saneadas y la suite completa pasa (102/102). Ver [corrección del Dashboard](correccion-dashboard.md) para el mapeo de escenarios y los defectos productivos corregidos. Las referencias a 12 fallos pendientes en los informes anteriores son históricas.
+
 ## Qué se cambió
 
 - Se reemplazaron los cinco tests de una copia de `formatDateForDB` por pruebas que importan las cinco funciones reales de `src/shared/utils/dateUtils.ts`.

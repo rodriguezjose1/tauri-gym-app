@@ -21,6 +21,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -49,6 +50,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
     }
 
     setLoading(true);
+    setSearchError(null);
     try {
       const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
       
@@ -63,6 +65,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       setHasMore(page < response.total_pages);
     } catch (error) {
       console.error("Error searching exercises:", error);
+      setSearchError('No se pudieron buscar los ejercicios. Volvé a escribir para reintentar.');
       setExercises([]);
       setHasMore(false);
     } finally {
@@ -101,6 +104,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    setSearchError(null);
     
     // If user clears the input, clear the selection
     if (newValue === "") {
@@ -199,6 +203,8 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
             <div className="exercise-autocomplete-message">
               Buscando ejercicios...
             </div>
+          ) : searchError ? (
+            <div role="alert" className="exercise-autocomplete-message">{searchError}</div>
           ) : exercises.length > 0 ? (
             <>
               {exercises.map((exercise) => (
@@ -237,4 +243,4 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       )}
     </div>
   );
-}; 
+};

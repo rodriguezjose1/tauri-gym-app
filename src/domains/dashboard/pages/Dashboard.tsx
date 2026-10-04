@@ -8,9 +8,11 @@ import { SettingsModal } from '../../settings/components/SettingsModal';
 import { LoadRoutineModal } from '../../routine';
 import ToastContainer from '../../../shared/components/notifications/ToastContainer';
 import { useDashboardController } from '../hooks/useDashboardController';
+import { useConfig } from '../../../shared/contexts/ConfigContext';
 import '../../../styles/Dashboard.css';
 
 export default function DashboardRefactored() {
+  const { storageWarning } = useConfig();
   // Single controller hook that orchestrates everything
   const {
     data,
@@ -26,6 +28,12 @@ export default function DashboardRefactored() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-wrapper">
+        {storageWarning && <p role="alert" className="dashboard-persistence-warning">{storageWarning}</p>}
+        {data.error && (
+          <p role="alert" className="dashboard-persistence-warning">
+            No se pudieron cargar algunos datos del calendario. Intentá seleccionar la persona nuevamente.
+          </p>
+        )}
         {data.persistenceWarning && (
           <p role="alert" className="dashboard-persistence-warning">
             {data.persistenceWarning}

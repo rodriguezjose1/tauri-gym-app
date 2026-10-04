@@ -1,336 +1,88 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter } from 'react-router-dom'
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import Dashboard from '../domains/dashboard/pages/Dashboard'
-import { ConfigProvider } from '../shared/contexts'
+import { describe, expect, it } from 'vitest'
+import { invoke } from '@tauri-apps/api/core'
+import { setupDashboardFixture, renderDashboard, selectPerson, person, otherPerson, storageKey } from './helpers/dashboard'
 
-// Test wrapper component
-const TestWrapper = ({ children }) => (
-  <ChakraProvider value={defaultSystem}>
-    <BrowserRouter>
-      <ConfigProvider>
-        {children}
-      </ConfigProvider>
-    </BrowserRouter>
-  </ChakraProvider>
-)
+const backend = setupDashboardFixture()
 
-// Mock data
-const mockPerson = {
-  id: 1,
-  name: 'John',
-  last_name: 'Doe',
-  phone: '123-456-7890'
-}
-
-const mockExercises = [
-  { id: 1, name: 'Push-ups', code: 'PU' },
-  { id: 2, name: 'Squats', code: 'SQ' }
-]
-
-const mockWorkoutData = [
-  {
-    id: 1,
-    person_id: 1,
-    exercise_id: 1,
-    date: '2024-01-15',
-    sets: 3,
-    reps: 10,
-    weight: 50,
-    notes: 'Good form',
-    person_name: 'John',
-    person_last_name: 'Doe',
-    exercise_name: 'Push-ups',
-    exercise_code: 'PU'
-  }
-]
-
-describe('Dashboard Component', () => {
-  beforeEach(() => {
-    // Reset localStorage mock
-    global.localStorageMock.getItem.mockReturnValue(null)
-    global.localStorageMock.setItem.mockClear()
-    global.localStorageMock.removeItem.mockClear()
-    
-    // Setup default mock responses
-    global.mockInvoke.mockImplementation((command) => {
-      switch (command) {
-        case 'get_exercises':
-          return Promise.resolve(mockExercises)
-        case 'get_exercises_paginated':
-          return Promise.resolve(mockExercises)
-        case 'get_workout_entries_by_person_and_date_range':
-          return Promise.resolve(mockWorkoutData)
-        default:
-          return Promise.resolve([])
-      }
-    })
+describe('Dashboard: selección y calendario', () => {
+  it('carga personas y rutinas sin cargar ejercicios ni entrenamientos sin persona', async () => {
+    await renderDashboard()
+    expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
+    expect(invoke).toHaveBeenCalledWith('get_persons_paginated', { page: 1, pageSize: 100 })
+    expect(invoke).toHaveBeenCalledWith('list_routines_paginated', { page: 1, pageSize: 100 })
+    for (const command of ['get_exercises', 'get_exercises_paginated', 'get_workout_entries_by_person']) {
+      expect(invoke.mock.calls.map(([name]) => name)).not.toContain(command)
+    }
   })
 
-  describe('Initial Render', () => {
-    test('renders dashboard without selected person', async () => {
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Should show person search
-      expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
-      expect(screen.getByText(/calendario semanal/i)).toBeInTheDocument()
-    })
-
-    test('fetches exercises on mount', async () => {
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      await waitFor(() => {
-        expect(global.mockInvoke).toHaveBeenCalledWith('get_exercises')
-      })
-    })
+  it('selecciona una persona, muestra sus datos y persiste en sessionStorage', async () => {
+    await renderDashboard()
+    await selectPerson(userEvent.setup())
+    expect(screen.getByText('📞 3511234567')).toBeInTheDocument()
+    expect(JSON.parse(sessionStorage.getItem(storageKey))).toEqual(person)
+    expect(invoke).toHaveBeenCalledWith('get_workout_entries_by_person', { personId: person.id })
+    expect(await screen.findByText('Flexiones')).toBeInTheDocument()
   })
 
-  describe('localStorage Persistence', () => {
-    test('initializes selectedPerson from localStorage', async () => {
-      // Mock localStorage to return a saved person
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Should fetch workout data for the saved person
-      await waitFor(() => {
-        expect(global.mockInvoke).toHaveBeenCalledWith(
-          'get_workout_entries_by_person_and_date_range',
-          expect.objectContaining({
-            personId: mockPerson.id
-          })
-        )
-      })
-
-      // Should display the person's name
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-      })
-    })
-
-    test('saves selectedPerson to localStorage when person is selected', async () => {
-      const { rerender } = render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Simulate person selection by triggering the callback
-      // We need to access the WeeklyCalendar component's onPersonSelect prop
-      // For this test, we'll verify localStorage is called when the component updates
-
-      // Mock a person selection by re-rendering with localStorage mock
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-      
-      rerender(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Verify localStorage.setItem would be called
-      // Note: In a real scenario, this would be triggered by user interaction
-      expect(global.localStorageMock.getItem).toHaveBeenCalledWith('dashboard-selectedPerson')
-    })
-
-    test('removes selectedPerson from localStorage when cleared', async () => {
-      // Start with a saved person
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Wait for initial render with person
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-      })
-
-      // Find and click the "Cambiar" button to clear selection
-      const changeButton = screen.getByText('Cambiar')
-      await userEvent.click(changeButton)
-
-      // Should show person search again
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
-      })
-    })
+  it('restaura la persona y ubica los entrenamientos en la fecha correcta', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    await renderDashboard()
+    expect(screen.getByText('Ana Perez')).toBeInTheDocument()
+    const entry = await screen.findByText('Flexiones')
+    expect(within(entry.closest('.weekly-calendar-day')).getByText('15', { exact: true })).toBeInTheDocument()
   })
 
-  describe('Person Selection Flow', () => {
-    test('displays person info when person is selected', async () => {
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-        expect(screen.getByText('📞 123-456-7890')).toBeInTheDocument()
-        expect(screen.getByText('Cambiar')).toBeInTheDocument()
-      })
-    })
-
-    test('fetches workout data when person is selected', async () => {
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      await waitFor(() => {
-        expect(global.mockInvoke).toHaveBeenCalledWith(
-          'get_workout_entries_by_person_and_date_range',
-          expect.objectContaining({
-            personId: mockPerson.id,
-            startDate: expect.any(String),
-            endDate: expect.any(String)
-          })
-        )
-      })
-    })
+  it('Cambiar abre la búsqueda y Cancelar conserva selección y entrenamientos', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    const user = userEvent.setup()
+    await renderDashboard()
+    await user.click(screen.getByRole('button', { name: 'Cambiar' }))
+    expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
+    expect(JSON.parse(sessionStorage.getItem(storageKey))).toEqual(person)
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByText('Ana Perez')).toBeInTheDocument()
+    expect(screen.getByText('Flexiones')).toBeInTheDocument()
   })
 
-  describe('Workout Data Management', () => {
-    test('displays workout data in calendar when person is selected', async () => {
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Wait for workout data to load and display
-      await waitFor(() => {
-        expect(screen.getByText('Push-ups')).toBeInTheDocument()
-      })
-    })
-
-    test('handles workout data updates correctly', async () => {
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Verify initial workout data fetch
-      await waitFor(() => {
-        expect(global.mockInvoke).toHaveBeenCalledWith(
-          'get_workout_entries_by_person_and_date_range',
-          expect.any(Object)
-        )
-      })
-
-      // Verify workout data is displayed
-      await waitFor(() => {
-        expect(screen.getByText('Push-ups')).toBeInTheDocument()
-      })
-    })
+  it('cambiar persona reemplaza entrenamientos y selección guardada', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    backend.entries.push({ ...backend.entries[0], id: 20, person_id: 2, exercise_name: 'Sentadillas' })
+    const user = userEvent.setup()
+    await renderDashboard()
+    await user.click(screen.getByRole('button', { name: 'Cambiar' }))
+    await selectPerson(user, otherPerson)
+    expect(await screen.findByText('Sentadillas')).toBeInTheDocument()
+    expect(screen.queryByText('Flexiones')).not.toBeInTheDocument()
+    expect(JSON.parse(sessionStorage.getItem(storageKey))).toEqual(otherPerson)
   })
 
-  describe('Error Handling', () => {
-    test('handles exercise fetch error gracefully', async () => {
-      global.mockInvoke.mockImplementation((command) => {
-        if (command === 'get_exercises') {
-          return Promise.reject(new Error('Network error'))
-        }
-        return Promise.resolve([])
-      })
-
-      // Should not crash when exercises fail to load
-      expect(() => {
-        render(
-          <TestWrapper>
-            <Dashboard />
-          </TestWrapper>
-        )
-      }).not.toThrow()
-    })
-
-    test('handles workout data fetch error gracefully', async () => {
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-      global.mockInvoke.mockImplementation((command) => {
-        if (command === 'get_workout_entries_by_person_and_date_range') {
-          return Promise.reject(new Error('Database error'))
-        }
-        if (command === 'get_exercises') {
-          return Promise.resolve(mockExercises)
-        }
-        return Promise.resolve([])
-      })
-
-      // Should not crash when workout data fails to load
-      expect(() => {
-        render(
-          <TestWrapper>
-            <Dashboard />
-          </TestWrapper>
-        )
-      }).not.toThrow()
-    })
+  it('eliminar un entrenamiento actualiza el calendario después de recargar', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    await renderDashboard()
+    await userEvent.setup().click(screen.getByTitle('Eliminar ejercicio'))
+    await waitFor(() => expect(screen.queryByText('Flexiones')).not.toBeInTheDocument())
+    expect(invoke).toHaveBeenCalledWith('delete_workout_entry', { id: 10 })
+    expect(invoke).toHaveBeenCalledWith('renumber_workout_groups', { personId: 1, date: '2024-01-15' })
+    expect(backend.entries).toEqual([])
   })
 
-  describe('Navigation Persistence', () => {
-    test('maintains state after component remount', async () => {
-      // First render with saved person
-      global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-      const { unmount } = render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-      })
-
-      // Unmount component (simulating navigation away)
-      unmount()
-
-      // Re-render component (simulating navigation back)
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-
-      // Should restore the person from localStorage
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument()
-      })
-
-      // Should fetch workout data again
-      expect(global.mockInvoke).toHaveBeenCalledWith(
-        'get_workout_entries_by_person_and_date_range',
-        expect.objectContaining({
-          personId: mockPerson.id
-        })
-      )
-    })
+  it('recupera la selección después de desmontar y volver a abrir el Dashboard', async () => {
+    const view = await renderDashboard()
+    await selectPerson(userEvent.setup())
+    view.unmount()
+    await renderDashboard()
+    expect(screen.getByText('Ana Perez')).toBeInTheDocument()
+    expect(await screen.findByText('Flexiones')).toBeInTheDocument()
   })
-}) 
+
+  it('busca ejercicios por demanda al escribir en el formulario', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    await renderDashboard()
+    fireEvent.contextMenu(screen.getAllByText('Sin entrenamientos')[0].closest('.weekly-calendar-day'))
+    await userEvent.setup().type(screen.getByPlaceholderText('Buscar ejercicio...'), 'Fl')
+    expect(await screen.findByText('Flexiones', { selector: '.exercise-autocomplete-item-name' })).toBeInTheDocument()
+    expect(invoke).toHaveBeenCalledWith('search_exercises_paginated', { query: 'Fl', page: 1, pageSize: 10 })
+  })
+})

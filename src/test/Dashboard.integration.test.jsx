@@ -1,137 +1,64 @@
-import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import Dashboard from "../domains/dashboard/pages/Dashboard";
-import { ConfigProvider } from "../shared/contexts";
+import { fireEvent, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
+import { invoke } from '@tauri-apps/api/core'
+import { setupDashboardFixture, renderDashboard, selectPerson, person, storageKey } from './helpers/dashboard'
 
-// Test wrapper component
-const TestWrapper = ({ children }) => (
-  <ChakraProvider value={defaultSystem}>
-    <BrowserRouter>
-      <ConfigProvider>
-        {children}
-      </ConfigProvider>
-    </BrowserRouter>
-  </ChakraProvider>
-);
+const backend = setupDashboardFixture()
 
-// Mock data
-const mockPerson = {
-  id: 1,
-  name: 'John',
-  last_name: 'Doe',
-  phone: '123-456-7890'
-}
-
-const mockExercises = [
-  { id: 1, name: 'Push-ups', code: 'PU' },
-  { id: 2, name: 'Squats', code: 'SQ' }
-]
-
-describe('Dashboard Integration Tests', () => {
-  beforeEach(() => {
-    // Setup default mock responses
-    global.mockInvoke.mockImplementation((command) => {
-      switch (command) {
-        case 'get_exercises':
-          return Promise.resolve(mockExercises)
-        case 'get_exercises_paginated':
-          return Promise.resolve(mockExercises)
-        case 'get_workout_entries_by_person_and_date_range':
-          return Promise.resolve([])
-        default:
-          return Promise.resolve([])
-      }
-    })
+describe('Dashboard: fallos de dependencias y recuperación', () => {
+  it.each(['getItem', 'setItem'])('continúa cuando localStorage.%s falla', async method => {
+    global.localStorageMock[method].mockImplementation(() => { throw new Error('Storage blocked') })
+    await renderDashboard()
+    expect(screen.getByRole('alert')).toHaveTextContent(/configuración/i)
+    await selectPerson(userEvent.setup())
+    expect(await screen.findByText('Flexiones')).toBeInTheDocument()
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    if (method === 'getItem') expect(global.localStorageMock.setItem).not.toHaveBeenCalled()
   })
 
-  test('Dashboard renders without crashing', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    )
-
-    // Should show the calendar title
-    expect(screen.getByText(/calendario semanal/i)).toBeInTheDocument()
-  })
-
-  test('Dashboard initializes localStorage correctly', async () => {
-    // Mock localStorage to return null (no saved person)
-    global.localStorageMock.getItem.mockReturnValue(null)
-
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    )
-
-    // Should call localStorage.getItem to check for saved person
-    expect(global.localStorageMock.getItem).toHaveBeenCalledWith('dashboard-selectedPerson')
-
-    // Should show person search when no person is saved
+  it('restaura la configuración antes de escribirla y no la confunde con la persona', async () => {
+    global.localStorageMock.getItem.mockReturnValue(JSON.stringify({ theme: 'light', showWeekends: true }))
+    await renderDashboard()
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
     expect(screen.getByPlaceholderText(/buscar persona/i)).toBeInTheDocument()
+    expect(global.localStorageMock.getItem).toHaveBeenCalledWith('gym-app-config')
+    for (const [key, value] of global.localStorageMock.setItem.mock.calls) {
+      expect(key).toBe('gym-app-config')
+      expect(JSON.parse(value)).toMatchObject({ theme: 'light', showWeekends: true })
+    }
+    expect(global.localStorageMock.setItem).toHaveBeenCalled()
   })
 
-  test('Dashboard restores person from localStorage', async () => {
-    // Mock localStorage to return a saved person
-    global.localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPerson))
-
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    )
-
-    // Should call localStorage.getItem
-    expect(global.localStorageMock.getItem).toHaveBeenCalledWith('dashboard-selectedPerson')
-
-    // Should fetch workout data for the restored person
-    await waitFor(() => {
-      expect(global.mockInvoke).toHaveBeenCalledWith(
-        'get_workout_entries_by_person_and_date_range',
-        expect.objectContaining({
-          personId: mockPerson.id
-        })
-      )
-    })
-
-    // Should display the person's name
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument()
-    })
+  it('informa fallo de entrenamientos y permite recuperarse seleccionando de nuevo', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    backend.overrides.get_workout_entries_by_person = () => { throw new Error('Database error') }
+    await renderDashboard()
+    expect(screen.getByRole('alert')).toHaveTextContent(/no se pudieron cargar/i)
+    expect(screen.getByText('Ana Perez')).toBeInTheDocument()
+    expect(invoke).toHaveBeenCalledWith('get_workout_entries_by_person', { personId: 1 })
+    delete backend.overrides.get_workout_entries_by_person
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Cambiar' }))
+    await selectPerson(user)
+    expect(await screen.findByText('Flexiones')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  test('Dashboard handles localStorage errors gracefully', async () => {
-    // Mock localStorage.getItem to throw an error
-    global.localStorageMock.getItem.mockImplementation(() => {
-      throw new Error('localStorage not available')
-    })
-
-    // Should not crash when localStorage fails
-    expect(() => {
-      render(
-        <TestWrapper>
-          <Dashboard />
-        </TestWrapper>
-      )
-    }).toThrow() // Currently throws, but in production you'd want to handle this gracefully
-
-    // Reset the mock for other tests
-    global.localStorageMock.getItem.mockReturnValue(null)
+  it('informa fallo real de búsqueda de ejercicios y permite reintentar', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    backend.overrides.search_exercises_paginated = () => { throw new Error('Search error') }
+    await renderDashboard()
+    fireEvent.contextMenu(screen.getAllByText('Sin entrenamientos')[0].closest('.weekly-calendar-day'))
+    const user = userEvent.setup()
+    const input = screen.getByPlaceholderText('Buscar ejercicio...')
+    await user.type(input, 'Fl')
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudieron buscar/i)
+    expect(invoke).toHaveBeenCalledWith('search_exercises_paginated', { query: 'Fl', page: 1, pageSize: 10 })
+    delete backend.overrides.search_exercises_paginated
+    await user.clear(input)
+    await user.type(input, 'Flex')
+    expect(await screen.findByText('Flexiones', { selector: '.exercise-autocomplete-item-name' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
-
-  test('Dashboard fetches exercises on mount', async () => {
-    render(
-      <TestWrapper>
-        <Dashboard />
-      </TestWrapper>
-    )
-
-    // Should fetch exercises when component mounts
-    await waitFor(() => {
-      expect(global.mockInvoke).toHaveBeenCalledWith('get_exercises')
-    })
-  })
-}) 
+})

@@ -11,6 +11,7 @@ export interface AppConfig {
 
 interface ConfigContextType {
   config: AppConfig;
+  storageWarning: string | null;
   updateConfig: (updates: Partial<AppConfig>) => void;
   toggleTheme: () => void;
   resetConfig: () => void;
@@ -39,24 +40,35 @@ interface ConfigProviderProps {
 
 export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
+  const [readWarning, setReadWarning] = useState<string | null>(null);
+  const [writeWarning, setWriteWarning] = useState<string | null>(null);
+  const [persistenceEnabled, setPersistenceEnabled] = useState(false);
 
   // Load config from localStorage on mount
   useEffect(() => {
-    const savedConfig = localStorage.getItem('gym-app-config');
-    if (savedConfig) {
-      try {
+    try {
+      const savedConfig = localStorage.getItem('gym-app-config');
+      if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
         setConfig({ ...defaultConfig, ...parsedConfig });
-      } catch (error) {
-        console.error('Error parsing saved config:', error);
-        setConfig(defaultConfig);
       }
+      setPersistenceEnabled(true);
+    } catch {
+      setReadWarning('No se pudo recuperar la configuración guardada. Se usará la configuración predeterminada.');
     }
   }, []);
 
   // Save config to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('gym-app-config', JSON.stringify(config));
+    // Do not overwrite stored preferences before reading them or after a failed read.
+    if (persistenceEnabled) {
+      try {
+        localStorage.setItem('gym-app-config', JSON.stringify(config));
+        setWriteWarning(null);
+      } catch {
+        setWriteWarning('No se pudo guardar la configuración. Los cambios se aplican en esta pantalla, pero podrían no conservarse.');
+      }
+    }
     
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', config.theme);
@@ -100,13 +112,17 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       root.style.setProperty('--shadow-medium', 'rgba(0, 0, 0, 0.2)');
       root.style.setProperty('--hover-bg', '#f3f4f6');
     }
-  }, [config]);
+  }, [config, persistenceEnabled]);
 
   const updateConfig = (updates: Partial<AppConfig>) => {
+    setReadWarning(null);
+    setPersistenceEnabled(true);
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
   const toggleTheme = () => {
+    setReadWarning(null);
+    setPersistenceEnabled(true);
     setConfig(prev => ({ 
       ...prev, 
       theme: prev.theme === 'light' ? 'dark' : 'light' 
@@ -114,12 +130,15 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   };
 
   const resetConfig = () => {
+    setReadWarning(null);
+    setPersistenceEnabled(true);
     setConfig(defaultConfig);
   };
 
   return (
     <ConfigContext.Provider value={{
       config,
+      storageWarning: readWarning || writeWarning,
       updateConfig,
       toggleTheme,
       resetConfig,
@@ -127,4 +146,4 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       {children}
     </ConfigContext.Provider>
   );
-}; 
+};

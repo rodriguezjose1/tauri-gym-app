@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom'
 
 // Mock Tauri APIs
-const mockInvoke = vi.fn()
-const mockMessage = vi.fn()
-const mockConfirm = vi.fn()
+const { mockInvoke, mockMessage, mockConfirm } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(), mockMessage: vi.fn(), mockConfirm: vi.fn(),
+}))
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: mockInvoke
@@ -26,6 +26,11 @@ global.localStorage = localStorageMock
 // Reset mocks before each test
 beforeEach(() => {
   vi.clearAllMocks()
+  Object.values(localStorageMock).forEach(mock => mock.mockReset())
+  mockInvoke.mockReset()
+  mockMessage.mockReset()
+  mockConfirm.mockReset()
+  sessionStorage.clear()
   localStorageMock.getItem.mockReturnValue(null)
 })
 
@@ -33,4 +38,4 @@ beforeEach(() => {
 global.mockInvoke = mockInvoke
 global.mockMessage = mockMessage
 global.mockConfirm = mockConfirm
-global.localStorageMock = localStorageMock 
+global.localStorageMock = localStorageMock
