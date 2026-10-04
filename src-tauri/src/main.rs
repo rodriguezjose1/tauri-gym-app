@@ -26,32 +26,32 @@ fn create_person(service: State<'_, PersonService>, person: Person) -> Result<()
 }
 
 #[tauri::command]
-fn get_persons(service: State<'_, PersonService>) -> Vec<Person> {
+fn get_persons(service: State<'_, PersonService>) -> Result<Vec<Person>, String> {
     service.list_people()
 }
 
 #[tauri::command]
-fn get_persons_paginated(service: State<'_, PersonService>, page: i32, page_size: i32) -> Vec<Person> {
+fn get_persons_paginated(service: State<'_, PersonService>, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
     service.list_people_paginated(page, page_size)
 }
 
 #[tauri::command]
-fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> models::person::PaginatedPersonResponse {
+fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> Result<models::person::PaginatedPersonResponse, String> {
     service.list_people_paginated_response(page, page_size)
 }
 
 #[tauri::command]
-fn search_persons(service: State<'_, PersonService>, query: String) -> Vec<Person> {
+fn search_persons(service: State<'_, PersonService>, query: String) -> Result<Vec<Person>, String> {
     service.search_people(&query)
 }
 
 #[tauri::command]
-fn search_persons_paginated(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Vec<Person> {
+fn search_persons_paginated(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
     service.search_people_paginated(&query, page, page_size)
 }
 
 #[tauri::command]
-fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> models::person::PaginatedPersonResponse {
+fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Result<models::person::PaginatedPersonResponse, String> {
     service.search_people_paginated_response(&query, page, page_size)
 }
 
@@ -66,12 +66,12 @@ fn restore_person(service: State<'_, PersonService>, id: i32) -> Result<(), Stri
 }
 
 #[tauri::command]
-fn get_deleted_people(service: State<'_, PersonService>) -> Vec<Person> {
+fn get_deleted_people(service: State<'_, PersonService>) -> Result<Vec<Person>, String> {
     service.list_deleted_people()
 }
 
 #[tauri::command]
-fn count_deleted_people(service: State<'_, PersonService>) -> i32 {
+fn count_deleted_people(service: State<'_, PersonService>) -> Result<i32, String> {
     service.count_deleted_people()
 }
 

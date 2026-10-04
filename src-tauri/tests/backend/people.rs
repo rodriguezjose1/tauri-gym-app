@@ -37,6 +37,7 @@ impl Fixture {
         self.service.create_person(person(name, last_name)).unwrap();
         self.service
             .list_people()
+            .unwrap()
             .into_iter()
             .find(|p| p.name == name && p.last_name == last_name)
             .unwrap()
@@ -86,9 +87,12 @@ mod contracts {
         let f = Fixture::new();
         let saved = f.create("Ana", "Perez");
         assert!(saved.id.unwrap() > 0);
-        assert_person(&f.repository.get_by_id(saved.id.unwrap()).unwrap(), &saved);
-        assert_eq!(f.repository.count_all(), 1);
-        assert_eq!(f.service.count_deleted_people(), 0);
+        assert_person(
+            &f.repository.get_by_id(saved.id.unwrap()).unwrap().unwrap(),
+            &saved,
+        );
+        assert_eq!(f.repository.count_all().unwrap(), 1);
+        assert_eq!(f.service.count_deleted_people().unwrap(), 0);
     }
 
     #[test]
@@ -107,7 +111,7 @@ mod contracts {
                     _ => value.phone = blank.into(),
                 }
                 assert_eq!(f.service.create_person(value).unwrap_err(), expected);
-                assert_eq!(f.repository.count_all(), 0);
+                assert_eq!(f.repository.count_all().unwrap(), 0);
             }
         }
     }
@@ -121,9 +125,15 @@ mod contracts {
         ana.last_name = "Alonso".into();
         ana.phone = "999".into();
         f.service.update_person(ana.clone()).unwrap();
-        assert_person(&f.repository.get_by_id(ana.id.unwrap()).unwrap(), &ana);
-        assert_person(&f.repository.get_by_id(luis.id.unwrap()).unwrap(), &luis);
-        assert_eq!(f.repository.count_all(), 2);
+        assert_person(
+            &f.repository.get_by_id(ana.id.unwrap()).unwrap().unwrap(),
+            &ana,
+        );
+        assert_person(
+            &f.repository.get_by_id(luis.id.unwrap()).unwrap().unwrap(),
+            &luis,
+        );
+        assert_eq!(f.repository.count_all().unwrap(), 2);
     }
 
     #[test]
@@ -131,23 +141,23 @@ mod contracts {
         let f = Fixture::new();
         f.seed();
         assert_eq!(
-            names(&f.service.search_people("ANA")),
+            names(&f.service.search_people("ANA").unwrap()),
             ["Ana Alonso", "Ana Zapata"]
         );
         assert_eq!(
-            names(&f.service.search_people("perez")),
+            names(&f.service.search_people("perez").unwrap()),
             ["Eva Perez", "Zoe Perez"]
         );
-        assert!(f.service.search_people("absent").is_empty());
+        assert!(f.service.search_people("absent").unwrap().is_empty());
     }
 
     #[test]
     fn treats_quotes_as_data_not_sql() {
         let f = Fixture::new();
         f.create("Ana", "O'Connor");
-        assert_eq!(f.service.search_people("O'Connor").len(), 1);
-        assert!(f.service.search_people("' OR 1=1 --").is_empty());
-        assert_eq!(f.repository.count_all(), 1);
+        assert_eq!(f.service.search_people("O'Connor").unwrap().len(), 1);
+        assert!(f.service.search_people("' OR 1=1 --").unwrap().is_empty());
+        assert_eq!(f.repository.count_all().unwrap(), 1);
     }
 
     #[test]
@@ -156,7 +166,7 @@ mod contracts {
         f.seed();
         let mut all = Vec::new();
         for page in 1..=3 {
-            let result = f.service.list_people_paginated_response(page, 2);
+            let result = f.service.list_people_paginated_response(page, 2).unwrap();
             assert_eq!(
                 (
                     result.total,
@@ -179,21 +189,34 @@ mod contracts {
                 "Zoe Perez"
             ]
         );
-        assert!(f.service.list_people_paginated(4, 2).is_empty());
-        assert_eq!(names(&f.service.list_people()), all);
+        assert!(f.service.list_people_paginated(4, 2).unwrap().is_empty());
+        assert_eq!(names(&f.service.list_people().unwrap()), all);
     }
 
     #[test]
     fn search_pagination_counts_only_matches() {
         let f = Fixture::new();
         f.seed();
-        let first = f.service.search_people_paginated_response("ana", 1, 1);
-        let second = f.service.search_people_paginated_response("ana", 2, 1);
+        let first = f
+            .service
+            .search_people_paginated_response("ana", 1, 1)
+            .unwrap();
+        let second = f
+            .service
+            .search_people_paginated_response("ana", 2, 1)
+            .unwrap();
         assert_eq!((first.total, first.total_pages), (2, 2));
         assert_eq!(names(&first.persons), ["Ana Alonso"]);
         assert_eq!(names(&second.persons), ["Ana Zapata"]);
-        assert!(f.service.search_people_paginated("ana", 3, 1).is_empty());
-        let empty = f.service.search_people_paginated_response("absent", 1, 2);
+        assert!(f
+            .service
+            .search_people_paginated("ana", 3, 1)
+            .unwrap()
+            .is_empty());
+        let empty = f
+            .service
+            .search_people_paginated_response("absent", 1, 2)
+            .unwrap();
         assert_eq!(
             (empty.total, empty.total_pages, empty.persons.len()),
             (0, 0, 0)
@@ -206,18 +229,29 @@ mod contracts {
         let ana = f.create("Ana", "Perez");
         let luis = f.create("Luis", "Diaz");
         f.service.delete_person(ana.id.unwrap()).unwrap();
-        assert_eq!(names(&f.service.list_people()), ["Luis Diaz"]);
-        assert!(f.service.search_people("Ana").is_empty());
-        assert!(f.service.search_people_paginated("Ana", 1, 10).is_empty());
+        assert_eq!(names(&f.service.list_people().unwrap()), ["Luis Diaz"]);
+        assert!(f.service.search_people("Ana").unwrap().is_empty());
+        assert!(f
+            .service
+            .search_people_paginated("Ana", 1, 10)
+            .unwrap()
+            .is_empty());
         assert_eq!(
             f.service
                 .search_people_paginated_response("Ana", 1, 10)
+                .unwrap()
                 .total,
             0
         );
-        assert_eq!(f.service.list_people_paginated_response(1, 10).total, 1);
-        assert_eq!(f.service.count_deleted_people(), 1);
-        assert_person(&f.service.list_deleted_people()[0], &ana);
+        assert_eq!(
+            f.service
+                .list_people_paginated_response(1, 10)
+                .unwrap()
+                .total,
+            1
+        );
+        assert_eq!(f.service.count_deleted_people().unwrap(), 1);
+        assert_person(&f.service.list_deleted_people().unwrap()[0], &ana);
         let flags: (i32, Option<String>) = f
             .connection()
             .query_row(
@@ -229,11 +263,17 @@ mod contracts {
         assert_eq!(flags.0, 0);
         assert!(flags.1.is_some());
         f.service.restore_person(ana.id.unwrap()).unwrap();
-        assert_eq!(f.repository.count_all(), 2);
-        assert!(f.service.list_deleted_people().is_empty());
-        assert_eq!(f.service.count_deleted_people(), 0);
-        assert_person(&f.repository.get_by_id(ana.id.unwrap()).unwrap(), &ana);
-        assert_person(&f.repository.get_by_id(luis.id.unwrap()).unwrap(), &luis);
+        assert_eq!(f.repository.count_all().unwrap(), 2);
+        assert!(f.service.list_deleted_people().unwrap().is_empty());
+        assert_eq!(f.service.count_deleted_people().unwrap(), 0);
+        assert_person(
+            &f.repository.get_by_id(ana.id.unwrap()).unwrap().unwrap(),
+            &ana,
+        );
+        assert_person(
+            &f.repository.get_by_id(luis.id.unwrap()).unwrap().unwrap(),
+            &luis,
+        );
     }
 
     #[test]
@@ -251,9 +291,9 @@ mod contracts {
         drop(repository);
         let reopened = Arc::new(SqlitePersonRepository::new_safe(path.to_str().unwrap()).unwrap());
         let service = PersonService::new(reopened.clone());
-        assert_person(&service.list_deleted_people()[0], &ana);
+        assert_person(&service.list_deleted_people().unwrap()[0], &ana);
         service.restore_person(ana.id.unwrap()).unwrap();
-        assert_person(&service.list_people()[0], &ana);
+        assert_person(&service.list_people().unwrap()[0], &ana);
         drop(service);
         drop(reopened);
         directory.close().unwrap();
@@ -264,7 +304,7 @@ mod contracts {
         let first = Fixture::new();
         let second = Fixture::new();
         first.create("Ana", "Perez");
-        assert!(second.service.list_people().is_empty());
+        assert!(second.service.list_people().unwrap().is_empty());
         let path = first.directory.path().to_owned();
         drop(first);
         assert!(!path.exists());
@@ -273,7 +313,7 @@ mod contracts {
 
     #[test]
     fn missing_id_read_is_none() {
-        assert!(Fixture::new().repository.get_by_id(999).is_none());
+        assert!(Fixture::new().repository.get_by_id(999).unwrap().is_none());
     }
 
     #[test]
@@ -293,8 +333,8 @@ mod contracts {
         f.connection().execute_batch("CREATE TRIGGER fail_insert BEFORE INSERT ON people BEGIN SELECT RAISE(ABORT, 'test insert blocked'); END;").unwrap();
         let error = f.service.create_person(person("Luis", "Diaz")).unwrap_err();
         assert!(error.contains("test insert blocked"));
-        assert_eq!(f.repository.count_all(), 1);
-        assert_person(&f.service.list_people()[0], &ana);
+        assert_eq!(f.repository.count_all().unwrap(), 1);
+        assert_person(&f.service.list_people().unwrap()[0], &ana);
     }
 
     #[test]
@@ -314,7 +354,7 @@ mod contracts {
             .delete_person(ana.id.unwrap())
             .unwrap_err()
             .contains("test update blocked"));
-        assert_person(&f.service.list_people()[0], &ana);
+        assert_person(&f.service.list_people().unwrap()[0], &ana);
         f.connection()
             .execute_batch("DROP TRIGGER fail_update;")
             .unwrap();
@@ -325,92 +365,146 @@ mod contracts {
             .restore_person(ana.id.unwrap())
             .unwrap_err()
             .contains("test update blocked"));
-        assert!(f.service.list_people().is_empty());
-        assert_person(&f.service.list_deleted_people()[0], &ana);
+        assert!(f.service.list_people().unwrap().is_empty());
+        assert_person(&f.service.list_deleted_people().unwrap()[0], &ana);
     }
 }
 
-// Characterizations reproduce inconsistencies; green means reproduced, not fixed.
-// See docs/testing/incremento-2-backend.md for decisions and proposed corrections.
-mod diagnostics {
+mod corrected_contracts {
     use super::*;
 
     #[test]
-    fn per01_update_accepts_empty_required_fields_rejected_by_create() {
+    fn per01_update_rejects_invalid_fields_and_preserves_the_person() {
         let f = Fixture::new();
         let mut ana = f.create("Ana", "Perez");
-        ana.name = " ".into();
-        ana.last_name = "".into();
-        ana.phone = "".into();
-        assert!(f.service.create_person(ana.clone()).is_err());
-        assert!(f.service.update_person(ana.clone()).is_ok());
-        assert_person(&f.repository.get_by_id(ana.id.unwrap()).unwrap(), &ana);
+        let original = ana.clone();
+        for field in 0..3 {
+            ana = original.clone();
+            match field {
+                0 => ana.name = " ".into(),
+                1 => ana.last_name = "".into(),
+                _ => ana.phone = "".into(),
+            }
+            assert!(f.service.update_person(ana).is_err());
+            assert_person(
+                &f.repository
+                    .get_by_id(original.id.unwrap())
+                    .unwrap()
+                    .unwrap(),
+                &original,
+            );
+        }
     }
 
     #[test]
-    fn per02_mutations_report_success_for_missing_ids() {
+    fn per02_mutations_reject_missing_ids_and_invalid_states() {
         let f = Fixture::new();
         let ana = f.create("Ana", "Perez");
         let mut missing = person("Missing", "Person");
         missing.id = Some(999);
-        assert!(f.service.update_person(missing.clone()).is_ok());
+        assert_eq!(
+            f.service.update_person(missing.clone()).unwrap_err(),
+            "Person not found"
+        );
         missing.id = None;
-        assert!(f.service.update_person(missing).is_ok());
-        assert!(f.service.delete_person(999).is_ok());
-        assert!(f.service.restore_person(999).is_ok());
-        assert_person(&f.service.list_people()[0], &ana);
-        assert_eq!(f.repository.count_all(), 1);
+        assert_eq!(
+            f.service.update_person(missing).unwrap_err(),
+            "Person id is required"
+        );
+        assert_eq!(
+            f.service.delete_person(999).unwrap_err(),
+            "Active person not found"
+        );
+        assert_eq!(
+            f.service.restore_person(999).unwrap_err(),
+            "Deleted person not found"
+        );
+        f.service.delete_person(ana.id.unwrap()).unwrap();
+        assert_eq!(
+            f.service.delete_person(ana.id.unwrap()).unwrap_err(),
+            "Active person not found"
+        );
+        f.service.restore_person(ana.id.unwrap()).unwrap();
+        assert_eq!(
+            f.service.restore_person(ana.id.unwrap()).unwrap_err(),
+            "Deleted person not found"
+        );
+        assert_person(&f.service.list_people().unwrap()[0], &ana);
+        assert_eq!(f.repository.count_all().unwrap(), 1);
     }
 
     #[test]
-    fn per03_read_failures_look_like_an_empty_database() {
+    fn per03_read_failures_are_propagated() {
         let f = Fixture::new();
         let ana = f.create("Ana", "Perez");
         f.connection()
             .execute_batch("ALTER TABLE people RENAME TO unavailable_people;")
             .unwrap();
-        assert!(f.service.list_people().is_empty());
-        assert!(f.service.search_people("Ana").is_empty());
-        assert!(f.service.list_deleted_people().is_empty());
-        assert_eq!(f.service.count_deleted_people(), 0);
-        assert_eq!(f.service.list_people_paginated_response(1, 10).total, 0);
-        assert_eq!(
-            f.service
-                .search_people_paginated_response("Ana", 1, 10)
-                .total,
-            0
-        );
-        assert!(f.repository.get_by_id(ana.id.unwrap()).is_none());
+        assert!(f.service.list_people().is_err());
+        assert!(f.service.search_people("Ana").is_err());
+        assert!(f.service.list_deleted_people().is_err());
+        assert!(f.service.count_deleted_people().is_err());
+        assert!(f.service.list_people_paginated_response(1, 10).is_err());
+        assert!(f
+            .service
+            .search_people_paginated_response("Ana", 1, 10)
+            .is_err());
+        assert!(f.repository.get_by_id(ana.id.unwrap()).is_err());
         f.connection()
             .execute_batch("ALTER TABLE unavailable_people RENAME TO people;")
             .unwrap();
-        assert_person(&f.service.list_people()[0], &ana);
+        assert_person(&f.service.list_people().unwrap()[0], &ana);
     }
 
     #[test]
-    fn per04_negative_page_size_returns_all_rows_with_zero_total_pages() {
+    fn per04_invalid_pagination_is_rejected() {
         let f = Fixture::new();
         f.seed();
-        let result = f.service.list_people_paginated_response(1, -1);
+        for (page, size) in [(0, 2), (-1, 2), (1, 0), (1, -1), (1, 101)] {
+            assert!(f.service.list_people_paginated(page, size).is_err());
+            assert!(f
+                .service
+                .list_people_paginated_response(page, size)
+                .is_err());
+            assert!(f
+                .service
+                .search_people_paginated("Ana", page, size)
+                .is_err());
+            assert!(f
+                .service
+                .search_people_paginated_response("Ana", page, size)
+                .is_err());
+        }
         assert_eq!(
-            (result.persons.len(), result.total, result.total_pages),
-            (5, 5, 0)
-        );
-        assert_eq!(
-            names(&f.service.list_people_paginated(0, 2)),
-            names(&f.service.list_people_paginated(1, 2))
+            f.service
+                .list_people_paginated_response(1, 100)
+                .unwrap()
+                .total,
+            5
         );
     }
 
     #[test]
-    fn per05_blank_search_differs_between_paginated_and_non_paginated() {
+    fn per05_blank_search_consistently_lists_people() {
         let f = Fixture::new();
         f.create("Ana", "Perez");
-        assert_eq!(f.service.search_people(" ").len(), 1);
-        assert!(f.service.search_people_paginated(" ", 1, 10).is_empty());
+        let all = f.service.list_people().unwrap();
+        assert_eq!(names(&f.service.search_people(" ").unwrap()), names(&all));
         assert_eq!(
-            f.service.search_people_paginated_response(" ", 1, 10).total,
-            0
+            names(&f.service.search_people_paginated(" ", 1, 10).unwrap()),
+            names(&all)
+        );
+        let response = f
+            .service
+            .search_people_paginated_response(" ", 1, 10)
+            .unwrap();
+        assert_eq!(
+            (
+                names(&response.persons),
+                response.total,
+                response.total_pages
+            ),
+            (names(&all), 1, 1)
         );
     }
 }

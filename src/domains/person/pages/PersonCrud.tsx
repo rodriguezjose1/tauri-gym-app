@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PersonService, Person } from "../../../services";
-import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, ErrorMessage } from "../../../shared/components/base";
 import "../../../styles/PersonCrud.css";
 
 const ITEMS_PER_PAGE = 10;
@@ -14,6 +14,7 @@ export default function PersonCrud() {
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -55,7 +56,7 @@ export default function PersonCrud() {
       setDeletedPersonsCount(count);
     } catch (error) {
       console.error("Error loading deleted persons count:", error);
-      setDeletedPersonsCount(0);
+      setError("No se pudo obtener la cantidad de personas eliminadas.");
     }
   };
 
@@ -67,14 +68,14 @@ export default function PersonCrud() {
 
   const loadDeletedPersons = async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await PersonService.getDeletedPeople();
       setDeletedPersons(result);
       setDeletedPersonsCount(result.length);
     } catch (error) {
       console.error("Error loading deleted persons:", error);
-      setDeletedPersons([]);
-      setDeletedPersonsCount(0);
+      setError("No se pudieron cargar las personas eliminadas.");
     } finally {
       setLoading(false);
     }
@@ -85,6 +86,7 @@ export default function PersonCrud() {
   const loadPersons = async (page = 1, append = false) => {
     try {
       setLoading(true);
+      setError(null);
       const response = await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
       
       if (response.persons.length === 0 && page > 1) {
@@ -104,6 +106,7 @@ export default function PersonCrud() {
       setCurrentPage(page);
     } catch (error) {
       console.error("Error loading persons:", error);
+      setError("No se pudieron cargar las personas.");
     } finally {
       setLoading(false);
     }
@@ -112,6 +115,7 @@ export default function PersonCrud() {
   const searchPersons = useCallback(async (query: string, page = 1, append = false) => {
     try {
       setLoading(true);
+      setError(null);
       
       if (query.trim() === "") {
         // Si no hay query, cargar personas normales
@@ -138,6 +142,7 @@ export default function PersonCrud() {
       setCurrentPage(page);
     } catch (error) {
       console.error("Error searching persons:", error);
+      setError("No se pudo completar la búsqueda de personas.");
     } finally {
       setLoading(false);
     }
@@ -169,6 +174,7 @@ export default function PersonCrud() {
 
     try {
       setLoading(true);
+      setError(null);
       
       if (editingPerson) {
         // Actualizar persona existente
@@ -217,6 +223,9 @@ export default function PersonCrud() {
       
     } catch (error) {
       console.error("Error saving person:", error);
+      setError(editingPerson
+        ? "No se pudo actualizar la persona. Los datos anteriores se conservaron."
+        : "No se pudo crear la persona.");
     } finally {
       setLoading(false);
     }
@@ -257,6 +266,7 @@ export default function PersonCrud() {
 
     try {
       setLoading(true);
+      setError(null);
       await PersonService.deletePerson(deleteConfirm.personId);
       setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
       setTotalPersons(prev => prev - 1);
@@ -264,6 +274,7 @@ export default function PersonCrud() {
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
+      setError("No se pudo eliminar la persona. La lista no fue modificada.");
     } finally {
       setLoading(false);
     }
@@ -282,6 +293,7 @@ export default function PersonCrud() {
 
     try {
       setLoading(true);
+      setError(null);
       await PersonService.restorePerson(restoreConfirm.personId);
       setDeletedPersons(prev => prev.filter(p => p.id !== restoreConfirm.personId));
       setDeletedPersonsCount(prev => prev - 1);
@@ -289,6 +301,7 @@ export default function PersonCrud() {
       setRestoreConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error restoring person:", error);
+      setError("No se pudo restaurar la persona. La lista no fue modificada.");
     } finally {
       setLoading(false);
     }
@@ -391,6 +404,12 @@ export default function PersonCrud() {
                   </Button>
                 </div>
               </div>
+
+              {error && (
+                <div role="alert">
+                  <ErrorMessage message={error} onDismiss={() => setError(null)} />
+                </div>
+              )}
 
               <div className="person-list-stats">
                 <span className="person-count">

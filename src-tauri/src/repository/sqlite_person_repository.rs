@@ -1,6 +1,6 @@
-use rusqlite::{Connection, Result as SqliteResult, params};
 use crate::models::person::Person;
 use crate::repository::person_repository::PersonRepository;
+use rusqlite::{params, Connection, Result as SqliteResult};
 
 pub struct SqlitePersonRepository {
     db_path: String,
@@ -13,7 +13,8 @@ impl SqlitePersonRepository {
             db_path: db_path.to_string(),
             is_dummy: false,
         };
-        repo.create_table().map_err(|e| format!("Failed to create people table: {}", e))?;
+        repo.create_table()
+            .map_err(|e| format!("Failed to create people table: {}", e))?;
         Ok(repo)
     }
 
@@ -28,9 +29,9 @@ impl SqlitePersonRepository {
         if self.is_dummy {
             return Ok(());
         }
-        
+
         let conn = Connection::open(&self.db_path)?;
-        
+
         // Check if logical deletion migration is needed
         if self.check_if_logical_deletion_migration_needed(&conn)? {
             self.migrate_logical_deletion(&conn)?;
@@ -52,17 +53,16 @@ impl SqlitePersonRepository {
     }
 
     fn check_if_logical_deletion_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
-        if self.is_dummy { return Ok(false); }
-        
+        if self.is_dummy {
+            return Ok(false);
+        }
+
         // Check if table exists but doesn't have logical deletion fields
-        let mut stmt = conn.prepare(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='people'"
-        )?;
-        
-        let table_sql: Result<String, _> = stmt.query_row([], |row| {
-            Ok(row.get::<_, String>(0)?)
-        });
-        
+        let mut stmt =
+            conn.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='people'")?;
+
+        let table_sql: Result<String, _> = stmt.query_row([], |row| Ok(row.get::<_, String>(0)?));
+
         match table_sql {
             Ok(sql) => Ok(!sql.contains("deleted_at") && !sql.contains("is_active")),
             Err(_) => Ok(false), // Table doesn't exist, no migration needed
@@ -70,20 +70,19 @@ impl SqlitePersonRepository {
     }
 
     fn migrate_logical_deletion(&self, conn: &Connection) -> SqliteResult<()> {
-        if self.is_dummy { return Ok(()); }
+        if self.is_dummy {
+            return Ok(());
+        }
         println!("Adding logical deletion fields to people table...");
-        
+
         // Add logical deletion columns
-        conn.execute(
-            "ALTER TABLE people ADD COLUMN deleted_at DATETIME NULL",
-            [],
-        )?;
-        
+        conn.execute("ALTER TABLE people ADD COLUMN deleted_at DATETIME NULL", [])?;
+
         conn.execute(
             "ALTER TABLE people ADD COLUMN is_active BOOLEAN DEFAULT 1",
             [],
         )?;
-        
+
         println!("Logical deletion migration completed successfully!");
         Ok(())
     }
@@ -101,58 +100,27 @@ impl PersonRepository for SqlitePersonRepository {
         if self.is_dummy {
             return Ok(());
         }
-        
+
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         conn.execute(
             "INSERT INTO people (name, last_name, phone) VALUES (?1, ?2, ?3)",
             params![person.name, person.last_name, person.phone],
-        ).map_err(|e| e.to_string())?;
+        )
+        .map_err(|e| e.to_string())?;
 
         Ok(())
     }
 
-    fn get_by_id(&self, id: i32) -> Option<Person> {
+    fn get_by_id(&self, id: i32) -> Result<Option<Person>, String> {
         if self.is_dummy {
-            return None;
+            return Ok(None);
         }
-        
-        let conn = self.get_connection().ok()?;
-        
-        let mut stmt = conn.prepare("SELECT id, name, last_name, phone FROM people WHERE id = ?1").ok()?;
-        
-        let person = stmt.query_row(params![id], |row| {
-            Ok(Person {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                last_name: row.get(2)?,
-                phone: row.get(3)?,
-            })
-        }).ok()?;
-
-        Some(person)
-    }
-
-    fn list_all(&self) -> Vec<Person> {
-        if self.is_dummy {
-            return Vec::new();
-        }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, last_name, phone FROM people 
-             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name, last_name"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-
-        let person_iter = match stmt.query_map([], |row| {
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT id, name, last_name, phone FROM people WHERE id = ?1")
+            .map_err(|e| e.to_string())?;
+        match stmt.query_row(params![id], |row| {
             Ok(Person {
                 id: Some(row.get(0)?),
                 name: row.get(1)?,
@@ -160,268 +128,272 @@ impl PersonRepository for SqlitePersonRepository {
                 phone: row.get(3)?,
             })
         }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        person_iter.filter_map(|person| person.ok()).collect()
+            Ok(person) => Ok(Some(person)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(error) => Err(error.to_string()),
+        }
     }
 
-    fn search(&self, query: &str) -> Vec<Person> {
+    fn list_all(&self) -> Result<Vec<Person>, String> {
         if self.is_dummy {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, last_name, phone FROM people
+             WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
+             ORDER BY name, last_name",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let person_iter = stmt
+            .query_map([], |row| {
+                Ok(Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        person_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    fn search(&self, query: &str) -> Result<Vec<Person>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
 
         let search_pattern = format!("%{}%", query.to_lowercase());
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, last_name, phone FROM people 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, last_name, phone FROM people
              WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name, last_name"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
+             ORDER BY name, last_name",
+            )
+            .map_err(|e| e.to_string())?;
 
-        let person_iter = match stmt.query_map(params![search_pattern], |row| {
-            Ok(Person {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                last_name: row.get(2)?,
-                phone: row.get(3)?,
+        let person_iter = stmt
+            .query_map(params![search_pattern], |row| {
+                Ok(Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                })
             })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        person_iter.filter_map(|person| person.ok()).collect()
+            .map_err(|e| e.to_string())?;
+        person_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
     fn update(&self, person: Person) -> Result<(), String> {
         if self.is_dummy {
             return Ok(());
         }
-        
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        conn.execute(
-            "UPDATE people SET name = ?1, last_name = ?2, phone = ?3 WHERE id = ?4",
-            params![person.name, person.last_name, person.phone, person.id],
-        ).map_err(|e| e.to_string())?;
 
-        Ok(())
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+
+        let affected = conn
+            .execute(
+                "UPDATE people SET name = ?1, last_name = ?2, phone = ?3 WHERE id = ?4",
+                params![person.name, person.last_name, person.phone, person.id],
+            )
+            .map_err(|e| e.to_string())?;
+        if affected == 0 {
+            Err("Person not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
         if self.is_dummy {
             return Ok(());
         }
-        
+
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // Logical deletion instead of physical deletion
-        conn.execute(
-            "UPDATE people SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1",
+        let affected = conn.execute(
+            "UPDATE people SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1 AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             params![id]
         ).map_err(|e| e.to_string())?;
-        Ok(())
+        if affected == 0 {
+            Err("Active person not found".into())
+        } else {
+            Ok(())
+        }
     }
 
-    fn search_paginated(&self, query: &str, page: i32, page_size: i32) -> Vec<Person> {
+    fn search_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Person>, String> {
         if self.is_dummy {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
 
         let search_pattern = format!("%{}%", query.to_lowercase());
         let offset = (page - 1) * page_size;
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, last_name, phone FROM people 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, last_name, phone FROM people
              WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name
-             LIMIT ?2 OFFSET ?3"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
+             LIMIT ?2 OFFSET ?3",
+            )
+            .map_err(|e| e.to_string())?;
 
-        let person_iter = match stmt.query_map(params![search_pattern, page_size, offset], |row| {
-            Ok(Person {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                last_name: row.get(2)?,
-                phone: row.get(3)?,
+        let person_iter = stmt
+            .query_map(params![search_pattern, page_size, offset], |row| {
+                Ok(Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                })
             })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        person_iter.filter_map(|person| person.ok()).collect()
+            .map_err(|e| e.to_string())?;
+        person_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
-    fn list_paginated(&self, page: i32, page_size: i32) -> Vec<Person> {
+    fn list_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
         if self.is_dummy {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
 
         let offset = (page - 1) * page_size;
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, last_name, phone FROM people 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, last_name, phone FROM people
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name
-             LIMIT ?1 OFFSET ?2"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
+             LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
 
-        let person_iter = match stmt.query_map(params![page_size, offset], |row| {
-            Ok(Person {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                last_name: row.get(2)?,
-                phone: row.get(3)?,
+        let person_iter = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                })
             })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
-
-        person_iter.filter_map(|person| person.ok()).collect()
+            .map_err(|e| e.to_string())?;
+        person_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
-    fn count_all(&self) -> i32 {
+    fn count_all(&self) -> Result<i32, String> {
         if self.is_dummy {
-            return 0;
+            return Ok(0);
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
-
-        match conn.query_row(
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        conn.query_row(
             "SELECT COUNT(*) FROM people 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             [],
             |row| row.get(0)
-        ) {
-            Ok(count) => count,
-            Err(_) => 0,
-        }
+        ).map_err(|e| e.to_string())
     }
 
-    fn search_count(&self, query: &str) -> i32 {
+    fn search_count(&self, query: &str) -> Result<i32, String> {
         if self.is_dummy {
-            return 0;
+            return Ok(0);
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
 
         let search_pattern = format!("%{}%", query.to_lowercase());
-        
-        match conn.query_row(
+
+        conn.query_row(
             "SELECT COUNT(*) FROM people 
              WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             params![search_pattern],
-            |row| row.get(0)
-        ) {
-            Ok(count) => count,
-            Err(_) => 0,
-        }
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())
     }
 
     fn restore(&self, id: i32) -> Result<(), String> {
         if self.is_dummy {
             return Ok(());
         }
-        
+
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // Restore logically deleted person
-        conn.execute(
-            "UPDATE people SET deleted_at = NULL, is_active = 1 WHERE id = ?1",
+        let affected = conn.execute(
+            "UPDATE people SET deleted_at = NULL, is_active = 1 WHERE id = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
             params![id]
         ).map_err(|e| e.to_string())?;
-        Ok(())
+        if affected == 0 {
+            Err("Deleted person not found".into())
+        } else {
+            Ok(())
+        }
     }
 
-    fn list_deleted(&self) -> Vec<Person> {
+    fn list_deleted(&self) -> Result<Vec<Person>, String> {
         if self.is_dummy {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return Vec::new(),
-        };
-        
-        let mut stmt = match conn.prepare(
-            "SELECT id, name, last_name, phone FROM people 
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, last_name, phone FROM people
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             ORDER BY deleted_at DESC"
-        ) {
-            Ok(stmt) => stmt,
-            Err(_) => return Vec::new(),
-        };
-        
-        let person_iter = match stmt.query_map([], |row| {
-            Ok(Person {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                last_name: row.get(2)?,
-                phone: row.get(3)?,
-            })
-        }) {
-            Ok(iter) => iter,
-            Err(_) => return Vec::new(),
-        };
+             ORDER BY deleted_at DESC",
+            )
+            .map_err(|e| e.to_string())?;
 
-        person_iter.filter_map(|person| person.ok()).collect()
+        let person_iter = stmt
+            .query_map([], |row| {
+                Ok(Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        person_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
-    fn count_deleted(&self) -> i32 {
+    fn count_deleted(&self) -> Result<i32, String> {
         if self.is_dummy {
-            return 0;
+            return Ok(0);
         }
-        
-        let conn = match self.get_connection() {
-            Ok(conn) => conn,
-            Err(_) => return 0,
-        };
-        
-        let count: Result<i32, _> = conn.query_row(
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        conn.query_row(
             "SELECT COUNT(*) FROM people 
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
             [],
             |row| row.get(0),
-        );
-        
-        count.unwrap_or(0)
+        )
+        .map_err(|e| e.to_string())
     }
 }
-
