@@ -1,7 +1,7 @@
 import React from 'react';
 import { WorkoutEntryWithDetails } from '../../../services';
 import { WorkoutItem } from '../../workout';
-import { formatDateForDB, isToday } from '../../../shared/utils/dateUtils';
+import { formatDateForDB, isToday, tryFormatDateStringForDB } from '../../../shared/utils/dateUtils';
 import '../../../styles/CalendarGrid.css';
 
 interface CalendarGridProps {
@@ -25,12 +25,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   showWeekends = true,
   onSelectedDateChange
 }) => {
-
-
-
-
+  const datedWorkouts = workoutData.map(workout => ({ workout, date: tryFormatDateStringForDB(workout.date) }));
+  const invalidDateCount = datedWorkouts.filter(entry => entry.date === null).length;
   return (
     <div className="calendar-grid">
+      {invalidDateCount > 0 && (
+        <p role="alert">Hay {invalidDateCount} entrenamiento(s) con fecha inválida que no se pueden mostrar en el calendario. Los datos guardados no se modificaron.</p>
+      )}
       {threeWeeks.map((week, weekIndex) => {
         const weekStart = week[0];
         const weekEnd = week[6];
@@ -44,8 +45,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             <div className="calendar-week">
               {week.map((day, dayIndex) => {
                 const dayDateString = formatDateForDB(day);
-                const dayWorkouts = workoutData
-                  .filter(workout => formatDateForDB(new Date(workout.date)) === dayDateString)
+                const dayWorkouts = datedWorkouts
+                  .filter(entry => entry.date === dayDateString)
+                  .map(entry => entry.workout)
                   .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
                 const dayOfWeek = day.getDay();
@@ -110,4 +112,4 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       })}
     </div>
   );
-}; 
+};

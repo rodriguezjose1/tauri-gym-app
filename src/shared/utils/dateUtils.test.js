@@ -5,6 +5,7 @@ import {
   getCurrentDateString,
   isSameDay,
   isToday,
+  tryFormatDateStringForDB,
 } from './dateUtils'
 
 afterEach(() => {
@@ -63,21 +64,46 @@ describe('comparación de días y reloj controlado', () => {
   })
 })
 
-// Characterization only: these assertions reproduce findings, not desired contracts.
-// See docs/testing/incremento-1.md (FECHA-01 and FECHA-02).
-describe('diagnóstico: entradas inválidas (comportamiento actual)', () => {
-  it.each(['', 'not-a-date'])('devuelve %j sin corregir y registra el error', (input) => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+describe('rechazo explícito de entradas inválidas', () => {
+  it.each([
+    '', ' ', 'not-a-date', null, undefined, 123, {}, '15/01/2024',
+    '2024-02-30', '2023-02-29', '1900-02-29', '2024-04-31',
+    '2024-00-15', '2024-13-15', '2024-01-00', '2024-01-32', '0000-01-01',
+    '2024-02-30T12:00:00Z', '2023-02-29 12:00:00',
+    '2024-01-15T24:00:00Z', '2024-01-15T12:60:00Z', '2024-01-15T12:00:60Z',
+    '2024-01-15T12:00:00+24:00', '2024-01-15T12:00:00+03:60',
+  ])('rechaza %j sin normalizarlo a otra fecha', input => {
+    expect(() => formatDateStringForDB(input)).toThrow(RangeError)
+    expect(tryFormatDateStringForDB(input)).toBeNull()
+  })
+
+  it.each([new Date('invalid'), null, undefined, '2024-01-15', new Date('0000-01-01T12:00:00Z'), new Date('+010000-01-01T12:00:00Z')])('rechaza Date inválido o fuera de rango: %s', input => {
+    expect(() => formatDateForDB(input)).toThrow(RangeError)
+  })
+
+  it('una fecha inválida nunca coincide con otra ni con hoy', () => {
+    const invalid = new Date('invalid')
+    const valid = new Date('2024-01-15T12:00:00Z')
+    expect(isSameDay(invalid, invalid)).toBe(false)
+    expect(isSameDay(invalid, valid)).toBe(false)
+    expect(isSameDay(valid, invalid)).toBe(false)
+    expect(isSameDay(null, valid)).toBe(false)
+    expect(isSameDay(valid, null)).toBe(false)
+    expect(isToday(invalid)).toBe(false)
+  })
+
+  it.each(['2000-02-29', '2024-02-29', '2024-04-30', '0001-01-01'])('conserva la fecha válida %s', input => {
     expect(formatDateStringForDB(input)).toBe(input)
-    expect(error).toHaveBeenCalledWith('Invalid date string:', input)
+    expect(tryFormatDateStringForDB(input)).toBe(input)
   })
 
-  it('FECHA-01: una fecha imposible con formato YYYY-MM-DD pasa sin validación', () => {
-    expect(formatDateStringForDB('2024-02-30')).toBe('2024-02-30')
-  })
-
-  it('FECHA-02: Date inválido produce NaN-NaN-NaN y dos inválidos se consideran iguales', () => {
-    expect(formatDateForDB(new Date('invalid'))).toBe('NaN-NaN-NaN')
-    expect(isSameDay(new Date('invalid'), new Date('invalid'))).toBe(true)
+  it.each([
+    ['2024-01-15 23:59:59', '2024-01-15'],
+    ['2024-01-16T02:59:59.999Z', '2024-01-15'],
+    ['2024-01-16T03:00:00.000Z', '2024-01-16'],
+    ['2024-01-16T00:30:00+02:00', '2024-01-15'],
+    ['2024-01-15T12:30', '2024-01-15'],
+  ])('mantiene la conversión local de %s', (input, expected) => {
+    expect(formatDateStringForDB(input)).toBe(expected)
   })
 })

@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-04. Alcance: pruebas y herramientas; sin cambios de código productivo.
 
-**Actualización posterior:** SESION-01, SESION-02 y SESION-03 fueron corregidos en el flujo activo del Dashboard. Ver [corrección de persistencia](correccion-persistencia.md). Los resultados y diagnósticos que siguen son la línea base histórica del incremento 1; las pruebas de sesión ahora verifican la recuperación, no los defectos anteriores. Los hallazgos de fechas siguen pendientes.
+**Actualización posterior:** SESION-01, SESION-02 y SESION-03 fueron corregidos en el flujo activo del Dashboard; FECHA-01 y FECHA-02 también fueron corregidos. Ver [corrección de persistencia](correccion-persistencia.md) y [corrección de fechas](correccion-fechas.md). Los resultados y diagnósticos que siguen son la línea base histórica del incremento 1; las pruebas ahora verifican los contratos corregidos, no los defectos anteriores.
 
 ## Qué se cambió
 

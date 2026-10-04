@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Person, Exercise, Routine, WorkoutEntryWithDetails, RoutineOption } from '../types/dashboard';
 import { PersonService, ExerciseService, RoutineService, WorkoutService } from '../../services';
 import { DASHBOARD_UI_LABELS } from "../constants/errorMessages";
-import { formatDateStringForDB } from '../utils/dateUtils';
+import { tryFormatDateStringForDB } from '../utils/dateUtils';
 
 export const useDashboardData = () => {
   // Initialize selectedPerson from sessionStorage (same as original)
@@ -164,7 +164,7 @@ export const useDashboardData = () => {
   // Get workout entries for a specific date
   const getWorkoutEntriesForDate = (date: string): WorkoutEntryWithDetails[] => {
     return workoutData.filter(entry => {
-      const formattedEntryDate = formatDateStringForDB(entry.date);
+      const formattedEntryDate = tryFormatDateStringForDB(entry.date);
       return formattedEntryDate === date;
     });
   };
@@ -256,4 +256,4 @@ export const useDashboardData = () => {
     setRoutines,
     setWorkoutData
   };
-}; 
+};

@@ -15,7 +15,8 @@
     "test:run": "vitest run",
     "test:increment1": "vitest run src/shared/utils/dateUtils.test.js src/domains/person/hooks/usePeopleData.test.js",
     "test:coverage": "vitest run --coverage",
-    "test:persistence": "vitest run src/domains/person/hooks/usePeopleData.test.js src/domains/dashboard/pages/Dashboard.persistence.test.jsx"
+    "test:persistence": "vitest run src/domains/person/hooks/usePeopleData.test.js src/domains/dashboard/pages/Dashboard.persistence.test.jsx",
+    "test:dates": "vitest run src/shared/utils/dateUtils.test.js src/domains/workout/hooks/useWorkoutData.test.js src/domains/dashboard/components/Calendar.dates.test.jsx"
   },
   "dependencies": {
     "@chakra-ui/form-control": "^2.2.0",
