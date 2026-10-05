@@ -3,7 +3,6 @@ import { WorkoutEntry, WorkoutEntryWithDetails } from "../../../shared/types/das
 
 const requestNames = {
   createWorkoutEntry: "create_workout_entry",
-  createWorkoutSession: "create_workout_session",
   getWorkoutEntriesByPersonAndDateRange: "get_workout_entries_by_person_and_date_range",
   getWorkoutEntriesByPerson: "get_workout_entries_by_person",
   getAllWorkoutEntries: "get_all_workout_entries",
@@ -261,4 +260,4 @@ export class WorkoutService {
       throw error;
     }
   }
-} 
+}

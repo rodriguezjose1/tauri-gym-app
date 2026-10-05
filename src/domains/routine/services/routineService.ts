@@ -24,7 +24,6 @@ const requestNames = {
   removeExerciseFromRoutine: "remove_exercise_from_routine",
   getRoutineExercises: "get_routine_exercises",
   reorderRoutineExercises: "reorder_routine_exercises",
-  getRoutineOptions: "get_routine_options",
   renumberRoutineGroups: "renumber_routine_groups"
 };
 
@@ -325,4 +324,4 @@ export class RoutineService {
       throw new Error(`Error al contar rutinas eliminadas: ${error}`);
     }
   }
-} 
+}

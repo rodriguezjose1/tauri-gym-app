@@ -85,4 +85,44 @@ describe('Dashboard: selección y calendario', () => {
     expect(await screen.findByText('Flexiones', { selector: '.exercise-autocomplete-item-name' })).toBeInTheDocument()
     expect(invoke).toHaveBeenCalledWith('search_exercises_paginated', { query: 'Fl', page: 1, pageSize: 10 })
   })
+
+  it('carga una rutina en una sesión, la guarda y la muestra tras recargar datos', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    backend.routines = [{
+      id: 5,
+      name: 'Piernas',
+      code: 'P1',
+      exercises: [{
+        id: 50,
+        routine_id: 5,
+        exercise_id: 2,
+        exercise_name: 'Sentadillas',
+        exercise_code: 'SQ',
+        sets: 4,
+        reps: 8,
+        weight: 60,
+        notes: '',
+        order_index: 0,
+        group_number: 1
+      }]
+    }]
+    const user = userEvent.setup()
+    await renderDashboard()
+
+    const emptyDay = screen.getAllByText('Sin entrenamientos')[0].closest('.weekly-calendar-day')
+    const selectedDate = emptyDay.getAttribute('data-date')
+    await user.click(within(emptyDay).getByTitle('Agregar entrenamiento'))
+    expect(await screen.findByText('Nueva Sesión de Entrenamiento')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByDisplayValue('Seleccionar rutina...'), '5')
+    await user.click(screen.getByRole('button', { name: '📋' }))
+    expect(await screen.findByDisplayValue('Sentadillas (SQ)')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Guardar Sesión' }))
+
+    await waitFor(() => expect(backend.entries.some(entry => entry.exercise_id === 2 && entry.date === selectedDate)).toBe(true))
+    expect(await screen.findByText('Sentadillas')).toBeInTheDocument()
+    expect(invoke).toHaveBeenCalledWith('create_batch', expect.objectContaining({
+      workoutEntries: [expect.objectContaining({ person_id: 1, exercise_id: 2, date: selectedDate })]
+    }))
+  })
 })

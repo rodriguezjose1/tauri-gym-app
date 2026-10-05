@@ -13,13 +13,14 @@ export const workout = { id: 10, person_id: 1, exercise_id: 1, date: '2024-01-15
 
 // Mock only the Tauri boundary; keep components, hooks and services real.
 export function setupDashboardFixture() {
-  const backend = { entries: [], overrides: {} }
+  const backend = { entries: [], routines: [], overrides: {} }
   let unexpected
   beforeEach(() => {
     sessionStorage.clear()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2024-01-15T12:00:00-03:00'))
     backend.entries = [{ ...workout }]
+    backend.routines = []
     backend.overrides = {}
     unexpected = []
     vi.mocked(invoke).mockReset()
@@ -28,8 +29,22 @@ export function setupDashboardFixture() {
       switch (command) {
         case 'get_persons_paginated': return [person, otherPerson]
         case 'search_persons_paginated': return [person, otherPerson].filter(p => `${p.name} ${p.last_name}`.toLowerCase().includes(args.query.toLowerCase()))
-        case 'list_routines_paginated': return []
+        case 'list_routines_paginated': return backend.routines.map(routine => ({ id: routine.id, name: routine.name, code: routine.code }))
+        case 'get_routine_with_exercises': return backend.routines.find(routine => routine.id === args.id) || null
         case 'get_workout_entries_by_person': return backend.entries.filter(e => e.person_id === args.personId)
+        case 'get_workout_entries_by_person_and_date_range': return backend.entries.filter(e => e.person_id === args.personId && e.date >= args.startDate && e.date <= args.endDate)
+        case 'update_workout_entry': backend.entries = backend.entries.map(entry => entry.id === args.workoutEntry.id ? { ...entry, ...args.workoutEntry } : entry); return
+        case 'create_batch': {
+          backend.entries.push(...args.workoutEntries.map((entry, index) => ({
+            ...entry,
+            id: 100 + index,
+            person_name: person.name,
+            person_last_name: person.last_name,
+            exercise_name: entry.exercise_id === 2 ? 'Sentadillas' : 'Flexiones',
+            exercise_code: entry.exercise_id === 2 ? 'SQ' : 'FL'
+          })))
+          return
+        }
         case 'delete_workout_entry': backend.entries = backend.entries.filter(e => e.id !== args.id); return
         case 'renumber_workout_groups': return
         case 'search_exercises_paginated': return { exercises: [{ id: 1, name: 'Flexiones', code: 'FL' }], total: 1, page: args.page, page_size: args.pageSize, total_pages: 1 }

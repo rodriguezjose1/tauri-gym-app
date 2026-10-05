@@ -18,6 +18,7 @@
     "test:persistence": "vitest run src/domains/person/hooks/usePeopleData.test.js src/domains/dashboard/pages/Dashboard.persistence.test.jsx",
     "test:dates": "vitest run src/shared/utils/dateUtils.test.js src/domains/workout/hooks/useWorkoutData.test.js src/domains/dashboard/components/Calendar.dates.test.jsx",
     "test:dashboard": "vitest run src/test/Dashboard.test.jsx src/test/Dashboard.integration.test.jsx",
+    "test:native-contract": "vitest run src/test/Tauri.contract.test.js src/test/Dashboard.test.jsx && cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked database_compatibility",
     "test:backend": "cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked",
     "test:all": "npm run test:run && npm run test:backend"
   },

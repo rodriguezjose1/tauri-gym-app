@@ -206,6 +206,7 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 return (
                   <div
                     key={dayIndex}
+                    data-date={dayDateString}
                     className={`weekly-calendar-day ${isToday(day) ? 'today' : ''} ${isSelected(day) ? 'selected' : ''} ${isWeekend ? 'weekend' : ''}`}
                     onContextMenu={(e) => onDayRightClick(e, dayDateString)}
                   >

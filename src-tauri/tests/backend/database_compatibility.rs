@@ -3,7 +3,15 @@ use crate::sqlite_exercise_repository::SqliteExerciseRepository;
 use crate::sqlite_person_repository::SqlitePersonRepository;
 use crate::sqlite_routine_repository::SqliteRoutineRepository;
 use crate::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
+use crate::exercise::Exercise;
+use crate::exercise_service::ExerciseService;
+use crate::person::Person;
+use crate::person_service::PersonService;
+use crate::routine_service::RoutineService;
+use crate::workout_entry::WorkoutEntry;
+use crate::workout_entry_service::WorkoutEntryService;
 use rusqlite::Connection;
+use std::sync::Arc;
 use tempfile::{Builder, TempDir};
 
 struct Fixture {
@@ -214,4 +222,78 @@ fn migration_fixture_is_removed_after_the_test() {
     migrate_database(&fixture.path).unwrap();
     drop(fixture);
     assert!(!directory.exists());
+}
+
+#[test]
+fn complete_domain_data_survives_service_shutdown_and_reopen() {
+    let fixture = Fixture::new();
+    migrate_database(&fixture.path).unwrap();
+    let path = fixture.path.to_str().unwrap();
+
+    let people = PersonService::new(Arc::new(SqlitePersonRepository::new_safe(path).unwrap()));
+    let exercises = ExerciseService::new(Arc::new(SqliteExerciseRepository::new_safe(path).unwrap()));
+    let workouts = WorkoutEntryService::new(Arc::new(SqliteWorkoutEntryRepository::new_safe(path).unwrap()));
+    let routines = RoutineService::new(Arc::new(SqliteRoutineRepository::new_safe(path).unwrap()));
+
+    people
+        .create_person(Person {
+            id: None,
+            name: "Ana".into(),
+            last_name: "Pérez".into(),
+            phone: "3511234567".into(),
+        })
+        .unwrap();
+    exercises
+        .create_exercise(Exercise {
+            id: None,
+            name: "Sentadilla".into(),
+            code: "SQ".into(),
+        })
+        .unwrap();
+    let connection = fixture.connection();
+    let person_id: i32 = connection.query_row("SELECT id FROM people", [], |row| row.get(0)).unwrap();
+    let exercise_id: i32 = connection.query_row("SELECT id FROM exercise", [], |row| row.get(0)).unwrap();
+    drop(connection);
+    workouts
+        .create_workout_session(vec![WorkoutEntry {
+            id: None,
+            person_id,
+            exercise_id,
+            date: "2026-10-04".into(),
+            sets: Some(4),
+            reps: Some(6),
+            weight: Some(80.0),
+            notes: Some("persistente".into()),
+            order_index: Some(0),
+            group_number: Some(1),
+            created_at: None,
+            updated_at: None,
+        }])
+        .unwrap();
+    let routine_id = routines
+        .create_routine_from_workout(
+            "Día A".into(),
+            "A".into(),
+            vec![(exercise_id, Some(4), Some(6), Some(80.0), None, Some(1))],
+        )
+        .unwrap();
+    drop((people, exercises, workouts, routines));
+
+    migrate_database(&fixture.path).unwrap();
+    let reopened_people = PersonService::new(Arc::new(SqlitePersonRepository::new_safe(path).unwrap()));
+    let reopened_workouts = WorkoutEntryService::new(Arc::new(SqliteWorkoutEntryRepository::new_safe(path).unwrap()));
+    let reopened_routines = RoutineService::new(Arc::new(SqliteRoutineRepository::new_safe(path).unwrap()));
+
+    assert_eq!(reopened_people.list_people().unwrap()[0].id, Some(person_id));
+    let saved_workout = &reopened_workouts.get_workout_entries_by_person(person_id).unwrap()[0];
+    assert_eq!((saved_workout.exercise_id, saved_workout.date.as_str()), (exercise_id, "2026-10-04"));
+    assert_eq!(
+        reopened_routines
+            .get_routine_with_exercises(routine_id)
+            .unwrap()
+            .unwrap()
+            .exercises
+            .len(),
+        1
+    );
 }
