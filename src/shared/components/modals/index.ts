@@ -2,5 +2,3 @@
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { InfoModal } from './InfoModal';
 export { ConfirmationModal } from './ConfirmationModal';
-
-// LoadRoutineModal ha sido movido a src/domains/routine/components 

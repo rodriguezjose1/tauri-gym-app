@@ -113,85 +113,6 @@
   overflow: hidden;
 }
 
-/* Load Routine Modal */
-.load-routine-modal-content {
-  padding: 8px 0;
-}
-
-.load-routine-person-info {
-  margin-bottom: 24px;
-  padding: 16px;
-  background-color: var(--bg-tertiary);
-  border-radius: 8px;
-}
-
-.load-routine-person-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.load-routine-person-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.load-routine-form-grid {
-  display: grid;
-  gap: 20px;
-}
-
-.load-routine-form-group {
-  /* Base form group styles */
-}
-
-.load-routine-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.load-routine-select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 14px;
-  background-color: var(--bg-primary);
-}
-
-.load-routine-select:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-.load-routine-group-help {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.load-routine-info-box {
-  padding: 12px;
-  background-color: var(--bg-tertiary);
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--accent-primary);
-  border: 1px solid var(--border-light);
-}
-
-.load-routine-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-light);
-}
-
 /* Modal Overlays */
 .dashboard-modal-overlay {
   position: fixed;
@@ -346,19 +267,6 @@
     min-width: 100px;
   }
   
-  .load-routine-modal-content {
-    margin: 20px;
-  }
-  
-  .load-routine-form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .load-routine-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
   .dashboard-modal-content {
     margin: 20px;
   }
@@ -405,14 +313,6 @@
     font-size: 12px;
   }
   
-  .load-routine-person-info {
-    padding: 12px;
-  }
-  
-  .load-routine-actions {
-    padding: 12px;
-  }
-  
   .dashboard-empty {
     padding: 20px;
   }
@@ -436,27 +336,10 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   
-  .load-routine-select {
-    background-color: var(--bg-secondary);
-    border-color: var(--border-color);
-  }
-  
-  .load-routine-select option {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-  }
 }
 
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
-  .load-routine-select {
-    border-width: 2px;
-  }
-  
-  .load-routine-info-box {
-    border-width: 2px;
-  }
-  
   .dashboard-modal-content {
     border: 2px solid var(--border-color);
   }

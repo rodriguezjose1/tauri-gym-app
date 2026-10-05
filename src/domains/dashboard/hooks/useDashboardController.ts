@@ -9,7 +9,6 @@ import { Person, WorkoutEntry, WorkoutEntryWithDetails, EditWorkoutEntryForm } f
 import { useWorkoutModal } from '../../../shared/hooks/useWorkoutModal';
 import { useSessionModal } from '../../../shared/hooks/useSessionModal';
 import { useDeleteModal } from '../../../shared/hooks/useDeleteModal';
-import { useRoutineModal } from '../../../shared/hooks/useRoutineModal';
 import { useSettingsModal } from '../../../shared/hooks/useSettingsModal';
 
 // Atomic event hooks
@@ -20,7 +19,6 @@ import { useSaveWorkoutEntry } from '../../workout/hooks/useSaveWorkoutEntry';
 import { useSaveWorkoutSession } from '../../workout/hooks/useSaveWorkoutSession';
 import { useSaveEditEntry } from '../../workout/hooks/useSaveEditEntry';
 import { useLoadRoutine } from '../../routine/hooks/useLoadRoutine';
-import { useApplyRoutineToDate } from '../../routine/hooks/useApplyRoutineToDate';
 import { useDeleteEventHandlers } from '../../../shared/hooks/useDeleteEventHandlers';
 import { useDashboardRoutineOperations } from './useDashboardRoutineOperations';
 
@@ -39,7 +37,6 @@ export const useDashboardController = () => {
   const workoutModal = useWorkoutModal();
   const sessionModal = useSessionModal(showToast);
   const deleteModal = useDeleteModal();
-  const routineModal = useRoutineModal();
   const confirmModal = useConfirmModal();
   const settingsModal = useSettingsModal();
 
@@ -53,7 +50,6 @@ export const useDashboardController = () => {
 
   const routineOps = useDashboardRoutineOperations({
     selectedPerson: dataLayer.selectedPerson,
-    workoutData: dataLayer.workoutData,
     showToast
   });
 
@@ -112,19 +108,6 @@ export const useDashboardController = () => {
     loadRoutineToSessionForm: sessionModal.loadRoutineToSessionForm
   });
 
-  const applyRoutineHandler = useApplyRoutineToDate({
-    selectedRoutineForLoad: routineModal.selectedRoutineForLoad,
-    selectedDateForRoutine: routineModal.selectedDateForRoutine,
-    selectedGroupForRoutine: routineModal.selectedGroupForRoutine,
-    applyRoutineToDate: routineOps.applyRoutineToDate,
-    setShowLoadRoutineModal: routineModal.setShowLoadRoutineModal,
-    setSelectedRoutineForLoad: routineModal.setSelectedRoutineForLoad,
-    setSelectedDateForRoutine: routineModal.setSelectedDateForRoutine,
-    setSelectedGroupForRoutine: routineModal.setSelectedGroupForRoutine,
-    showConfirm: confirmModal.showConfirm,
-    showToast
-  });
-
   const deleteHandlers = useDeleteEventHandlers({
     workoutToDelete: deleteModal.workoutToDelete,
     deleteWorkoutEntry: workoutOps.deleteWorkoutEntry,
@@ -172,7 +155,6 @@ export const useDashboardController = () => {
       workout: workoutModal,
       session: sessionModal,
       delete: deleteModal,
-      routine: routineModal,
       confirm: confirmModal,
       settings: settingsModal
     },
@@ -193,8 +175,6 @@ export const useDashboardController = () => {
       saveWorkoutSession: saveWorkoutSessionHandler.handleSaveWorkoutSession,
       loadRoutine: loadRoutineHandler.handleLoadRoutine,
       loadingRoutine: loadRoutineHandler.loadingRoutine,
-      applyRoutine: applyRoutineHandler.handleLoadRoutineToDate,
-      loadingApply: applyRoutineHandler.loadingApply,
       deleteWorkout: deleteHandlers.handleDeleteWorkoutEntry,
       confirmDelete: deleteHandlers.confirmDeleteWorkoutEntry,
       cancelDelete: deleteHandlers.cancelDeleteWorkoutEntry,
@@ -205,4 +185,4 @@ export const useDashboardController = () => {
       updateEditForm: handleUpdateEditForm
     }
   };
-}; 
+};

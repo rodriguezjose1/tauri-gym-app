@@ -129,8 +129,6 @@ export const DASHBOARD_ERROR_MESSAGES = {
   
   // Routine operations errors
   LOAD_ROUTINE_FAILED: "Error al cargar la rutina. Por favor, inténtalo de nuevo.",
-  APPLY_ROUTINE_FAILED: "Error al aplicar la rutina. Por favor, inténtalo de nuevo.",
-  APPLY_ROUTINE_TO_DATE_FAILED: "Error al aplicar la rutina a la fecha. Por favor, inténtalo de nuevo.",
   
   // Console error messages
   CONSOLE_SAVE_WORKOUT_ENTRY: "Error saving workout entry:",
@@ -139,7 +137,6 @@ export const DASHBOARD_ERROR_MESSAGES = {
   CONSOLE_REORDER_EXERCISES: "Error reordering exercises:",
   CONSOLE_CLEAR_EXERCISES: "Error clearing exercises:",
   CONSOLE_LOAD_ROUTINE: "Error loading routine:",
-  CONSOLE_APPLY_ROUTINE: "Error applying routine:"
 } as const;
 
 // Success messages for Dashboard component
@@ -152,24 +149,17 @@ export const DASHBOARD_SUCCESS_MESSAGES = {
   EXERCISES_CLEARED: "Todos los ejercicios han sido eliminados correctamente",
   ROUTINE_LOADED: (routineName: string, exerciseCount: number, groupNumber: number) => 
     `Rutina "${routineName}" cargada con ${exerciseCount} ejercicios en el Grupo ${groupNumber}.`,
-  ROUTINE_APPLIED: (routineName: string, exerciseCount: number, groupNumber: number) => 
-    `Rutina "${routineName}" aplicada exitosamente con ${exerciseCount} ejercicios en el Grupo ${groupNumber}.`,
-  ROUTINE_APPLIED_TO_DATE: "Rutina aplicada exitosamente a la fecha seleccionada"
 } as const;
 
 // Warning messages for Dashboard component
 export const DASHBOARD_WARNING_MESSAGES = {
   NO_VALID_EXERCISES: "No hay ejercicios válidos seleccionados. ¿Quieres eliminar todos los entrenamientos de esta fecha?",
-  EXISTING_EXERCISES_FOR_DATE: "Ya existen ejercicios para esta fecha. ¿Quieres continuar?",
-  ROUTINE_NO_EXERCISES: "La rutina seleccionada no tiene ejercicios.",
-  REPLACE_EXISTING_EXERCISES: "Ya existen ejercicios para esta fecha. ¿Quieres reemplazarlos con la rutina seleccionada?"
 } as const;
 
 // UI Labels for Dashboard component
 export const DASHBOARD_UI_LABELS = {
   // Modal titles
   DELETE_EXERCISE_TITLE: "Eliminar Ejercicio",
-  LOAD_ROUTINE_TITLE: "Cargar Rutina a Fecha Específica",
   ERROR_TITLE: "Error",
   SUCCESS_TITLE: "Éxito",
   WARNING_TITLE: "Advertencia",
@@ -180,4 +170,4 @@ export const DASHBOARD_UI_LABELS = {
   
   // Session storage keys
   SELECTED_PERSON_KEY: "dashboard-selectedPerson"
-} as const; 
+} as const;

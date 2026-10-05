@@ -199,12 +199,12 @@ fn create_routine(service: State<'_, RoutineService>, name: String, code: String
 }
 
 #[tauri::command]
-fn get_routine_by_id(service: State<'_, RoutineService>, id: i32) -> Option<Routine> {
+fn get_routine_by_id(service: State<'_, RoutineService>, id: i32) -> Result<Option<Routine>, String> {
     service.get_routine_by_id(id)
 }
 
 #[tauri::command]
-fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Option<models::routine::RoutineWithExercises> {
+fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Result<Option<models::routine::RoutineWithExercises>, String> {
     service.get_routine_with_exercises(id)
 }
 
@@ -224,17 +224,17 @@ fn restore_routine(service: State<'_, RoutineService>, id: i32) -> Result<(), St
 }
 
 #[tauri::command]
-fn list_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
+fn list_routines(service: State<'_, RoutineService>) -> Result<Vec<Routine>, String> {
     service.list_routines()
 }
 
 #[tauri::command]
-fn get_deleted_routines(service: State<'_, RoutineService>) -> Vec<Routine> {
+fn get_deleted_routines(service: State<'_, RoutineService>) -> Result<Vec<Routine>, String> {
     service.list_deleted_routines()
 }
 
 #[tauri::command]
-fn count_deleted_routines(service: State<'_, RoutineService>) -> i32 {
+fn count_deleted_routines(service: State<'_, RoutineService>) -> Result<i32, String> {
     service.count_deleted_routines()
 }
 
@@ -244,17 +244,17 @@ fn renumber_routine_groups(service: State<'_, RoutineService>, routine_id: i32) 
 }
 
 #[tauri::command]
-fn list_routines_paginated(service: State<'_, RoutineService>, page: i32, page_size: i32) -> Vec<Routine> {
+fn list_routines_paginated(service: State<'_, RoutineService>, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
     service.list_routines_paginated(page, page_size)
 }
 
 #[tauri::command]
-fn search_routines(service: State<'_, RoutineService>, query: String) -> Vec<Routine> {
+fn search_routines(service: State<'_, RoutineService>, query: String) -> Result<Vec<Routine>, String> {
     service.search_routines(query)
 }
 
 #[tauri::command]
-fn search_routines_paginated(service: State<'_, RoutineService>, query: String, page: i32, page_size: i32) -> Vec<Routine> {
+fn search_routines_paginated(service: State<'_, RoutineService>, query: String, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
     service.search_routines_paginated(query, page, page_size)
 }
 
@@ -295,7 +295,7 @@ fn remove_exercise_from_routine(service: State<'_, RoutineService>, routine_id: 
 }
 
 #[tauri::command]
-fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Vec<models::routine_exercise::RoutineExerciseWithDetails> {
+fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Result<Vec<models::routine_exercise::RoutineExerciseWithDetails>, String> {
     service.get_routine_exercises(routine_id)
 }
 

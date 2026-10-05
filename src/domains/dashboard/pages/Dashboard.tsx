@@ -5,7 +5,6 @@ import { WorkoutModals } from '../../workout';
 
 import { ConfirmationModal } from '../../../shared/components/modals/ConfirmationModal';
 import { SettingsModal } from '../../settings/components/SettingsModal';
-import { LoadRoutineModal } from '../../routine';
 import ToastContainer from '../../../shared/components/notifications/ToastContainer';
 import { useDashboardController } from '../hooks/useDashboardController';
 import { useConfig } from '../../../shared/contexts/ConfigContext';
@@ -101,27 +100,6 @@ export default function DashboardRefactored() {
       />
 
 
-
-      {/* Load Routine Modal */}
-      <LoadRoutineModal
-        isOpen={modals.routine.showLoadRoutineModal}
-        onClose={() => {
-          modals.routine.setShowLoadRoutineModal(false);
-          modals.routine.setSelectedRoutineForLoad(null);
-          modals.routine.setSelectedDateForRoutine("");
-          modals.routine.setSelectedGroupForRoutine(1);
-        }}
-        selectedPerson={data.selectedPerson}
-        routines={data.routines}
-        selectedRoutineForLoad={modals.routine.selectedRoutineForLoad}
-        selectedDateForRoutine={modals.routine.selectedDateForRoutine}
-        selectedGroupForRoutine={modals.routine.selectedGroupForRoutine}
-        onRoutineSelect={modals.routine.setSelectedRoutineForLoad}
-        onDateChange={modals.routine.setSelectedDateForRoutine}
-        onGroupChange={modals.routine.setSelectedGroupForRoutine}
-        onApplyRoutine={handlers.applyRoutine}
-        loadingApply={handlers.loadingApply}
-      />
 
       {/* Confirmation Modal */}
       <ConfirmationModal

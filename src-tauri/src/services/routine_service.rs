@@ -12,61 +12,11 @@ impl RoutineService {
         Self { repository }
     }
 
-    // Validate that routine groups are consecutive
-    fn validate_routine_groups_consecutive(&self, routine_id: i32) -> Result<(), String> {
-        println!("DEBUG: validate_routine_groups_consecutive called for routine_id: {}", routine_id);
-        
-        let exercises = self.repository.get_routine_exercises(routine_id);
-        println!("DEBUG: Found {} exercises in routine", exercises.len());
-        
-        let groups: std::collections::HashSet<i32> = exercises
-            .iter()
-            .map(|e| e.group_number.unwrap_or(1))
-            .collect();
-        
-        println!("DEBUG: Groups found: {:?}", groups);
-        
-        if groups.is_empty() {
-            println!("DEBUG: No groups found, returning Ok");
-            return Ok(());
-        }
-        
-        let min_group = groups.iter().min().unwrap();
-        let max_group = groups.iter().max().unwrap();
-        
-        println!("DEBUG: Min group: {}, Max group: {}", min_group, max_group);
-        
-        // First exercise must always be in group 1
-        if *min_group != 1 {
-            let error_msg = format!(
-                "⚠️ El primer ejercicio debe estar en el grupo 1. No puedes empezar en el grupo {}.",
-                min_group
-            );
-            println!("DEBUG: Validation failed: {}", error_msg);
-            return Err(error_msg);
-        }
-        
-        // Check that all groups from min to max exist
-        for group_num in *min_group..=*max_group {
-            if !groups.contains(&group_num) {
-                let error_msg = format!(
-                    "⚠️ No puedes saltar grupos. Agrega primero un ejercicio al grupo {}.",
-                    group_num
-                );
-                println!("DEBUG: Validation failed: {}", error_msg);
-                return Err(error_msg);
-            }
-        }
-        
-        println!("DEBUG: Validation passed, groups are consecutive");
-        Ok(())
-    }
-
     // Validate that routine groups are consecutive WITH a new group (before adding)
     fn validate_routine_groups_consecutive_with_new_group(&self, routine_id: i32, new_group_number: Option<i32>) -> Result<(), String> {
         println!("DEBUG: validate_routine_groups_consecutive_with_new_group called for routine_id: {} with new_group: {:?}", routine_id, new_group_number);
         
-        let exercises = self.repository.get_routine_exercises(routine_id);
+        let exercises = self.repository.get_routine_exercises(routine_id)?;
         println!("DEBUG: Found {} exercises in routine", exercises.len());
         
         let mut groups: std::collections::HashSet<i32> = exercises
@@ -119,7 +69,7 @@ impl RoutineService {
 
     pub fn get_available_groups(&self, routine_id: i32) -> Result<Vec<i32>, String> {
         // Validate that routine exists
-        if self.repository.get_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id)?.is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
@@ -141,11 +91,11 @@ impl RoutineService {
         self.repository.create(routine)
     }
 
-    pub fn get_routine_by_id(&self, id: i32) -> Option<Routine> {
+    pub fn get_routine_by_id(&self, id: i32) -> Result<Option<Routine>, String> {
         self.repository.get_by_id(id)
     }
 
-    pub fn get_routine_with_exercises(&self, id: i32) -> Option<RoutineWithExercises> {
+    pub fn get_routine_with_exercises(&self, id: i32) -> Result<Option<RoutineWithExercises>, String> {
         self.repository.get_with_exercises(id)
     }
 
@@ -169,35 +119,35 @@ impl RoutineService {
         self.repository.restore(id)
     }
 
-    pub fn list_routines(&self) -> Vec<Routine> {
+    pub fn list_routines(&self) -> Result<Vec<Routine>, String> {
         self.repository.list_all()
     }
 
-    pub fn list_deleted_routines(&self) -> Vec<Routine> {
+    pub fn list_deleted_routines(&self) -> Result<Vec<Routine>, String> {
         self.repository.list_deleted()
     }
 
-    pub fn count_deleted_routines(&self) -> i32 {
+    pub fn count_deleted_routines(&self) -> Result<i32, String> {
         self.repository.count_deleted()
     }
 
-    pub fn list_routines_paginated(&self, page: i32, page_size: i32) -> Vec<Routine> {
+    pub fn list_routines_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
         if page < 1 || page_size < 1 {
-            return Vec::new();
+            return Err("La página y el tamaño deben ser mayores que cero".into());
         }
         self.repository.list_routines_paginated(page, page_size)
     }
 
-    pub fn search_routines(&self, query: String) -> Vec<Routine> {
+    pub fn search_routines(&self, query: String) -> Result<Vec<Routine>, String> {
         if query.trim().is_empty() {
             return self.list_routines();
         }
         self.repository.search_routines(&query.trim())
     }
 
-    pub fn search_routines_paginated(&self, query: String, page: i32, page_size: i32) -> Vec<Routine> {
+    pub fn search_routines_paginated(&self, query: String, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
         if page < 1 || page_size < 1 {
-            return Vec::new();
+            return Err("La página y el tamaño deben ser mayores que cero".into());
         }
         if query.trim().is_empty() {
             return self.list_routines_paginated(page, page_size);
@@ -220,7 +170,7 @@ impl RoutineService {
         println!("DEBUG: add_exercise_to_routine called with group_number: {:?}", group_number);
         
         // Validate that routine exists
-        if self.repository.get_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id)?.is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
@@ -230,6 +180,7 @@ impl RoutineService {
                 return Err("El número de grupo debe estar entre 1 y 5".to_string());
             }
         }
+        Self::validate_exercise_values(order_index, sets, reps, weight)?;
 
         // Validate consecutiveness BEFORE adding
         println!("DEBUG: About to validate consecutive groups BEFORE adding");
@@ -267,12 +218,16 @@ impl RoutineService {
         notes: Option<String>,
         group_number: Option<i32>,
     ) -> Result<(), String> {
+        if self.repository.get_by_id(routine_id)?.is_none() {
+            return Err("La rutina especificada no existe".to_string());
+        }
         // Basic validation for group number
         if let Some(group_num) = group_number {
             if group_num <= 0 || group_num > 5 {
                 return Err("El número de grupo debe estar entre 1 y 5".to_string());
             }
         }
+        Self::validate_exercise_values(order_index, sets, reps, weight)?;
 
         // Validate consecutiveness BEFORE updating
         let validation_result = self.validate_routine_groups_consecutive_with_new_group(routine_id, group_number);
@@ -301,7 +256,7 @@ impl RoutineService {
         self.repository.remove_exercise_from_routine(routine_id, exercise_id)
     }
 
-    pub fn get_routine_exercises(&self, routine_id: i32) -> Vec<RoutineExerciseWithDetails> {
+    pub fn get_routine_exercises(&self, routine_id: i32) -> Result<Vec<RoutineExerciseWithDetails>, String> {
         self.repository.get_routine_exercises(routine_id)
     }
 
@@ -315,10 +270,16 @@ impl RoutineService {
 
     pub fn replace_routine_exercises(&self, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
         // Validate that routine exists
-        if self.repository.get_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id)?.is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
+        if exercises.iter().any(|exercise| exercise.routine_id != routine_id) {
+            return Err("Todos los ejercicios deben pertenecer a la rutina indicada".into());
+        }
+        for exercise in &exercises {
+            Self::validate_exercise_values(exercise.order_index, exercise.sets, exercise.reps, exercise.weight)?;
+        }
         self.repository.replace_routine_exercises(routine_id, exercises)
     }
 
@@ -328,7 +289,7 @@ impl RoutineService {
         }
 
         // Validate that routine exists
-        if self.repository.get_by_id(routine_id).is_none() {
+        if self.repository.get_by_id(routine_id)?.is_none() {
             return Err("La rutina especificada no existe".to_string());
         }
 
@@ -342,8 +303,9 @@ impl RoutineService {
         code: String,
         workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>, Option<i32>)>, // (exercise_id, sets, reps, weight, notes, group_number)
     ) -> Result<i32, String> {
-        // Create the routine first
-        let routine_id = self.create_routine(name, code)?;
+        if name.trim().is_empty() { return Err("El nombre de la rutina no puede estar vacío".into()); }
+        if code.trim().is_empty() { return Err("El código de la rutina no puede estar vacío".into()); }
+        let routine = Routine::new(name.trim().to_string(), code.trim().to_uppercase());
 
         // Add exercises to the routine
         let routine_exercises: Vec<RoutineExercise> = workout_exercises
@@ -351,7 +313,7 @@ impl RoutineService {
             .enumerate()
             .map(|(index, (exercise_id, sets, reps, weight, notes, group_number))| {
                 RoutineExercise::new(
-                    routine_id,
+                    0,
                     exercise_id,
                     index as i32,
                     sets,
@@ -363,10 +325,25 @@ impl RoutineService {
             })
             .collect();
 
-        if !routine_exercises.is_empty() {
-            self.repository.replace_routine_exercises(routine_id, routine_exercises)?;
+        for exercise in &routine_exercises {
+            Self::validate_exercise_values(exercise.order_index, exercise.sets, exercise.reps, exercise.weight)?;
+            if exercise.group_number.is_some_and(|group| !(1..=5).contains(&group)) {
+                return Err("El número de grupo debe estar entre 1 y 5".into());
+            }
         }
-
-        Ok(routine_id)
+        self.repository.create_with_exercises(routine, routine_exercises)
     }
-} 
+
+    fn validate_exercise_values(
+        order_index: i32,
+        sets: Option<i32>,
+        reps: Option<i32>,
+        weight: Option<f64>,
+    ) -> Result<(), String> {
+        if order_index < 0 { return Err("El orden no puede ser negativo".into()); }
+        if sets.is_some_and(|value| value <= 0) { return Err("Las series deben ser mayores que cero".into()); }
+        if reps.is_some_and(|value| value <= 0) { return Err("Las repeticiones deben ser mayores que cero".into()); }
+        if weight.is_some_and(|value| value < 0.0) { return Err("El peso no puede ser negativo".into()); }
+        Ok(())
+    }
+}
