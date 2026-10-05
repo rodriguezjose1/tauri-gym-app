@@ -347,7 +347,8 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             // Initialize services safely without panic catching
-            let (person_service, exercise_service, workout_entry_service, routine_service) = setup_services();
+            let (person_service, exercise_service, workout_entry_service, routine_service) =
+                setup_services().map_err(std::io::Error::other)?;
             let backup_service = BackupService::new();
             let updater_service = UpdaterService::new(app.handle().clone());
             

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::env;
 use std::path::PathBuf;
-use rusqlite::Connection;
+use crate::config::database_migrations::migrate_database;
 use crate::repository::sqlite_person_repository::SqlitePersonRepository;
 use crate::repository::sqlite_exercise_repository::SqliteExerciseRepository;
 use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
@@ -11,60 +11,21 @@ use crate::services::exercise_service::ExerciseService;
 use crate::services::workout_entry_service::WorkoutEntryService;
 use crate::services::routine_service::RoutineService;
 
-pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService, RoutineService) {
+pub fn setup_services() -> Result<(PersonService, ExerciseService, WorkoutEntryService, RoutineService), String> {
     let db_path = get_database_path();
-    let db_path_str = match db_path.to_str() {
-        Some(path) => path,
-        None => {
-            eprintln!("Warning: Failed to convert database path to string");
-            return (
-                PersonService::new(Arc::new(SqlitePersonRepository::new_dummy())),
-                ExerciseService::new(Arc::new(SqliteExerciseRepository::new_dummy())),
-                WorkoutEntryService::new(Arc::new(SqliteWorkoutEntryRepository::new_dummy())),
-                RoutineService::new(Arc::new(SqliteRoutineRepository::new_dummy())),
-            );
-        }
-    };
+    let db_path_str = db_path
+        .to_str()
+        .ok_or("La ruta de la base de datos contiene caracteres no válidos")?;
 
-    // Run database migrations if needed
-    if let Err(e) = run_database_migrations(db_path_str) {
-        eprintln!("Warning: Database migration failed: {}", e);
-        // Continue anyway, the app should still work
+    let outcome = migrate_database(&db_path)?;
+    if let Some(path) = outcome.backup_path {
+        println!("Respaldo previo a la migración creado en {}", path.display());
     }
 
-    // Create repositories with error handling
-    let person_repository = match SqlitePersonRepository::new_safe(db_path_str) {
-        Ok(repo) => Arc::new(repo),
-        Err(e) => {
-            eprintln!("Warning: Failed to create person repository: {}", e);
-            // Create a dummy repository that returns empty results
-            Arc::new(SqlitePersonRepository::new_dummy())
-        }
-    };
-
-    let exercise_repository = match SqliteExerciseRepository::new_safe(db_path_str) {
-        Ok(repo) => Arc::new(repo),
-        Err(e) => {
-            eprintln!("Warning: Failed to create exercise repository: {}", e);
-            Arc::new(SqliteExerciseRepository::new_dummy())
-        }
-    };
-
-    let workout_entry_repository = match SqliteWorkoutEntryRepository::new_safe(db_path_str) {
-        Ok(repo) => Arc::new(repo),
-        Err(e) => {
-            eprintln!("Warning: Failed to create workout entry repository: {}", e);
-            Arc::new(SqliteWorkoutEntryRepository::new_dummy())
-        }
-    };
-
-    let routine_repository = match SqliteRoutineRepository::new_safe(db_path_str) {
-        Ok(repo) => Arc::new(repo),
-        Err(e) => {
-            eprintln!("Warning: Failed to create routine repository: {}", e);
-            Arc::new(SqliteRoutineRepository::new_dummy())
-        }
-    };
+    let person_repository = Arc::new(SqlitePersonRepository::new_safe(db_path_str)?);
+    let exercise_repository = Arc::new(SqliteExerciseRepository::new_safe(db_path_str)?);
+    let workout_entry_repository = Arc::new(SqliteWorkoutEntryRepository::new_safe(db_path_str)?);
+    let routine_repository = Arc::new(SqliteRoutineRepository::new_safe(db_path_str)?);
 
     // Create services
     let person_service = PersonService::new(person_repository);
@@ -72,7 +33,7 @@ pub fn setup_services() -> (PersonService, ExerciseService, WorkoutEntryService,
     let workout_entry_service = WorkoutEntryService::new(workout_entry_repository);
     let routine_service = RoutineService::new(routine_repository);
 
-    (person_service, exercise_service, workout_entry_service, routine_service)
+    Ok((person_service, exercise_service, workout_entry_service, routine_service))
 }
 
 pub fn get_database_path() -> PathBuf {
@@ -152,56 +113,4 @@ fn get_app_data_directory() -> PathBuf {
         };
         current_dir.join("data")
     }
-}
-
-fn run_database_migrations(db_path: &str) -> Result<(), rusqlite::Error> {
-    let conn = Connection::open(db_path)?;
-
-    // Create migrations table if it doesn't exist
-    if let Err(e) = conn.execute(
-        "CREATE TABLE IF NOT EXISTS migrations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            version TEXT NOT NULL UNIQUE,
-            applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    ) {
-        eprintln!("Failed to create migrations table: {}", e);
-        return Err(e);
-    }
-
-    // No migrations needed for initial version
-    // Add future migrations here when needed:
-    // let migrations = vec![
-    //     ("001_add_new_column", "ALTER TABLE table_name ADD COLUMN new_column TEXT"),
-    // ];
-    
-    // Uncomment the following code when you need to add migrations:
-    // for (version, sql) in migrations {
-    //     // Check if migration already applied
-    //     let applied = conn.query_row(
-    //         "SELECT COUNT(*) FROM migrations WHERE version = ?",
-    //         [version],
-    //         |row| row.get::<_, i32>(0),
-    //     ).unwrap_or(0) > 0;
-    //
-    //     if !applied {
-    //         // Apply migration
-    //         if let Err(e) = conn.execute(sql, []) {
-    //             eprintln!("Failed to apply migration {}: {}", version, e);
-    //             continue;
-    //         }
-    //
-    //         // Record migration as applied
-    //         if let Err(e) = conn.execute(
-    //             "INSERT INTO migrations (version) VALUES (?)",
-    //             [version],
-    //         ) {
-    //             eprintln!("Failed to record migration {}: {}", version, e);
-    //         } else {
-    //             println!("Applied migration: {}", version);
-    //         }
-    //     }
-    // }
-    Ok(())
 }

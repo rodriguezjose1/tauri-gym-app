@@ -36,34 +36,30 @@ impl SqliteWorkoutEntryRepository {
         }
         let conn = self.get_connection()?;
 
-        // Check if we need to migrate from old schema
-        if self.check_if_migration_needed(&conn)? {
-            self.migrate_date_column(&conn)?;
-        } else if self.check_if_order_migration_needed(&conn)? {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS workout_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person_id INTEGER NOT NULL,
+                exercise_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                sets INTEGER,
+                reps INTEGER,
+                weight REAL,
+                notes TEXT,
+                order_index INTEGER DEFAULT 0,
+                group_number INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (person_id) REFERENCES people (id) ON DELETE CASCADE,
+                FOREIGN KEY (exercise_id) REFERENCES exercise (id) ON DELETE CASCADE
+            )",
+            [],
+        )?;
+        if self.check_if_order_migration_needed(&conn)? {
             self.migrate_order_column(&conn)?;
-        } else if self.check_if_group_migration_needed(&conn)? {
+        }
+        if self.check_if_group_migration_needed(&conn)? {
             self.migrate_group_column(&conn)?;
-        } else {
-            // Create new table with DATE type, order column, and group_number column
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS workout_entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    person_id INTEGER NOT NULL,
-                    exercise_id INTEGER NOT NULL,
-                    date DATE NOT NULL,
-                    sets INTEGER,
-                    reps INTEGER,
-                    weight REAL,
-                    notes TEXT,
-                    order_index INTEGER DEFAULT 0,
-                    group_number INTEGER DEFAULT 1,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (person_id) REFERENCES people (id) ON DELETE CASCADE,
-                    FOREIGN KEY (exercise_id) REFERENCES exercise (id) ON DELETE CASCADE
-                )",
-                [],
-            )?;
         }
 
         // Create index for better query performance
@@ -74,23 +70,6 @@ impl SqliteWorkoutEntryRepository {
         )?;
 
         Ok(())
-    }
-
-    fn check_if_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
-        if self.is_dummy {
-            return Ok(false);
-        }
-        // Check if table exists and has TEXT date column
-        let mut stmt = conn.prepare(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='workout_entries'",
-        )?;
-
-        let table_sql: Result<String, _> = stmt.query_row([], |row| Ok(row.get::<_, String>(0)?));
-
-        match table_sql {
-            Ok(sql) => Ok(sql.contains("date TEXT")),
-            Err(_) => Ok(false), // Table doesn't exist, no migration needed
-        }
     }
 
     fn check_if_order_migration_needed(&self, conn: &Connection) -> SqliteResult<bool> {
@@ -105,7 +84,7 @@ impl SqliteWorkoutEntryRepository {
         let table_sql: Result<String, _> = stmt.query_row([], |row| Ok(row.get::<_, String>(0)?));
 
         match table_sql {
-            Ok(sql) => Ok(!sql.contains("order_index") && sql.contains("date DATE")),
+            Ok(sql) => Ok(!sql.contains("order_index")),
             Err(_) => Ok(false), // Table doesn't exist, no migration needed
         }
     }
@@ -122,7 +101,7 @@ impl SqliteWorkoutEntryRepository {
         let table_sql: Result<String, _> = stmt.query_row([], |row| Ok(row.get::<_, String>(0)?));
 
         match table_sql {
-            Ok(sql) => Ok(!sql.contains("group_number") && sql.contains("order_index")),
+            Ok(sql) => Ok(!sql.contains("group_number")),
             Err(_) => Ok(false), // Table doesn't exist, no migration needed
         }
     }
@@ -140,64 +119,6 @@ impl SqliteWorkoutEntryRepository {
         )?;
 
         println!("Order column migration completed successfully!");
-        Ok(())
-    }
-
-    fn migrate_date_column(&self, conn: &Connection) -> SqliteResult<()> {
-        if self.is_dummy {
-            return Ok(());
-        }
-        println!("Migrating workout_entries table from TEXT to DATE...");
-
-        // Start transaction
-        let tx = conn.unchecked_transaction()?;
-
-        // Create new table with DATE type and order column
-        tx.execute(
-            "CREATE TABLE workout_entries_new (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                person_id INTEGER NOT NULL,
-                exercise_id INTEGER NOT NULL,
-                date DATE NOT NULL,
-                sets INTEGER,
-                reps INTEGER,
-                weight REAL,
-                notes TEXT,
-                order_index INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (person_id) REFERENCES people (id) ON DELETE CASCADE,
-                FOREIGN KEY (exercise_id) REFERENCES exercise (id) ON DELETE CASCADE
-            )",
-            [],
-        )?;
-
-        // Copy data from old table to new table, ensuring date format is correct
-        tx.execute(
-            "INSERT INTO workout_entries_new (id, person_id, exercise_id, date, sets, reps, weight, notes, order_index, created_at, updated_at)
-             SELECT id, person_id, exercise_id, 
-                    CASE 
-                        WHEN length(date) = 10 AND date LIKE '____-__-__' THEN date
-                        ELSE date('now')
-                    END as date,
-                    sets, reps, weight, notes, 0 as order_index, created_at, updated_at
-             FROM workout_entries",
-            [],
-        )?;
-
-        // Drop old table
-        tx.execute("DROP TABLE workout_entries", [])?;
-
-        // Rename new table
-        tx.execute(
-            "ALTER TABLE workout_entries_new RENAME TO workout_entries",
-            [],
-        )?;
-
-        // Commit transaction
-        tx.commit()?;
-
-        println!("Migration completed successfully!");
         Ok(())
     }
 

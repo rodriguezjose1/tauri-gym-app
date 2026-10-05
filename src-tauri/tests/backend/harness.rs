@@ -28,6 +28,8 @@ pub mod sqlite_person_repository;
 pub mod sqlite_routine_repository;
 #[path = "../../src/repository/sqlite_workout_entry_repository.rs"]
 pub mod sqlite_workout_entry_repository;
+#[path = "../../src/config/database_migrations.rs"]
+pub mod database_migrations;
 #[path = "../../src/models/workout_entry.rs"]
 pub mod workout_entry;
 #[path = "../../src/repository/workout_entry_repository.rs"]
@@ -55,3 +57,5 @@ mod exercises_workouts;
 mod people;
 #[cfg(test)]
 mod routines;
+#[cfg(test)]
+mod database_compatibility;
