@@ -57,7 +57,11 @@ jobs:
           $assets = Get-ChildItem src-tauri/target/release/bundle/msi/* | Where-Object { $_.Name -match '\.msi(\.sig)?$' } | ForEach-Object { $_.FullName }
           gh release upload $env:GITHUB_REF_NAME @assets
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:GITHUB_REF_NAME" > release-assets.json
+          # The REST lookup by tag only resolves published releases.
+          $releaseId = gh release view $env:GITHUB_REF_NAME --json databaseId --jq '.databaseId'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($releaseId -notmatch '^\d+$') { throw 'GitHub no devolvió un ID de release válido' }
+          gh api "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" > release-assets.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/update-manifest.mjs release-assets.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

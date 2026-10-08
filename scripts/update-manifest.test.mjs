@@ -33,7 +33,15 @@ test('uses GitHub asset URL after renaming and rejects incomplete or mismatched 
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'latest.json')));
     assert.equal(manifest.platforms['windows-x86_64'].url, url);
     assert.equal(manifest.platforms['windows-x86_64'].signature, signature);
+    const draft = { ...release, draft: true, assets: [
+      { ...release.assets[0], browser_download_url: url.replace('/v0.2.1/', '/untagged-0de55971ca80c2a4f03e/') },
+      release.assets[1],
+    ] };
+    const draftResult = run(draft);
+    assert.equal(draftResult.status, 0, draftResult.stderr);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'latest.json'))).platforms['windows-x86_64'].url, url);
     for (const bad of [
+      { ...draft, draft: false },
       { ...release, tag_name: 'v0.2.0' },
       { ...release, assets: [] },
       { ...release, assets: [release.assets[0]] },
