@@ -7,11 +7,28 @@ const filename = installers[0];
 const signature = fs.readFileSync(path.join(directory, `${filename}.sig`), 'utf8').trim();
 if (!signature || !Buffer.from(signature, 'base64').toString().startsWith('untrusted comment:')) throw new Error('Firma ausente o inválida');
 const { version } = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json'));
+// GitHub may rename uploaded assets (for example spaces become dots).
+// Read the actual URLs after uploading, while the release is still a draft.
+if (!process.argv[2]) throw new Error('Falta el archivo JSON de la release devuelto por GitHub');
+const release = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (release.tag_name !== `v${version}`) throw new Error('La release no coincide con la versión local');
+const assets = release.assets?.filter(asset => asset.name.endsWith('.msi')) ?? [];
+if (assets.length !== 1) throw new Error('La release debe contener exactamente un MSI');
+const asset = assets[0];
+if (asset.size !== fs.statSync(path.join(directory, filename)).size || asset.state !== 'uploaded') {
+  throw new Error('El MSI publicado no coincide con el artefacto local o no terminó de subirse');
+}
+if (!release.assets.some(item => item.name === `${asset.name}.sig` && item.state === 'uploaded')) {
+  throw new Error('Falta la firma publicada del MSI');
+}
+const url = asset.browser_download_url;
+const expectedPrefix = `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/v${version}/`;
+if (typeof url !== 'string' || !url.startsWith(expectedPrefix)) throw new Error('URL del MSI inesperada');
 const manifest = {
   version, notes: `Quality GYM ${version}`, pub_date: new Date().toISOString(),
   platforms: { 'windows-x86_64': {
     signature,
-    url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/v${version}/${encodeURIComponent(filename)}`,
+    url,
   } },
 };
 fs.writeFileSync('latest.json', JSON.stringify(manifest, null, 2));

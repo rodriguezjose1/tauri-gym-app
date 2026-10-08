@@ -25,7 +25,7 @@ Usar siempre una versión superior a la publicada. Revisar el diff y las pruebas
 
 El workflow `.github/workflows/release-windows.yml` valida las versiones, ejecuta pruebas, compila en Windows x64 con lockfile, genera MSI y `.msi.sig`, construye `latest.json`, sube todo a una release draft y la publica cuando las subidas finalizan. No editar ni sustituir MSI después de firmarlo. Si una subida falla, queda un draft: revisar/eliminar ese draft antes de repetir el workflow. Publicar tags en orden creciente, porque cada ejecución marca su release como latest.
 
-Endpoint: `https://github.com/rodriguezjose1/tauri-gym-app/releases/latest/download/latest.json`. El manifiesto usa `windows-x86_64`, firma completa y URL del MSI de ese tag. Tauri v2 con `createUpdaterArtifacts: true` firma el MSI directamente; no se usa el antiguo ZIP de compatibilidad v1. El manifiesto lo genera `scripts/update-manifest.mjs` desde los artefactos reales; el viejo manifiesto de ejemplo ya no debe usarse.
+Endpoint: `https://github.com/rodriguezjose1/tauri-gym-app/releases/latest/download/latest.json`. El manifiesto usa `windows-x86_64`, firma completa y URL del MSI de ese tag. Tauri v2 con `createUpdaterArtifacts: true` firma el MSI directamente; no se usa el antiguo ZIP de compatibilidad v1. El manifiesto lo genera `scripts/update-manifest.mjs release-assets.json` después de subir el MSI y su firma al draft, usando `browser_download_url` de la API de GitHub (GitHub puede cambiar espacios por puntos en los nombres); el viejo manifiesto de ejemplo ya no debe usarse.
 
 ## Primera instalación
 
@@ -58,3 +58,11 @@ Limitación del plugin 2.7.1: Windows lanza el instalador y termina el proceso; 
 Consultar `docs/AUTO_UPDATE_VALIDATION.md` para resultados ejecutados. La auditoría previa está en `docs/AUTO_UPDATE_AUDIT.md`.
 
 Fuentes oficiales: [Updater Tauri v2](https://v2.tauri.app/plugin/updater/) y [API JS](https://v2.tauri.app/reference/javascript/updater/). La compatibilidad específica se verificó contra los fuentes descargados de tauri-plugin-updater 2.7.1 y su API JS instalada, conservando Tauri 2.5.1.
+
+## Caché de Rust en Windows
+
+`Prepare Windows Rust cache` se ejecuta con los pushes a la rama por defecto (también permite ejecución manual desde Actions). Compila sin empaquetar ni publicar, usando la configuración de ejemplo del backup. Guarda el registro Cargo y las dependencias compiladas de `src-tauri/target` y `src-tauri/tests/backend/target` mediante `Swatinem/rust-cache@v2`. No guarda los crates propios de la aplicación.
+
+`Release Windows` restaura esa misma caché; no guarda cachés aisladas por tag. GitHub permite recuperar la caché de la rama por defecto, pero no la de un tag diferente. Para aprovecharla en la primera release con este cambio, esperar que termine `Prepare Windows Rust cache` antes de pushear el tag. Si no existe caché, el build compila normalmente. Los cambios de toolchain o dependencias pueden requerir recompilación; no se garantiza una duración fija.
+
+Referencias: [rust-cache](https://github.com/Swatinem/rust-cache) y [alcance de cachés en GitHub Actions](https://docs.github.com/en/actions/reference/dependency-caching).
