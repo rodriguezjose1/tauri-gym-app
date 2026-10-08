@@ -1,0 +1,51 @@
+name: Release Windows
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+concurrency:
+  group: release-windows
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - name: Validate version and configure signing
+        run: node scripts/prepare-release.mjs
+        env:
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      - run: npm run test:run
+      - run: npm run test:backend
+      - name: Verify native installation gate
+        shell: pwsh
+        run: |
+          rustc --test src-tauri/src/services/updater_service.rs -o updater-lifecycle-test.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./updater-lifecycle-test.exe
+      - name: Build signed MSI
+        run: npx tauri build --bundles msi --config src-tauri/tauri.release.conf.json -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - run: node scripts/update-manifest.mjs
+      - name: Publish complete release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Quality GYM $env:GITHUB_REF_NAME" --generate-notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $assets = Get-ChildItem src-tauri/target/release/bundle/msi/* | Where-Object { $_.Name -match '\.msi(\.sig)?$' } | ForEach-Object { $_.FullName }
+          gh release upload $env:GITHUB_REF_NAME @assets latest.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $env:GITHUB_REF_NAME --draft=false --latest

@@ -31,3 +31,9 @@ data/
 
 # API Keys (local only, not committed to repository)
 src-tauri/src/config/api_keys.rs
+
+# Generated release configuration and signing material
+src-tauri/tauri.release.conf.json
+latest.json
+*.key
+*.key.pub

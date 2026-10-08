@@ -1,152 +1,56 @@
-# Configuración del Servidor de Actualizaciones
+# Actualizaciones Windows — Tauri v2
 
-## 1. Configuración del Servidor
+Estado: implementación preparada para configurar y validar. No se ejecutó una actualización real en Windows ni se publicó una release desde esta implementación.
 
-### Opción A: GitHub Releases (Recomendado)
+## Configuración única
 
-1. **Crear un repositorio para releases**
-   ```bash
-   # Crear un repositorio público llamado "quality-gym-releases"
-   ```
+1. Instalar dependencias con `npm ci`.
+2. Generar las claves fuera del repositorio: `npm run tauri -- signer generate -w ~/.tauri/quality-gym.key`. Elegir contraseña y guardar una copia segura de la clave y contraseña. No regenerarlas entre versiones.
+3. En GitHub → Settings → Secrets and variables → Actions, crear:
+   - Secret `TAURI_SIGNING_PRIVATE_KEY`: contenido completo del archivo privado.
+   - Secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: contraseña elegida (vacío solamente si la clave no tiene contraseña).
+   - Variable `TAURI_UPDATER_PUBLIC_KEY`: contenido completo del archivo `.pub`.
+   - Secret `RESEND_API_KEY`: credencial del respaldo existente. CI genera el archivo Rust ignorado; no modifica el servicio de backup. Como ya sucede con el instalador actual, esta credencial queda incorporada al binario distribuido.
+4. Permitir escritura de contenido al workflow. `GITHUB_TOKEN` lo proporciona GitHub, no hace falta un token personal.
 
-2. **Configurar el endpoint en tauri.conf.json**
-   ```json
-   "updater": {
-     "active": true,
-     "endpoints": [
-       "https://api.github.com/repos/tu-usuario/quality-gym-releases/releases/latest"
-     ],
-     "dialog": true,
-     "pubkey": "TU_CLAVE_PUBLICA_AQUI"
-   }
-   ```
+La clave pública está vacía intencionalmente en la configuración base: no se encontró una clave real. CI exige la variable y la integra en `tauri.release.conf.json`; también activa `createUpdaterArtifacts: true` y MSI. Un build local sin esa configuración no consulta actualizaciones. No se omite la verificación de firma. La firma del updater no es un certificado Authenticode; Windows puede mostrar SmartScreen/UAC.
 
-3. **Generar clave de firma**
-   ```bash
-   # Instalar minisign
-   cargo install minisign
-   
-   # Generar par de claves
-   minisign -G -p public.key -s secret.key
-   
-   # La clave pública se usará en tauri.conf.json
-   ```
+## Publicar
 
-### Opción B: Servidor propio
+Actualizar a la misma versión estable `X.Y.Z` los archivos `package.json`, `package-lock.json` (raíz y packages[""]), `src-tauri/Cargo.toml`, entrada `app` de `src-tauri/Cargo.lock` y `src-tauri/tauri.conf.json`. Usar siempre una versión superior a la anterior. Revisar cambios, pruebas y luego, por decisión del mantenedor, crear/pushear el tag `vX.Y.Z`.
 
-1. **Crear servidor web simple**
-   ```javascript
-   // server.js
-   const express = require('express');
-   const app = express();
-   
-   app.get('/updates/:platform/:version', (req, res) => {
-     const { platform, version } = req.params;
-     
-     // Lógica para determinar si hay actualización
-     const updateInfo = {
-       version: "0.1.1",
-       notes: "Bug fixes and performance improvements",
-       pub_date: "2024-01-15T12:00:00Z",
-       platforms: {
-         [platform]: {
-           signature: "TU_FIRMA_AQUI",
-           url: `https://tu-servidor.com/downloads/Quality_GYM_${version}_${platform}.zip`
-         }
-       }
-     };
-     
-     res.json(updateInfo);
-   });
-   
-   app.listen(3000);
-   ```
+El workflow `.github/workflows/release-windows.yml` valida las versiones, ejecuta pruebas, compila en Windows x64 con lockfile, genera MSI y `.msi.sig`, construye `latest.json`, sube todo a una release draft y la publica cuando las subidas finalizan. No editar ni sustituir MSI después de firmarlo. Si una subida falla, queda un draft: revisar/eliminar ese draft antes de repetir el workflow. Publicar tags en orden creciente, porque cada ejecución marca su release como latest.
 
-## 2. Proceso de Build y Release
+Endpoint: `https://github.com/rodriguezjose1/tauri-gym-app/releases/latest/download/latest.json`. El manifiesto usa `windows-x86_64`, firma completa y URL del MSI de ese tag. Tauri v2 con `createUpdaterArtifacts: true` firma el MSI directamente; no se usa el antiguo ZIP de compatibilidad v1. El manifiesto lo genera `scripts/update-manifest.mjs` desde los artefactos reales; el viejo manifiesto de ejemplo ya no debe usarse.
 
-### Build para producción
-```bash
-# Build para todas las plataformas
-npm run tauri build
+## Primera instalación
 
-# Los archivos se generan en src-tauri/target/release/
-```
+Distribuir manualmente el MSI generado por este workflow una vez. La versión antigua solo abría un navegador, por lo que no puede incorporar sola el updater nuevo. Cerrar la app, respaldar sus datos y ejecutar el nuevo MSI sobre la instalación existente. Conservar producto, identificador `com.gymtracker.app` y configuración WiX; no desinstalar ni borrar datos. Comprobar en Windows que actualiza la instalación existente sin duplicarla, especialmente si el MSI histórico se generó con otra configuración local no versionada.
 
-### Firmar los archivos
-```bash
-# Para cada archivo generado
-minisign -S -s secret.key -m Quality_GYM_0.1.1_x64.dmg
-minisign -S -s secret.key -m Quality_GYM_0.1.1_x64-setup.exe
-minisign -S -s secret.key -m Quality_GYM_0.1.1_amd64.AppImage
-```
+## Comportamiento y datos
 
-### Subir a GitHub Releases
-```bash
-# Crear release en GitHub
-gh release create v0.1.1 \
-  --title "Quality GYM v0.1.1" \
-  --notes "Bug fixes and performance improvements" \
-  Quality_GYM_0.1.1_x64.dmg \
-  Quality_GYM_0.1.1_x64-setup.exe \
-  Quality_GYM_0.1.1_amd64.AppImage
-```
+Cinco segundos después del montaje se comprueba una vez por proceso. Solo Windows y con clave pública configurada. No hay reintentos automáticos ni errores técnicos visibles para una comprobación fallida. `Más tarde` descarta el aviso hasta el próximo inicio. La descarga empieza tras dos pasos de consentimiento; durante ella la UI de negocio queda inerte. El servicio conserva la descarga verificada para reintentar la instalación sin volver a descargarla. Una descarga fallida puede reintentarse explícitamente.
 
-## 3. Configuración del Cliente
+Antes de instalar, una compuerta nativa verifica que no haya comandos de negocio ni backup activos y rechaza nuevos comandos hasta instalar o liberar la compuerta por error. Las conexiones SQLite son locales a cada operación y se cierran antes de liberar su guardia. No hay pool ni escrituras pendientes diferidas. No se modifica ubicación ni esquema. Las migraciones existentes se ejecutan en el siguiente inicio.
 
-### Verificar actualizaciones automáticamente
-```javascript
-// El componente Updater ya está configurado para:
-// - Verificar actualizaciones al iniciar la app
-// - Mostrar notificaciones al usuario
-// - Descargar e instalar automáticamente
-```
+Los datos siguen en `%APPDATA%\QualityGym\gym_app.db`, junto a status y respaldos. La app conserva también los fallbacks históricos de resolución de rutas: verificar la ruta efectiva antes de instalar. Los logs del updater usan el plugin-log existente (directorio de logs de Tauri); los errores del frontend también van a consola. No se registra contenido de la base.
 
-### Comandos disponibles
-```javascript
-// Verificar actualizaciones manualmente
-await invoke('check_for_updates');
+## Prueba real requerida
 
-// Instalar actualización
-await invoke('install_update');
-```
+Usar una VM Windows x64 y datos ficticios; nunca empezar con la base real del cliente.
 
-## 4. Flujo de Actualización
+1. Publicar A con la clave definitiva e instalar su MSI manualmente. Crear personas, rutinas e historial. Guardar copia de la carpeta `%APPDATA%\QualityGym`, configuración local y recuentos SQL. Verificar `PRAGMA quick_check` y `user_version`.
+2. Abrir A cuando A es latest: no debe mostrar actualización. Probar sin red y con GitHub bloqueado: las funciones normales deben seguir disponibles.
+3. Publicar B (mayor que A) con la misma clave. Revisar MSI, firma y `latest.json`: versión B, clave windows-x86_64, URL descargable y firma correspondiente.
+4. En A, esperar aviso, posponer y seguir editando. Reiniciar y confirmar instalación cuando no haya trabajo sin guardar. Observar progreso, MSI/UAC y reapertura. Confirmar versión B y que ya no se ofrece B.
+5. Comparar datos, historial, configuración, respaldos y recuentos. Ejecutar quick_check. Si hubo cambio de esquema, comprobar el respaldo previo y migración; verificar que no apareció una segunda instalación.
+6. En un entorno de prueba separado, usar manifiesto malformado, firma alterada y descarga interrumpida; nunca reemplazar assets de producción. Comprobar log, ausencia de instalación y UI operativa. Probar cierre durante comprobación y reinicio posterior.
+7. Mantener una operación/backup activo al confirmar: debe rechazar la instalación sin cerrar. Probar fallo de instalación/UAC y verificar que A puede abrirse conservando sus datos.
 
-1. **Desarrollo** → Cambios en el código
-2. **Build** → `npm run tauri build`
-3. **Firma** → Firmar archivos con minisign
-4. **Release** → Subir a GitHub Releases
-5. **Cliente** → Detecta actualización automáticamente
-6. **Usuario** → Recibe notificación y puede instalar
+Limitación del plugin 2.7.1: Windows lanza el instalador y termina el proceso; los fallos posteriores del MSI se diagnostican en el instalador/Windows, no pueden comunicarse a una app ya cerrada. Esta versión además no comprueba el retorno de ShellExecuteW. Por eso el ensayo de permisos/UAC/instalación es obligatorio antes de habilitar el canal para clientes. No hay rollback automático. V1 solo publica Windows x64; macOS sigue siendo entorno de desarrollo.
 
-## 5. Consideraciones de Seguridad
+## Validación local
 
-- **Firma digital**: Todos los archivos deben estar firmados
-- **HTTPS**: El servidor debe usar HTTPS
-- **Verificación**: El cliente verifica la firma antes de instalar
+Consultar `docs/AUTO_UPDATE_VALIDATION.md` para resultados ejecutados. La auditoría previa está en `docs/AUTO_UPDATE_AUDIT.md`.
 
-## 6. Base de Datos
-
-La base de datos se mantiene en:
-- **macOS**: `~/Library/Application Support/QualityGym/`
-- **Windows**: `%APPDATA%\QualityGym\`
-- **Linux**: `~/.config/quality-gym/`
-
-Los datos del usuario **NO se pierden** durante las actualizaciones.
-
-## 7. Troubleshooting
-
-### Error de firma
-```bash
-# Regenerar claves
-minisign -G -p public.key -s secret.key
-# Actualizar pubkey en tauri.conf.json
-```
-
-### Error de red
-- Verificar conectividad a internet
-- Verificar URL del servidor de actualizaciones
-
-### Error de permisos
-- Verificar permisos de escritura en directorio de datos
-- Verificar permisos de instalación en el sistema 
+Fuentes oficiales: [Updater Tauri v2](https://v2.tauri.app/plugin/updater/) y [API JS](https://v2.tauri.app/reference/javascript/updater/). La compatibilidad específica se verificó contra los fuentes descargados de tauri-plugin-updater 2.7.1 y su API JS instalada, conservando Tauri 2.5.1.
