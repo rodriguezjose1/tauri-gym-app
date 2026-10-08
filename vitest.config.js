@@ -8,6 +8,8 @@ process.env.TZ = 'America/Argentina/Cordoba'
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Release-script tests use node:test and run separately in the workflow.
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     globals: true,
