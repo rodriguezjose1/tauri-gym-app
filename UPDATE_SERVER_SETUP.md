@@ -17,7 +17,11 @@ La clave pública está vacía intencionalmente en la configuración base: no se
 
 ## Publicar
 
-Actualizar a la misma versión estable `X.Y.Z` los archivos `package.json`, `package-lock.json` (raíz y packages[""]), `src-tauri/Cargo.toml`, entrada `app` de `src-tauri/Cargo.lock` y `src-tauri/tauri.conf.json`. Usar siempre una versión superior a la anterior. Revisar cambios, pruebas y luego, por decisión del mantenedor, crear/pushear el tag `vX.Y.Z`.
+Ejecutar `npm run release:version -- X.Y.Z` (por ejemplo, `npm run release:version -- 0.2.0`). El comando actualiza `package.json`, ambas entradas de versión de `package-lock.json`, `src-tauri/Cargo.toml`, solamente la entrada de la aplicación en `src-tauri/Cargo.lock` y `src-tauri/tauri.conf.json`. Valida el formato estable y los límites de versión MSI antes de escribir; no cambia versiones de dependencias ni crea commits, tags o releases.
+
+Para comprobar sin modificar: `npm run release:version -- --check`. CI también verifica los cinco archivos antes de compilar.
+
+Usar siempre una versión superior a la publicada. Revisar el diff y las pruebas; luego, por decisión del mantenedor, crear/pushear el tag `vX.Y.Z`.
 
 El workflow `.github/workflows/release-windows.yml` valida las versiones, ejecuta pruebas, compila en Windows x64 con lockfile, genera MSI y `.msi.sig`, construye `latest.json`, sube todo a una release draft y la publica cuando las subidas finalizan. No editar ni sustituir MSI después de firmarlo. Si una subida falla, queda un draft: revisar/eliminar ese draft antes de repetir el workflow. Publicar tags en orden creciente, porque cada ejecución marca su release como latest.
 

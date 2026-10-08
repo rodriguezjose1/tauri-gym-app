@@ -21,7 +21,8 @@
     "test:native-contract": "vitest run src/test/Tauri.contract.test.js src/test/Dashboard.test.jsx && cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked database_compatibility",
     "test:backend": "cargo test --manifest-path src-tauri/tests/backend/Cargo.toml --locked",
     "test:all": "npm run test:run && npm run test:backend",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "release:version": "node scripts/release-version.mjs"
   },
   "dependencies": {
     "@chakra-ui/form-control": "^2.2.0",
