@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Input, Title } from '../../../shared/components/base';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
-import ToastContainer from "../../../shared/components/notifications/ToastContainer";
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { Exercise, RoutineExerciseWithDetails, Routine, RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
 import '../../../styles/RoutineManager.css';
@@ -56,8 +55,8 @@ export const RoutineManager: React.FC = () => {
   const routineData = useRoutineData();
   const routineExercises = useRoutineExercises({ routineId: routineData.selectedRoutineId });
   const routineUI = useRoutineUI();
-  const { addNotification, notifications, removeNotification, clearAllNotifications } = useToast();
-  
+  const { addNotification } = useToast();
+
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     routineId: number | null;
@@ -67,11 +66,6 @@ export const RoutineManager: React.FC = () => {
     routineId: null,
     routineName: ''
   });
-
-  // Clear any stale notifications when component mounts
-  useEffect(() => {
-    clearAllNotifications();
-  }, [clearAllNotifications]);
 
   useEffect(() => {
     routineData.loadRoutines();
@@ -601,10 +595,6 @@ export const RoutineManager: React.FC = () => {
         isDeleting={false}
       />
 
-      <ToastContainer 
-        notifications={notifications}
-        onRemoveNotification={removeNotification}
-      />
     </div>
   );
-}; 
+};

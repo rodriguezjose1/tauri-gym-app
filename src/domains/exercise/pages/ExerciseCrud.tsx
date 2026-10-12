@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ExerciseService, Exercise } from "../../../services";
 import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
-import ToastContainer from "../../../shared/components/notifications/ToastContainer";
 import "../../../styles/ExerciseCrud.css";
 import { useToast } from '../../../shared/contexts/ToastContext';
 
@@ -33,7 +32,7 @@ export default function ExerciseCrud() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const { addNotification, notifications, removeNotification } = useToast();
+  const { addNotification } = useToast();
 
   // Function to generate code from exercise name
   const generateCodeFromName = (name: string): string => {
@@ -344,10 +343,6 @@ export default function ExerciseCrud() {
 
   return (
     <div className="exercise-crud-container">
-      <ToastContainer 
-        notifications={notifications}
-        onRemoveNotification={removeNotification}
-      />
       <div className="exercise-crud-wrapper">
         {/* Exercises List */}
         <Card variant="elevated" padding="lg">

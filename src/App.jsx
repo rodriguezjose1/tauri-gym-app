@@ -6,6 +6,7 @@ import PersonCrud from './domains/person/pages/PersonCrud';
 import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
 import { RoutineManager } from './domains/routine/components/RoutineManager';
 import ConfiguracionesPage from './domains/settings/pages/ConfiguracionesPage';
+import BillingPage from './domains/billing/pages/BillingPage';
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
 import Updater from './components/Updater';
@@ -25,6 +26,12 @@ function Navigation() {
         </Link>
 
         <ul className="nav-links">
+          <li>
+            <Link to="/pagos" className={`nav-link ${location.pathname === '/pagos' ? 'active' : ''}`}>
+              <span className="nav-link-icon">💳</span>
+              Pagos
+            </Link>
+          </li>
           <li>
             <Link
               to="/"
@@ -61,7 +68,7 @@ function Navigation() {
               Rutinas
             </Link>
           </li>
-          {/* <li>
+          <li>
             <Link 
               to="/configuraciones" 
               className={`nav-link ${location.pathname === '/configuraciones' ? 'active settings' : ''}`}
@@ -69,7 +76,7 @@ function Navigation() {
               <span className="nav-link-icon">⚙️</span>
               Configuraciones
             </Link>
-          </li> */}
+          </li>
         </ul>
       </div>
     </nav>
@@ -93,7 +100,7 @@ function App() {
 
   return (
     <ChakraProvider value={defaultSystem}>
-      <BrowserRouter>
+      <ConfigProvider><BrowserRouter>
         <ToastProvider>
           <div className="app-container">
             <Navigation />
@@ -103,13 +110,14 @@ function App() {
                 <Route path="/personas" element={<PersonCrud />} />
                 <Route path="/exercises" element={<ExerciseCrud />} />
                 <Route path="/routines" element={<RoutineManager />} />
+                <Route path="/pagos" element={<BillingPage />} />
                 <Route path="/configuraciones" element={<ConfiguracionesPage />} />
               </Routes>
             </main>
             <Updater />
           </div>
         </ToastProvider>
-      </BrowserRouter>
+      </BrowserRouter></ConfigProvider>
     </ChakraProvider>
   );
 }

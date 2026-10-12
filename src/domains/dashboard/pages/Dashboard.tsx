@@ -4,8 +4,6 @@ import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
 
 import { ConfirmationModal } from '../../../shared/components/modals/ConfirmationModal';
-import { SettingsModal } from '../../settings/components/SettingsModal';
-import ToastContainer from '../../../shared/components/notifications/ToastContainer';
 import { useDashboardController } from '../hooks/useDashboardController';
 import { useConfig } from '../../../shared/contexts/ConfigContext';
 import '../../../styles/Dashboard.css';
@@ -15,8 +13,6 @@ export default function DashboardRefactored() {
   // Single controller hook that orchestrates everything
   const {
     data,
-    notifications,
-    removeNotification,
     modals,
     operations,
     handlers
@@ -120,11 +116,6 @@ export default function DashboardRefactored() {
       />
       */}
 
-      {/* Toast Notifications */}
-      <ToastContainer
-        notifications={notifications}
-        onRemoveNotification={removeNotification}
-      />
     </div>
   );
 }

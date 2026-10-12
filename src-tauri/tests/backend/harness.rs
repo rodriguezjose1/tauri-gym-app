@@ -36,8 +36,13 @@ pub mod workout_entry;
 pub mod workout_entry_repository;
 #[path = "../../src/services/workout_entry_service.rs"]
 pub mod workout_entry_service;
+#[path = "../../src/models/billing.rs"]
+pub mod billing;
+#[path = "../../src/services/billing_service.rs"]
+pub mod billing_service;
 
 pub mod models {
+    pub use crate::billing;
     pub use crate::exercise;
     pub use crate::person;
     pub use crate::routine;
@@ -59,3 +64,5 @@ mod people;
 mod routines;
 #[cfg(test)]
 mod database_compatibility;
+#[cfg(test)]
+mod billing_tests;

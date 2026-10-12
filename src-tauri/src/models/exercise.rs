@@ -14,4 +14,4 @@ pub struct PaginatedExerciseResponse {
     pub page: i32,
     pub page_size: i32,
     pub total_pages: i32,
-} 
+}

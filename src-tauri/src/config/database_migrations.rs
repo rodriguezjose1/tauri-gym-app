@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 1;
+pub const CURRENT_SCHEMA_VERSION: i32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationOutcome {
@@ -17,7 +17,10 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
             .map_err(|error| format!("No se pudo crear el directorio de datos: {error}"))?;
     }
 
-    let existed_with_data = db_path.metadata().map(|metadata| metadata.len() > 0).unwrap_or(false);
+    let existed_with_data = db_path
+        .metadata()
+        .map(|metadata| metadata.len() > 0)
+        .unwrap_or(false);
     let previous_version = if existed_with_data {
         let connection = Connection::open(db_path)
             .map_err(|error| format!("No se pudo abrir la base existente: {error}"))?;
@@ -26,7 +29,9 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
             .map_err(|error| format!("No se pudo leer la versión de la base: {error}"))?;
         connection
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
-            .map_err(|error| format!("No se pudo consolidar la base antes del respaldo: {error}"))?;
+            .map_err(|error| {
+                format!("No se pudo consolidar la base antes del respaldo: {error}")
+            })?;
         version
     } else {
         0
@@ -54,11 +59,35 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
         .query_row("PRAGMA quick_check", [], |row| row.get(0))
         .map_err(|error| format!("No se pudo validar la base de datos: {error}"))?;
     if integrity != "ok" {
-        return Err(format!("La base de datos no superó la validación de integridad: {integrity}"));
+        return Err(format!(
+            "La base de datos no superó la validación de integridad: {integrity}"
+        ));
+    }
+
+    if previous_version == 0 {
+        let people_exists: Option<i32> = connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='people'",
+                [],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+        if people_exists.is_some() {
+            for column in ["id", "name", "last_name", "phone"] {
+                if !column_exists(&connection, "people", column)? {
+                    return Err(format!("Falta la columna requerida people.{column}"));
+                }
+            }
+        }
     }
 
     if previous_version < CURRENT_SCHEMA_VERSION {
         migrate_to_v1(&mut connection)?;
+    }
+
+    if previous_version < 2 {
+        migrate_to_v2(&mut connection)?;
     }
 
     validate_schema(&connection)?;
@@ -69,6 +98,59 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
     })
 }
 
+fn migrate_to_v2(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de pagos: {e}"))?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            modality TEXT NOT NULL CHECK (modality IN ('monthly','particular')),
+            price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+            is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0,1)),
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS obligations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER NOT NULL REFERENCES people(id),
+            period TEXT NOT NULL CHECK (period GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'),
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+            excluded_at TEXT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(person_id, period)
+        );
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER NOT NULL REFERENCES people(id),
+            obligation_id INTEGER NULL REFERENCES obligations(id),
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            plan_name TEXT NOT NULL,
+            modality TEXT NOT NULL CHECK (modality IN ('monthly','particular')),
+            period TEXT NULL,
+            amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+            paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            reversed_at TEXT NULL,
+            reversal_reason TEXT NULL,
+            CHECK ((modality = 'monthly' AND obligation_id IS NOT NULL AND period IS NOT NULL) OR
+                   (modality = 'particular' AND obligation_id IS NULL AND period IS NULL))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_active_payment_obligation
+            ON payments(obligation_id) WHERE reversed_at IS NULL AND obligation_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_payments_person_period ON payments(person_id, period);
+        CREATE INDEX IF NOT EXISTS idx_obligations_person_period ON obligations(person_id, period);
+        INSERT OR IGNORE INTO migrations(version) VALUES ('002_billing');
+        PRAGMA user_version = 2;",
+        )
+        .map_err(|e| format!("No se pudo crear el esquema de pagos: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de pagos: {e}"))
+}
+
 fn create_pre_migration_backup(db_path: &Path, version: i32) -> Result<PathBuf, String> {
     let file_name = db_path
         .file_name()
@@ -76,8 +158,9 @@ fn create_pre_migration_backup(db_path: &Path, version: i32) -> Result<PathBuf, 
         .ok_or("La ruta de la base de datos no tiene un nombre válido")?;
     let backup_path = db_path.with_file_name(format!("{file_name}.pre-migration-v{version}.bak"));
     if !backup_path.exists() {
-        fs::copy(db_path, &backup_path)
-            .map_err(|error| format!("No se pudo crear el respaldo previo a la migración: {error}"))?;
+        fs::copy(db_path, &backup_path).map_err(|error| {
+            format!("No se pudo crear el respaldo previo a la migración: {error}")
+        })?;
     }
     Ok(backup_path)
 }
@@ -160,9 +243,21 @@ fn migrate_to_v1(connection: &mut Connection) -> Result<(), String> {
         ("exercise", "is_active", "is_active BOOLEAN DEFAULT 1"),
         ("routines", "deleted_at", "deleted_at DATETIME NULL"),
         ("routines", "is_active", "is_active INTEGER DEFAULT 1"),
-        ("workout_entries", "order_index", "order_index INTEGER DEFAULT 0"),
-        ("workout_entries", "group_number", "group_number INTEGER DEFAULT 1"),
-        ("routine_exercises", "group_number", "group_number INTEGER DEFAULT 1"),
+        (
+            "workout_entries",
+            "order_index",
+            "order_index INTEGER DEFAULT 0",
+        ),
+        (
+            "workout_entries",
+            "group_number",
+            "group_number INTEGER DEFAULT 1",
+        ),
+        (
+            "routine_exercises",
+            "group_number",
+            "group_number INTEGER DEFAULT 1",
+        ),
     ] {
         if !column_exists(&transaction, table, column)? {
             transaction
@@ -187,8 +282,6 @@ fn migrate_to_v1(connection: &mut Connection) -> Result<(), String> {
         )
         .map_err(|error| format!("No se pudo finalizar la migración: {error}"))?;
 
-    validate_schema(&transaction)?;
-
     transaction
         .commit()
         .map_err(|error| format!("No se pudo confirmar la migración: {error}"))
@@ -211,11 +304,46 @@ fn column_exists(connection: &Connection, table: &str, column: &str) -> Result<b
 
 fn validate_schema(connection: &Connection) -> Result<(), String> {
     for (table, columns) in [
-        ("people", &["id", "name", "last_name", "phone", "deleted_at", "is_active"][..]),
-        ("exercise", &["id", "name", "code", "deleted_at", "is_active"][..]),
-        ("routines", &["id", "name", "code", "deleted_at", "is_active"][..]),
-        ("workout_entries", &["id", "person_id", "exercise_id", "date", "order_index", "group_number"][..]),
-        ("routine_exercises", &["id", "routine_id", "exercise_id", "order_index", "group_number"][..]),
+        (
+            "people",
+            &[
+                "id",
+                "name",
+                "last_name",
+                "phone",
+                "deleted_at",
+                "is_active",
+            ][..],
+        ),
+        (
+            "exercise",
+            &["id", "name", "code", "deleted_at", "is_active"][..],
+        ),
+        (
+            "routines",
+            &["id", "name", "code", "deleted_at", "is_active"][..],
+        ),
+        (
+            "workout_entries",
+            &[
+                "id",
+                "person_id",
+                "exercise_id",
+                "date",
+                "order_index",
+                "group_number",
+            ][..],
+        ),
+        (
+            "routine_exercises",
+            &[
+                "id",
+                "routine_id",
+                "exercise_id",
+                "order_index",
+                "group_number",
+            ][..],
+        ),
     ] {
         let exists: Option<i32> = connection
             .query_row(
@@ -234,10 +362,27 @@ fn validate_schema(connection: &Connection) -> Result<(), String> {
             }
         }
     }
+    for table in ["plans", "obligations", "payments"] {
+        let exists: Option<i32> = connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+        if exists.is_none() {
+            return Err(format!("La tabla requerida '{table}' no existe"));
+        }
+    }
 
     let foreign_key_error: Option<String> = connection
         .query_row("PRAGMA foreign_key_check", [], |row| {
-            Ok(format!("{}:{}", row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            Ok(format!(
+                "{}:{}",
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?
+            ))
         })
         .optional()
         .map_err(|error| error.to_string())?;

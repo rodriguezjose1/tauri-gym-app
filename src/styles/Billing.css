@@ -1,0 +1,24 @@
+.billing-page { min-height: 100vh; width: 100%; padding: 24px; background: #1a1a1a; }
+.billing-page-content { width: 100%; }
+.billing-main-card { min-height: 70vh; }
+.billing-header, .billing-actions, .billing-pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.billing-header { align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+.billing-description { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; }
+.billing-summary { display: grid; grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(180px, 1fr)); gap: 16px; align-items: stretch; padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 10px; }
+.billing-metric { display: grid; align-content: center; gap: 6px; padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: 8px; }
+.billing-metric span { color: var(--text-secondary); font-size: 14px; }
+.billing-metric strong { font-size: 1.6rem; color: var(--text-primary); }
+.billing-history { margin-top: 28px; }
+.billing-error { display: grid; gap: 12px; margin-top: 16px; }
+.payment-table-wrap { overflow: auto; }
+.payment-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.payment-table th, .payment-table td { text-align: left; padding: 13px; border-bottom: 1px solid var(--border-light); }
+.payment-table .reversed { opacity: .6; }
+.billing-pagination { margin-top: 20px; }
+.billing-pagination-actions { display: flex; gap: 8px; }
+.billing-state { text-align: center; padding: 2.5rem; color: var(--text-secondary); }
+.billing-form { display: grid; gap: 1rem; }
+.reversal-dialog { display: grid; gap: 1.25rem; }
+.reversal-dialog p { margin: 0; line-height: 1.5; }
+.reversal-dialog .billing-actions { padding-top: 1rem; border-top: 1px solid var(--border-light); }
+@media (max-width: 700px) { .billing-page { padding: 16px; } .billing-summary { grid-template-columns: 1fr; } .billing-header { flex-direction: column; } .billing-header > button { width: 100%; } .payment-table { min-width: 850px; } .billing-pagination { align-items: flex-start; flex-direction: column; } }

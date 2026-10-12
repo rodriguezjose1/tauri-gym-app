@@ -5,12 +5,12 @@ pub struct WorkoutEntry {
     pub id: Option<i32>,
     pub person_id: i32,
     pub exercise_id: i32,
-    pub date: String,        // YYYY-MM-DD format
+    pub date: String, // YYYY-MM-DD format
     pub sets: Option<i32>,
     pub reps: Option<i32>,
     pub weight: Option<f64>, // in kg
     pub notes: Option<String>,
-    pub order_index: Option<i32>,  // Order of exercise in the workout session
+    pub order_index: Option<i32>, // Order of exercise in the workout session
     pub group_number: Option<i32>, // Group number for organizing exercises
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
@@ -26,7 +26,7 @@ pub struct WorkoutEntryWithDetails {
     pub reps: Option<i32>,
     pub weight: Option<f64>,
     pub notes: Option<String>,
-    pub order_index: Option<i32>,  // Order of exercise in the workout session
+    pub order_index: Option<i32>, // Order of exercise in the workout session
     pub group_number: Option<i32>, // Group number for organizing exercises
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
@@ -62,4 +62,4 @@ impl WorkoutEntry {
             updated_at: None,
         }
     }
-} 
+}

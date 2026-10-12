@@ -1,23 +1,25 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod config;
 mod models;
 mod repository;
 mod services;
-mod config;
 
-use models::person::Person;
+use config::db::setup_services;
+use models::billing::{Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, Plan};
 use models::exercise::Exercise;
-use models::workout_entry::WorkoutEntry;
+use models::person::Person;
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
-use services::person_service::PersonService;
-use services::exercise_service::ExerciseService;
-use services::workout_entry_service::WorkoutEntryService;
-use services::routine_service::RoutineService;
+use models::workout_entry::WorkoutEntry;
 use services::backup_service::BackupService;
+use services::billing_service::BillingService;
+use services::exercise_service::ExerciseService;
+use services::person_service::PersonService;
+use services::routine_service::RoutineService;
 use services::updater_service::{self, OperationGuard};
-use tauri::{State, Manager};
-use config::db::setup_services;
+use services::workout_entry_service::WorkoutEntryService;
+use tauri::{Manager, State};
 
 // Person commands
 #[tauri::command]
@@ -33,13 +35,21 @@ fn get_persons(service: State<'_, PersonService>) -> Result<Vec<Person>, String>
 }
 
 #[tauri::command]
-fn get_persons_paginated(service: State<'_, PersonService>, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
+fn get_persons_paginated(
+    service: State<'_, PersonService>,
+    page: i32,
+    page_size: i32,
+) -> Result<Vec<Person>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_people_paginated(page, page_size)
 }
 
 #[tauri::command]
-fn get_persons_paginated_response(service: State<'_, PersonService>, page: i32, page_size: i32) -> Result<models::person::PaginatedPersonResponse, String> {
+fn get_persons_paginated_response(
+    service: State<'_, PersonService>,
+    page: i32,
+    page_size: i32,
+) -> Result<models::person::PaginatedPersonResponse, String> {
     let _operation = OperationGuard::begin()?;
     service.list_people_paginated_response(page, page_size)
 }
@@ -51,13 +61,23 @@ fn search_persons(service: State<'_, PersonService>, query: String) -> Result<Ve
 }
 
 #[tauri::command]
-fn search_persons_paginated(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
+fn search_persons_paginated(
+    service: State<'_, PersonService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<Vec<Person>, String> {
     let _operation = OperationGuard::begin()?;
     service.search_people_paginated(&query, page, page_size)
 }
 
 #[tauri::command]
-fn search_persons_paginated_response(service: State<'_, PersonService>, query: String, page: i32, page_size: i32) -> Result<models::person::PaginatedPersonResponse, String> {
+fn search_persons_paginated_response(
+    service: State<'_, PersonService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<models::person::PaginatedPersonResponse, String> {
     let _operation = OperationGuard::begin()?;
     service.search_people_paginated_response(&query, page, page_size)
 }
@@ -106,7 +126,11 @@ fn get_exercises(service: State<'_, ExerciseService>) -> Result<Vec<Exercise>, S
 }
 
 #[tauri::command]
-fn get_exercises_paginated(service: State<'_, ExerciseService>, page: i32, page_size: i32) -> Result<models::exercise::PaginatedExerciseResponse, String> {
+fn get_exercises_paginated(
+    service: State<'_, ExerciseService>,
+    page: i32,
+    page_size: i32,
+) -> Result<models::exercise::PaginatedExerciseResponse, String> {
     let _operation = OperationGuard::begin()?;
     service.list_exercises_paginated(page, page_size)
 }
@@ -142,49 +166,69 @@ fn update_exercise(service: State<'_, ExerciseService>, exercise: Exercise) -> R
 }
 
 #[tauri::command]
-fn search_exercises_paginated(service: State<'_, ExerciseService>, query: String, page: i32, page_size: i32) -> Result<models::exercise::PaginatedExerciseResponse, String> {
+fn search_exercises_paginated(
+    service: State<'_, ExerciseService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<models::exercise::PaginatedExerciseResponse, String> {
     let _operation = OperationGuard::begin()?;
     service.search_exercises_paginated(&query, page, page_size)
 }
 
 // Workout Entry commands
 #[tauri::command]
-fn create_workout_entry(service: State<'_, WorkoutEntryService>, workout_entry: WorkoutEntry) -> Result<(), String> {
+fn create_workout_entry(
+    service: State<'_, WorkoutEntryService>,
+    workout_entry: WorkoutEntry,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.create_workout_entry(workout_entry)
 }
 
 #[tauri::command]
-fn create_workout_session(service: State<'_, WorkoutEntryService>, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+fn create_workout_session(
+    service: State<'_, WorkoutEntryService>,
+    workout_entries: Vec<WorkoutEntry>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.create_workout_session(workout_entries)
 }
 
 #[tauri::command]
-fn create_batch(service: State<'_, WorkoutEntryService>, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+fn create_batch(
+    service: State<'_, WorkoutEntryService>,
+    workout_entries: Vec<WorkoutEntry>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.create_batch(workout_entries)
 }
 
 #[tauri::command]
 fn get_workout_entries_by_person_and_date_range(
-    service: State<'_, WorkoutEntryService>, 
-    person_id: i32, 
-    start_date: String, 
-    end_date: String
+    service: State<'_, WorkoutEntryService>,
+    person_id: i32,
+    start_date: String,
+    end_date: String,
 ) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     let _operation = OperationGuard::begin()?;
     service.get_workout_entries_by_person_and_date_range(person_id, &start_date, &end_date)
 }
 
 #[tauri::command]
-fn get_workout_entries_by_person(service: State<'_, WorkoutEntryService>, person_id: i32) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
+fn get_workout_entries_by_person(
+    service: State<'_, WorkoutEntryService>,
+    person_id: i32,
+) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     let _operation = OperationGuard::begin()?;
     service.get_workout_entries_by_person(person_id)
 }
 
 #[tauri::command]
-fn update_workout_entry(service: State<'_, WorkoutEntryService>, workout_entry: WorkoutEntry) -> Result<(), String> {
+fn update_workout_entry(
+    service: State<'_, WorkoutEntryService>,
+    workout_entry: WorkoutEntry,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.update_workout_entry(workout_entry)
 }
@@ -196,56 +240,89 @@ fn delete_workout_entry(service: State<'_, WorkoutEntryService>, id: i32) -> Res
 }
 
 #[tauri::command]
-fn get_all_workout_entries(service: State<'_, WorkoutEntryService>) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
+fn get_all_workout_entries(
+    service: State<'_, WorkoutEntryService>,
+) -> Result<Vec<models::workout_entry::WorkoutEntryWithDetails>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_all_workout_entries()
 }
 
 #[tauri::command]
-fn replace_workout_session(service: State<'_, WorkoutEntryService>, person_id: i32, date: String, workout_entries: Vec<WorkoutEntry>) -> Result<(), String> {
+fn replace_workout_session(
+    service: State<'_, WorkoutEntryService>,
+    person_id: i32,
+    date: String,
+    workout_entries: Vec<WorkoutEntry>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.replace_workout_session(person_id, &date, workout_entries)
 }
 
 #[tauri::command]
-fn replace_workout_session_granular(service: State<'_, WorkoutEntryService>, ids_to_delete: Vec<i32>, workout_entries_to_insert: Vec<WorkoutEntry>) -> Result<(), String> {
+fn replace_workout_session_granular(
+    service: State<'_, WorkoutEntryService>,
+    ids_to_delete: Vec<i32>,
+    workout_entries_to_insert: Vec<WorkoutEntry>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.replace_workout_session_granular(ids_to_delete, workout_entries_to_insert)
 }
 
 #[tauri::command]
-fn update_exercise_order(service: State<'_, WorkoutEntryService>, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+fn update_exercise_order(
+    service: State<'_, WorkoutEntryService>,
+    exercise_orders: Vec<(i32, i32)>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.update_exercise_order(exercise_orders)
 }
 
 #[tauri::command]
-fn renumber_workout_groups(service: State<'_, WorkoutEntryService>, person_id: i32, date: String) -> Result<(), String> {
+fn renumber_workout_groups(
+    service: State<'_, WorkoutEntryService>,
+    person_id: i32,
+    date: String,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.renumber_groups(person_id, &date)
 }
 
 // Routine commands
 #[tauri::command]
-fn create_routine(service: State<'_, RoutineService>, name: String, code: String) -> Result<i32, String> {
+fn create_routine(
+    service: State<'_, RoutineService>,
+    name: String,
+    code: String,
+) -> Result<i32, String> {
     let _operation = OperationGuard::begin()?;
     service.create_routine(name, code)
 }
 
 #[tauri::command]
-fn get_routine_by_id(service: State<'_, RoutineService>, id: i32) -> Result<Option<Routine>, String> {
+fn get_routine_by_id(
+    service: State<'_, RoutineService>,
+    id: i32,
+) -> Result<Option<Routine>, String> {
     let _operation = OperationGuard::begin()?;
     service.get_routine_by_id(id)
 }
 
 #[tauri::command]
-fn get_routine_with_exercises(service: State<'_, RoutineService>, id: i32) -> Result<Option<models::routine::RoutineWithExercises>, String> {
+fn get_routine_with_exercises(
+    service: State<'_, RoutineService>,
+    id: i32,
+) -> Result<Option<models::routine::RoutineWithExercises>, String> {
     let _operation = OperationGuard::begin()?;
     service.get_routine_with_exercises(id)
 }
 
 #[tauri::command]
-fn update_routine(service: State<'_, RoutineService>, id: i32, name: String, code: String) -> Result<(), String> {
+fn update_routine(
+    service: State<'_, RoutineService>,
+    id: i32,
+    name: String,
+    code: String,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.update_routine(id, name, code)
 }
@@ -281,25 +358,40 @@ fn count_deleted_routines(service: State<'_, RoutineService>) -> Result<i32, Str
 }
 
 #[tauri::command]
-fn renumber_routine_groups(service: State<'_, RoutineService>, routine_id: i32) -> Result<(), String> {
+fn renumber_routine_groups(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.renumber_routine_groups(routine_id)
 }
 
 #[tauri::command]
-fn list_routines_paginated(service: State<'_, RoutineService>, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
+fn list_routines_paginated(
+    service: State<'_, RoutineService>,
+    page: i32,
+    page_size: i32,
+) -> Result<Vec<Routine>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_routines_paginated(page, page_size)
 }
 
 #[tauri::command]
-fn search_routines(service: State<'_, RoutineService>, query: String) -> Result<Vec<Routine>, String> {
+fn search_routines(
+    service: State<'_, RoutineService>,
+    query: String,
+) -> Result<Vec<Routine>, String> {
     let _operation = OperationGuard::begin()?;
     service.search_routines(query)
 }
 
 #[tauri::command]
-fn search_routines_paginated(service: State<'_, RoutineService>, query: String, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
+fn search_routines_paginated(
+    service: State<'_, RoutineService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<Vec<Routine>, String> {
     let _operation = OperationGuard::begin()?;
     service.search_routines_paginated(query, page, page_size)
 }
@@ -317,7 +409,16 @@ fn add_exercise_to_routine(
     group_number: Option<i32>,
 ) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
-    service.add_exercise_to_routine(routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
+    service.add_exercise_to_routine(
+        routine_id,
+        exercise_id,
+        order_index,
+        sets,
+        reps,
+        weight,
+        notes,
+        group_number,
+    )
 }
 
 #[tauri::command]
@@ -334,29 +435,54 @@ fn update_routine_exercise(
     group_number: Option<i32>,
 ) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
-    service.update_routine_exercise(id, routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
+    service.update_routine_exercise(
+        id,
+        routine_id,
+        exercise_id,
+        order_index,
+        sets,
+        reps,
+        weight,
+        notes,
+        group_number,
+    )
 }
 
 #[tauri::command]
-fn remove_exercise_from_routine(service: State<'_, RoutineService>, routine_id: i32, exercise_id: i32) -> Result<(), String> {
+fn remove_exercise_from_routine(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+    exercise_id: i32,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.remove_exercise_from_routine(routine_id, exercise_id)
 }
 
 #[tauri::command]
-fn get_routine_exercises(service: State<'_, RoutineService>, routine_id: i32) -> Result<Vec<models::routine_exercise::RoutineExerciseWithDetails>, String> {
+fn get_routine_exercises(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+) -> Result<Vec<models::routine_exercise::RoutineExerciseWithDetails>, String> {
     let _operation = OperationGuard::begin()?;
     service.get_routine_exercises(routine_id)
 }
 
 #[tauri::command]
-fn reorder_routine_exercises(service: State<'_, RoutineService>, routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
+fn reorder_routine_exercises(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+    exercise_orders: Vec<(i32, i32)>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.reorder_routine_exercises(routine_id, exercise_orders)
 }
 
 #[tauri::command]
-fn replace_routine_exercises(service: State<'_, RoutineService>, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
+fn replace_routine_exercises(
+    service: State<'_, RoutineService>,
+    routine_id: i32,
+    exercises: Vec<RoutineExercise>,
+) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.replace_routine_exercises(routine_id, exercises)
 }
@@ -366,7 +492,14 @@ fn create_routine_from_workout(
     service: State<'_, RoutineService>,
     name: String,
     code: String,
-    workout_exercises: Vec<(i32, Option<i32>, Option<i32>, Option<f64>, Option<String>, Option<i32>)>,
+    workout_exercises: Vec<(
+        i32,
+        Option<i32>,
+        Option<i32>,
+        Option<f64>,
+        Option<String>,
+        Option<i32>,
+    )>,
 ) -> Result<i32, String> {
     let _operation = OperationGuard::begin()?;
     service.create_routine_from_workout(name, code, workout_exercises)
@@ -382,53 +515,116 @@ async fn execute_backup(backup_service: tauri::State<'_, BackupService>) -> Resu
 // The plugin owns detection/download/signature verification. These commands own lifecycle.
 #[tauri::command]
 fn updater_enabled(app: tauri::AppHandle) -> bool {
-    cfg!(target_os = "windows") && app.config().plugins.0.get("updater")
-        .and_then(|v| v.get("pubkey")).and_then(|v| v.as_str())
-        .map(|key| !key.trim().is_empty()).unwrap_or(false)
+    cfg!(target_os = "windows")
+        && app
+            .config()
+            .plugins
+            .0
+            .get("updater")
+            .and_then(|v| v.get("pubkey"))
+            .and_then(|v| v.as_str())
+            .map(|key| !key.trim().is_empty())
+            .unwrap_or(false)
 }
 
 #[tauri::command]
-fn prepare_update() -> Result<(), String> { updater_service::prepare() }
+fn prepare_update() -> Result<(), String> {
+    updater_service::prepare()
+}
 
 #[tauri::command]
-fn cancel_update() { updater_service::cancel(); }
+fn cancel_update() {
+    updater_service::cancel();
+}
 
 #[tauri::command]
-fn log_update_error(message: String) { log::warn!("Updater: {}", message); }
+fn log_update_error(message: String) {
+    log::warn!("Updater: {}", message);
+}
+
+#[tauri::command]
+fn list_plans(service: State<'_, BillingService>, active_only: bool) -> Result<Vec<Plan>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.list_plans(active_only)
+}
+#[tauri::command]
+fn save_plan(service: State<'_, BillingService>, plan: Plan) -> Result<Plan, String> {
+    let _operation = OperationGuard::begin()?;
+    service.save_plan(plan)
+}
+#[tauri::command]
+fn ensure_obligation(
+    service: State<'_, BillingService>,
+    person_id: i64,
+    period: String,
+) -> Result<Obligation, String> {
+    let _operation = OperationGuard::begin()?;
+    service.ensure_obligation(person_id, &period)
+}
+#[tauri::command]
+fn record_payment(
+    service: State<'_, BillingService>,
+    request: PaymentRequest,
+) -> Result<Payment, String> {
+    let _operation = OperationGuard::begin()?;
+    service.record_payment(request)
+}
+#[tauri::command]
+fn reverse_payment(
+    service: State<'_, BillingService>,
+    id: i64,
+    reason: String,
+) -> Result<(), String> {
+    let _operation = OperationGuard::begin()?;
+    service.reverse_payment(id, &reason)
+}
+#[tauri::command]
+fn list_payments(service: State<'_, BillingService>) -> Result<Vec<Payment>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.list_payments()
+}
+#[tauri::command]
+fn get_payment_quote(service: State<'_, BillingService>, person_id:i64, period:String)->Result<PaymentQuote,String>{let _operation=OperationGuard::begin()?;service.quote_payment(person_id,&period)}
+#[tauri::command]
+fn get_payments_page(service: State<'_, BillingService>, month:String, page:i64, page_size:i64)->Result<PaymentPage,String>{let _operation=OperationGuard::begin()?;service.payments_page(&month,page,page_size)}
 
 fn main() {
     // Load environment variables from .env file
     dotenv::dotenv().ok();
-    
+
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Initialize services safely without panic catching
-            let (person_service, exercise_service, workout_entry_service, routine_service) =
-                setup_services().map_err(std::io::Error::other)?;
+            let (
+                person_service,
+                exercise_service,
+                workout_entry_service,
+                routine_service,
+                billing_service,
+            ) = setup_services().map_err(std::io::Error::other)?;
             let backup_service = BackupService::new();
 
-            
             app.manage(person_service);
             app.manage(exercise_service);
             app.manage(workout_entry_service);
             app.manage(routine_service);
+            app.manage(billing_service);
             app.manage(backup_service);
 
-            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             // Person commands
-            create_person, 
-            get_persons, 
+            create_person,
+            get_persons,
             get_persons_paginated,
             get_persons_paginated_response,
             search_persons,
             search_persons_paginated,
             search_persons_paginated_response,
-            delete_person, 
+            delete_person,
             restore_person,
             get_deleted_people,
             count_deleted_people,
@@ -483,7 +679,14 @@ fn main() {
             updater_enabled,
             prepare_update,
             cancel_update,
-            log_update_error
+            log_update_error,
+            list_plans,
+            save_plan,
+            ensure_obligation,
+            record_payment,
+            reverse_payment,
+            list_payments
+            ,get_payment_quote, get_payments_page
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,15 +1,15 @@
-use std::fs;
-use std::path::Path;
-use std::env;
-use reqwest;
-use base64::{Engine as _, engine::general_purpose};
-use chrono::{Utc, Local};
-use serde_json;
+use crate::config::api_keys::RESEND_API_KEY;
+use crate::config::db::get_database_path;
+use base64::{engine::general_purpose, Engine as _};
+use chrono::{Local, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use reqwest;
+use serde_json;
+use std::env;
+use std::fs;
 use std::io::Write;
-use crate::config::db::get_database_path;
-use crate::config::api_keys::RESEND_API_KEY;
+use std::path::Path;
 
 pub struct BackupService {
     status_path: String,
@@ -21,9 +21,12 @@ impl BackupService {
         // Use the same path logic as the database
         let db_path = get_database_path();
         let data_dir = db_path.parent().unwrap_or(&db_path).to_path_buf();
-        
+
         Self {
-            status_path: data_dir.join("backup_status.json").to_string_lossy().to_string(),
+            status_path: data_dir
+                .join("backup_status.json")
+                .to_string_lossy()
+                .to_string(),
             db_path: db_path.to_string_lossy().to_string(),
         }
     }
@@ -42,10 +45,10 @@ impl BackupService {
     fn save_status(&self, status: &BackupStatus) -> Result<(), String> {
         let status_json = serde_json::to_string_pretty(status)
             .map_err(|e| format!("Failed to serialize status: {}", e))?;
-        
+
         fs::write(&self.status_path, status_json)
             .map_err(|e| format!("Failed to write status file: {}", e))?;
-        
+
         Ok(())
     }
 
@@ -58,7 +61,7 @@ impl BackupService {
             // Check if it's a different day
             let last_backup_local = last_backup.with_timezone(&Local);
             let now_local = now.with_timezone(&Local);
-            
+
             last_backup_local.date_naive() != now_local.date_naive()
         } else {
             // No previous backup, so run it
@@ -71,19 +74,19 @@ impl BackupService {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build();
-        
+
         if let Ok(client) = client {
             // Try to reach Google's DNS
             if let Ok(response) = client.get("https://8.8.8.8").send().await {
                 return response.status().is_success();
             }
-            
+
             // Fallback: try to reach a reliable service
             if let Ok(response) = client.get("https://httpbin.org/status/200").send().await {
                 return response.status().is_success();
             }
         }
-        
+
         false
     }
 
@@ -94,9 +97,22 @@ impl BackupService {
             return Err("Database file not found".to_string());
         }
 
-        // Read database file
-        let db_data = fs::read(&self.db_path)
-            .map_err(|e| format!("Failed to read database: {}", e))?;
+        // VACUUM INTO produces a consistent SQLite snapshot even while WAL is in use.
+        let snapshot_path = format!(
+            "{}.snapshot-{}",
+            self.db_path,
+            Utc::now().timestamp_millis()
+        );
+        let connection = rusqlite::Connection::open(&self.db_path)
+            .map_err(|e| format!("Failed to open database for backup: {e}"))?;
+        connection
+            .execute("VACUUM INTO ?1", [&snapshot_path])
+            .map_err(|e| format!("Failed to create consistent database snapshot: {e}"))?;
+        drop(connection);
+        let db_data =
+            fs::read(&snapshot_path).map_err(|e| format!("Failed to read database snapshot: {e}"));
+        let _ = fs::remove_file(&snapshot_path);
+        let db_data = db_data?;
 
         // Get database size
         let db_size = db_data.len() as u64;
@@ -112,41 +128,56 @@ impl BackupService {
 
         // Always compress to reduce size
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(&db_data)
+        encoder
+            .write_all(&db_data)
             .map_err(|e| format!("Failed to compress data: {}", e))?;
-        let backup_data = encoder.finish()
+        let backup_data = encoder
+            .finish()
             .map_err(|e| format!("Failed to finish compression: {}", e))?;
 
-        println!("Backup created: {} bytes -> {} bytes (compressed)", 
-            db_size, backup_data.len());
+        println!(
+            "Backup created: {} bytes -> {} bytes (compressed)",
+            db_size,
+            backup_data.len()
+        );
 
         Ok((backup_data, metadata))
     }
 
     // Send backup via email
-    async fn send_backup_email(&self, backup_data: Vec<u8>, metadata: BackupMetadata) -> Result<(), String> {
+    async fn send_backup_email(
+        &self,
+        backup_data: Vec<u8>,
+        metadata: BackupMetadata,
+    ) -> Result<(), String> {
         // Use the embedded API key
         let api_key = RESEND_API_KEY;
-        println!("🔑 Using API key: {}", if api_key.len() > 10 { &api_key[0..10] } else { "SHORT_KEY" });
-        
+        println!(
+            "🔑 Using API key: {}",
+            if api_key.len() > 10 {
+                &api_key[0..10]
+            } else {
+                "SHORT_KEY"
+            }
+        );
+
         let recipient = "rodriguezjosee8@gmail.com";
         // Use a development-friendly sender email
         let from_email = "onboarding@resend.dev";
 
-        
         let client = reqwest::Client::new();
-        
+
         // Check if backup data is too large
         let data_size_mb = backup_data.len() as f64 / 1024.0 / 1024.0;
         println!("📊 Backup size: {:.2} MB", data_size_mb);
-        
+
         if data_size_mb > 100.0 {
             // If backup is too large, send without attachment
             let email_data = serde_json::json!({
                 "from": from_email,
                 "to": [recipient],
                 "subject": format!("Quality GYM - Backup automático del {}", metadata.backup_date.format("%Y-%m-%d %H:%M UTC")),
-                "text": format!("Backup de Quality GYM del {}\n\nTamaño: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.\n\nNOTA: El archivo de backup ({:.2} MB) es demasiado grande para enviarse por email.", 
+                "text": format!("Backup de Quality GYM del {}\n\nTamaño: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.\n\nNOTA: El archivo de backup ({:.2} MB) es demasiado grande para enviarse por email.",
                     metadata.backup_date.format("%Y-%m-%d %H:%M UTC"),
                     metadata.database_size_bytes as f64 / 1024.0 / 1024.0,
                     metadata.total_records,
@@ -154,7 +185,7 @@ impl BackupService {
                     data_size_mb
                 )
             });
-            
+
             println!("📧 Sending email without attachment...");
             let response = client
                 .post("https://api.resend.com/emails")
@@ -167,24 +198,33 @@ impl BackupService {
 
             let status = response.status();
             println!("📨 Response status: {}", status);
-            let response_text = response.text().await.unwrap_or_else(|_| "No response body".to_string());
+            let response_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "No response body".to_string());
             println!("📨 Response body: {}", response_text);
 
             if status.is_success() {
                 println!("✅ Email sent successfully via Resend (without attachment due to size)!");
                 Ok(())
             } else {
-                Err(format!("Resend returned error: {}, {}", status, response_text))
+                Err(format!(
+                    "Resend returned error: {}, {}",
+                    status, response_text
+                ))
             }
         } else {
             // Try with attachment for smaller files
-            let filename = format!("gym_backup_{}.db.gz", metadata.backup_date.format("%Y%m%d_%H%M%S"));
-            
+            let filename = format!(
+                "gym_backup_{}.db.gz",
+                metadata.backup_date.format("%Y%m%d_%H%M%S")
+            );
+
             let email_data = serde_json::json!({
                 "from": from_email,
                 "to": [recipient],
                 "subject": format!("Quality GYM - Backup automático del {}", metadata.backup_date.format("%Y-%m-%d %H:%M UTC")),
-                "text": format!("Backup de Quality GYM del {}\n\nTamaño original: {:.2} MB\nTamaño comprimido: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.", 
+                "text": format!("Backup de Quality GYM del {}\n\nTamaño original: {:.2} MB\nTamaño comprimido: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.",
                     metadata.backup_date.format("%Y-%m-%d %H:%M UTC"),
                     metadata.database_size_bytes as f64 / 1024.0 / 1024.0,
                     data_size_mb,
@@ -208,7 +248,10 @@ impl BackupService {
                 .map_err(|e| format!("Failed to send email: {}", e))?;
 
             let status = response.status();
-            let response_text = response.text().await.unwrap_or_else(|_| "No response body".to_string());
+            let response_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "No response body".to_string());
             println!("📨 Response status: {}", status);
             println!("📨 Response body: {}", response_text);
 
@@ -221,7 +264,7 @@ impl BackupService {
                     "from": from_email,
                     "to": [recipient],
                     "subject": format!("Quality GYM - Backup automático del {}", metadata.backup_date.format("%Y-%m-%d %H:%M UTC")),
-                    "text": format!("Backup de Quality GYM del {}\n\nTamaño original: {:.2} MB\nTamaño comprimido: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.\n\nNOTA: El archivo de backup no se pudo adjuntar debido a restricciones del servicio de email.", 
+                    "text": format!("Backup de Quality GYM del {}\n\nTamaño original: {:.2} MB\nTamaño comprimido: {:.2} MB\nRegistros: {}\nChecksum: {}\n\nEste es un backup automático de la base de datos de Quality GYM.\n\nNOTA: El archivo de backup no se pudo adjuntar debido a restricciones del servicio de email.",
                         metadata.backup_date.format("%Y-%m-%d %H:%M UTC"),
                         metadata.database_size_bytes as f64 / 1024.0 / 1024.0,
                         data_size_mb,
@@ -240,15 +283,24 @@ impl BackupService {
                     .map_err(|e| format!("Failed to send email: {}", e))?;
 
                 let status_no_attachment = response_no_attachment.status();
-                let response_text_no_attachment = response_no_attachment.text().await.unwrap_or_else(|_| "No response body".to_string());
+                let response_text_no_attachment = response_no_attachment
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "No response body".to_string());
                 println!("📨 No-attachment response status: {}", status_no_attachment);
-                println!("📨 No-attachment response body: {}", response_text_no_attachment);
+                println!(
+                    "📨 No-attachment response body: {}",
+                    response_text_no_attachment
+                );
 
                 if status_no_attachment.is_success() {
                     println!("✅ Email sent successfully via Resend (without attachment)!");
                     Ok(())
                 } else {
-                    Err(format!("Resend returned error: {}, {}", status_no_attachment, response_text_no_attachment))
+                    Err(format!(
+                        "Resend returned error: {}, {}",
+                        status_no_attachment, response_text_no_attachment
+                    ))
                 }
             }
         }
@@ -259,7 +311,7 @@ impl BackupService {
         println!("🔍 Starting backup check...");
         let mut status = self.load_status();
         println!("📊 Current status: {:?}", status);
-        
+
         // Check if backup should run (only if day changed)
         if !self.should_run_backup() {
             println!("⏭️ Backup not needed today");
@@ -294,16 +346,16 @@ impl BackupService {
                 status.last_backup_success = true;
                 status.last_error = None;
                 status.backup_count += 1;
-                
+
                 self.save_status(&status)?;
                 println!("✅ Automatic backup completed successfully!");
                 Ok(())
-            },
+            }
             Err(e) => {
                 println!("❌ Backup failed: {}", e);
                 status.last_backup_success = false;
                 status.last_error = Some(e.clone());
-                
+
                 self.save_status(&status)?;
                 println!("❌ Automatic backup failed: {}", e);
                 Err(e)
@@ -340,4 +392,4 @@ struct BackupMetadata {
     database_size_bytes: u64,
     total_records: u32,
     checksum: String,
-} 
+}
