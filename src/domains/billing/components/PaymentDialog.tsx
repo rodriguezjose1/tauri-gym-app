@@ -28,6 +28,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const quoteRequest = useRef(0);
+  const amountEditRevision = useRef(0);
 
   const availablePlans = useMemo(
     () => plans.filter((plan) => plan.is_active && plan.modality === modality),
@@ -49,9 +50,10 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
   useEffect(() => {
     if (!person?.id || modality !== 'monthly' || !period) return;
     const request = ++quoteRequest.current;
-    BillingService.quote(person.id, period)
+    const editRevision = amountEditRevision.current;
+    BillingService.quote(person.id, period, planId ? Number(planId) : undefined)
       .then((quote) => {
-        if (request !== quoteRequest.current) return;
+        if (request !== quoteRequest.current || editRevision !== amountEditRevision.current) return;
         if (quote.already_paid) {
           setError(billingTexts.paymentDialog.alreadyPaid);
           return;
@@ -66,7 +68,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
         }
       })
       .catch((quoteError) => request === quoteRequest.current && setError(String(quoteError)));
-  }, [person, period, modality]);
+  }, [person, period, modality, planId]);
 
   useEffect(() => {
     if (modality !== 'particular') return;
@@ -77,8 +79,40 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
 
   const choosePlan = (value: string | number) => {
     const plan = plans.find((candidate) => candidate.id === Number(value));
+    quoteRequest.current += 1;
     setPlanId(String(value));
-    if (plan) setAmount(String(plan.price_cents / 100));
+    if (modality === 'particular' && plan) {
+      setAmount(String(plan.price_cents / 100));
+    } else {
+      setAmount('');
+    }
+    setError(null);
+  };
+
+  const choosePeriod = (value: string | number) => {
+    quoteRequest.current += 1;
+    setPeriod(String(value));
+    setAmount('');
+    setError(null);
+  };
+
+  const changeAmount = (event: React.ChangeEvent<HTMLInputElement>) => {
+    amountEditRevision.current += 1;
+    setAmount(event.target.value);
+  };
+
+  const choosePerson = (selected: Person | null) => {
+    quoteRequest.current += 1;
+    setPerson(selected);
+    setAmount('');
+    setError(null);
+  };
+
+  const chooseModality = (value: string | number) => {
+    quoteRequest.current += 1;
+    setModality(value as Modality);
+    setPlanId('');
+    setAmount('');
     setError(null);
   };
 
@@ -120,18 +154,18 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
         {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
         <PersonSearch
           selectedPerson={person}
-          onPersonSelect={setPerson}
-          onClearSelection={() => setPerson(null)}
+          onPersonSelect={choosePerson}
+          onClearSelection={() => choosePerson(null)}
         />
         <Select
           label="Modalidad"
           value={modality}
           options={[{ value: 'monthly', label: 'Mensual' }, { value: 'particular', label: 'Particular' }]}
-          onChange={(value) => setModality(value as Modality)}
+          onChange={chooseModality}
           fullWidth
         />
         {modality === 'monthly' && (
-          <Select label="Período" value={period} options={periodOptions()} onChange={(value) => setPeriod(String(value))} fullWidth />
+          <Select label="Período" value={period} options={periodOptions()} onChange={choosePeriod} fullWidth />
         )}
         <Select
           label="Plan"
@@ -140,7 +174,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
           onChange={choosePlan}
           fullWidth
         />
-        <Input label="Importe" type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required />
+        <Input label="Importe" type="number" min="0.01" step="0.01" value={amount} onChange={changeAmount} required />
         <div className="billing-actions">
           <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button type="submit" disabled={busy || !person || !planId || !amount}>

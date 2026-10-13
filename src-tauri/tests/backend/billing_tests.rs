@@ -26,7 +26,7 @@ fn plan(s: &BillingService, name: &str, modality: &str, price: i64) -> i64 {
         modality: modality.into(),
         price_cents: price,
         is_active: true,
-    })
+    }, None)
     .unwrap()
     .id
     .unwrap()
@@ -38,6 +38,20 @@ fn activity(path: &str, from: &str, until: Option<&str>) {
         "INSERT INTO person_activity_periods(person_id,active_from,inactive_from) VALUES(1,?1,?2)",
         rusqlite::params![from, until],
     ).unwrap();
+}
+
+fn adjacent_period(period: &str, offset: i32) -> String {
+    let year: i32 = period[0..4].parse().unwrap();
+    let month: i32 = period[5..7].parse().unwrap();
+    let absolute = year * 12 + month - 1 + offset;
+    format!("{:04}-{:02}", absolute.div_euclid(12), absolute.rem_euclid(12) + 1)
+}
+
+fn local_period(path: &str) -> String {
+    Connection::open(path)
+        .unwrap()
+        .query_row("SELECT strftime('%Y-%m','now','localtime')", [], |row| row.get(0))
+        .unwrap()
 }
 
 #[test]
@@ -352,4 +366,210 @@ fn monthly_metrics_separate_cash_flow_from_paid_periods() {
     assert_eq!(december.collected_cents, 0);
     assert_eq!(december.period_paid_cents, 45000);
     assert_eq!(december.payment_count, 0);
+}
+
+#[test]
+fn monthly_price_change_from_next_month_preserves_current_and_updates_generated_future() {
+    let (_d, path, service) = fixture();
+    let current = local_period(&path);
+    let next = adjacent_period(&current, 1);
+    let later = adjacent_period(&current, 3);
+    activity(&path, &current, None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service.record_payment(PaymentRequest {
+        person_id: 1,
+        modality: "monthly".into(),
+        period: Some(current.clone()),
+        plan_id: monthly,
+        amount_cents: 40000,
+    }).unwrap();
+    service.reconcile_through(&next).unwrap();
+
+    service.save_plan(Plan {
+        id: Some(monthly),
+        name: "Mensual".into(),
+        modality: "monthly".into(),
+        price_cents: 45000,
+        is_active: true,
+    }, Some(&next)).unwrap();
+
+    assert_eq!(service.quote_payment(1, &current, None).unwrap().amount_cents, Some(40000));
+    assert_eq!(service.quote_payment(1, &next, None).unwrap().amount_cents, Some(45000));
+    assert_eq!(service.reconcile_through(&next).unwrap(), 0);
+    assert_eq!(service.reconcile_through(&later).unwrap(), 2);
+    for period in [adjacent_period(&current, 2), later] {
+        assert_eq!(service.quote_payment(1, &period, None).unwrap().amount_cents, Some(45000));
+    }
+}
+
+#[test]
+fn current_month_price_change_only_updates_unprotected_periods_from_its_vigency() {
+    let (_d, path, service) = fixture();
+    let current = local_period(&path);
+    let previous = adjacent_period(&current, -1);
+    let next = adjacent_period(&current, 1);
+    let future = adjacent_period(&current, 2);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    let connection = Connection::open(&path).unwrap();
+    connection.execute("INSERT INTO people(name,last_name,phone) VALUES('Berta','Test','2')", []).unwrap();
+    for (person, period, excluded) in [
+        (1, previous.as_str(), false),
+        (1, current.as_str(), true),
+        (1, next.as_str(), false),
+        (1, future.as_str(), false),
+        (2, current.as_str(), false),
+    ] {
+        connection.execute(
+            "INSERT INTO obligations(person_id,period,plan_id,amount_cents,excluded_at) VALUES(?1,?2,?3,40000,CASE WHEN ?4 THEN datetime('now','localtime') END)",
+            rusqlite::params![person, period, monthly, excluded],
+        ).unwrap();
+    }
+    let reversed_obligation: i64 = connection.query_row(
+        "SELECT id FROM obligations WHERE person_id=1 AND period=?1", [&next], |row| row.get(0),
+    ).unwrap();
+    connection.execute(
+        "INSERT INTO payments(person_id,obligation_id,plan_id,plan_name,modality,period,amount_cents,paid_at,reversed_at,reversal_reason) VALUES(1,?1,?2,'Mensual','monthly',?3,40000,datetime('now','localtime'),datetime('now','localtime'),'prueba')",
+        rusqlite::params![reversed_obligation, monthly, next],
+    ).unwrap();
+    drop(connection);
+
+    service.save_plan(Plan {
+        id: Some(monthly), name: "Mensual actualizado".into(), modality: "monthly".into(),
+        price_cents: 45000, is_active: true,
+    }, Some(&current)).unwrap();
+
+    let connection = Connection::open(path).unwrap();
+    let amount = |person: i64, period: &str| -> i64 {
+        connection.query_row(
+            "SELECT amount_cents FROM obligations WHERE person_id=?1 AND period=?2",
+            rusqlite::params![person, period], |row| row.get(0),
+        ).unwrap()
+    };
+    assert_eq!(amount(1, &previous), 40000);
+    assert_eq!(amount(1, &current), 40000);
+    assert_eq!(amount(1, &next), 40000);
+    assert_eq!(amount(1, &future), 45000);
+    assert_eq!(amount(2, &current), 45000);
+}
+
+#[test]
+fn particular_price_change_is_immediate_and_preserves_previous_payments() {
+    let (_d, _path, service) = fixture();
+    let particular = plan(&service, "Particular", "particular", 12000);
+    let payment = service.record_payment(PaymentRequest {
+        person_id: 1, modality: "particular".into(), period: None,
+        plan_id: particular, amount_cents: 12000,
+    }).unwrap();
+
+    service.save_plan(Plan {
+        id: Some(particular), name: "Particular".into(), modality: "particular".into(),
+        price_cents: 15000, is_active: true,
+    }, None).unwrap();
+
+    assert_eq!(service.list_payments().unwrap().into_iter().find(|item| item.id == payment.id).unwrap().amount_cents, 12000);
+    assert_eq!(service.list_plans(false).unwrap().into_iter().find(|item| item.id == Some(particular)).unwrap().price_cents, 15000);
+}
+
+#[test]
+fn successive_monthly_changes_keep_the_price_for_each_vigency() {
+    let (_d, path, service) = fixture();
+    let current = local_period(&path);
+    let next = adjacent_period(&current, 1);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    let connection = Connection::open(&path).unwrap();
+    for period in [&current, &next] {
+        connection.execute(
+            "INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(1,?1,?2,40000)",
+            rusqlite::params![period, monthly],
+        ).unwrap();
+    }
+    drop(connection);
+
+    service.save_plan(Plan {
+        id: Some(monthly), name: "Mensual".into(), modality: "monthly".into(),
+        price_cents: 45000, is_active: true,
+    }, Some(&next)).unwrap();
+    service.save_plan(Plan {
+        id: Some(monthly), name: "Mensual".into(), modality: "monthly".into(),
+        price_cents: 42000, is_active: true,
+    }, Some(&current)).unwrap();
+
+    let connection = Connection::open(path).unwrap();
+    let prices = connection.prepare(
+        "SELECT period,amount_cents FROM obligations ORDER BY period",
+    ).unwrap().query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)))
+        .unwrap().collect::<Result<Vec<_>, _>>().unwrap();
+    assert_eq!(prices, vec![(current, 42000), (next, 45000)]);
+}
+
+#[test]
+fn failed_plan_update_rolls_back_price_history_and_name_only_edit_adds_no_vigency() {
+    let (_d, path, service) = fixture();
+    let current = local_period(&path);
+    let first = plan(&service, "Plan A", "monthly", 40000);
+    let _second = plan(&service, "Plan B", "monthly", 50000);
+
+    service.save_plan(Plan {
+        id: Some(first), name: "Plan A renombrado".into(), modality: "monthly".into(),
+        price_cents: 40000, is_active: true,
+    }, None).unwrap();
+    let before: i64 = Connection::open(&path).unwrap().query_row(
+        "SELECT COUNT(*) FROM plan_price_history WHERE plan_id=?1", [first], |row| row.get(0),
+    ).unwrap();
+
+    assert!(service.save_plan(Plan {
+        id: Some(first), name: "Plan B".into(), modality: "monthly".into(),
+        price_cents: 45000, is_active: true,
+    }, Some(&current)).is_err());
+
+    let connection = Connection::open(path).unwrap();
+    let plan_state: (String, i64) = connection.query_row(
+        "SELECT name,price_cents FROM plans WHERE id=?1", [first],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    ).unwrap();
+    let after: i64 = connection.query_row(
+        "SELECT COUNT(*) FROM plan_price_history WHERE plan_id=?1", [first], |row| row.get(0),
+    ).unwrap();
+    assert_eq!(plan_state, ("Plan A renombrado".into(), 40000));
+    assert_eq!(before, after);
+}
+
+#[test]
+fn payment_quote_uses_selected_plan_history_and_prefers_persisted_obligation_amount() {
+    let (_d, path, service) = fixture();
+    let current = local_period(&path);
+    let next = adjacent_period(&current, 1);
+    let monthly = plan(&service, "X1", "monthly", 30000);
+    let alternate = plan(&service, "X2", "monthly", 25000);
+    service.save_plan(Plan {
+        id: Some(monthly), name: "X1".into(), modality: "monthly".into(),
+        price_cents: 32000, is_active: true,
+    }, Some(&next)).unwrap();
+
+    let october_quote = service.quote_payment(1, &current, Some(monthly)).unwrap();
+    let november_quote = service.quote_payment(1, &next, Some(monthly)).unwrap();
+    assert_eq!(october_quote.amount_cents, Some(30000));
+    assert_eq!(november_quote.amount_cents, Some(32000));
+
+    let connection = Connection::open(&path).unwrap();
+    connection.execute("INSERT INTO people(name,last_name,phone) VALUES('Berta','Test','2')", []).unwrap();
+    connection.execute(
+        "INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(1,?1,?2,28500)",
+        rusqlite::params![current, monthly],
+    ).unwrap();
+    drop(connection);
+    let persisted_quote = service.quote_payment(1, &current, Some(alternate)).unwrap();
+    assert_eq!(persisted_quote.plan_id, Some(alternate));
+    assert_eq!(persisted_quote.amount_cents, Some(25000));
+    assert_eq!(
+        service.quote_payment(1, &current, Some(monthly)).unwrap().amount_cents,
+        Some(28500),
+    );
+
+    let suggested = service.quote_payment(2, &current, Some(monthly)).unwrap().amount_cents.unwrap();
+    let payment = service.record_payment(PaymentRequest {
+        person_id: 2, modality: "monthly".into(), period: Some(current),
+        plan_id: monthly, amount_cents: suggested,
+    }).unwrap();
+    assert_eq!(payment.amount_cents, 30000);
 }

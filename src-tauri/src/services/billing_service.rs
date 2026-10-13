@@ -62,7 +62,7 @@ impl BillingService {
         result
     }
 
-    pub fn save_plan(&self, plan: Plan) -> Result<Plan, String> {
+    pub fn save_plan(&self, plan: Plan, effective_period: Option<&str>) -> Result<Plan, String> {
         let name = plan.name.trim();
         if name.is_empty() {
             return Err("El nombre del plan es obligatorio".into());
@@ -73,27 +73,89 @@ impl BillingService {
         if plan.price_cents <= 0 {
             return Err("El precio debe ser positivo".into());
         }
-        let connection = self.connection()?;
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
         let id = if let Some(id) = plan.id {
-            let changed = connection.execute("UPDATE plans SET name=?1,price_cents=?2,is_active=?3,updated_at=CURRENT_TIMESTAMP WHERE id=?4 AND modality=?5", params![name, plan.price_cents, plan.is_active, id, plan.modality]).map_err(|e| e.to_string())?;
+            let current_price: i64 = transaction
+                .query_row(
+                    "SELECT price_cents FROM plans WHERE id=?1 AND modality=?2",
+                    params![id, plan.modality],
+                    |row| row.get(0),
+                )
+                .map_err(|_| "El plan no existe o su modalidad no puede modificarse".to_string())?;
+            let price_changed = current_price != plan.price_cents;
+            let effective = if price_changed && plan.modality == "monthly" {
+                let current: String = transaction
+                    .query_row("SELECT strftime('%Y-%m','now','localtime')", [], |row| {
+                        row.get(0)
+                    })
+                    .map_err(|e| e.to_string())?;
+                let next = Self::next_period(&current)?;
+                let selected =
+                    effective_period.ok_or("Seleccioná desde cuándo aplicar el nuevo precio")?;
+                if selected != current && selected != next {
+                    return Err("La vigencia debe ser el mes actual o el próximo mes".into());
+                }
+                Some(selected.to_string())
+            } else {
+                None
+            };
+            let changed = transaction.execute("UPDATE plans SET name=?1,price_cents=?2,is_active=?3,updated_at=datetime('now','localtime') WHERE id=?4 AND modality=?5", params![name, plan.price_cents, plan.is_active, id, plan.modality]).map_err(|e| e.to_string())?;
             if changed == 0 {
                 return Err("El plan no existe o su modalidad no puede modificarse".into());
             }
+            if price_changed {
+                transaction.execute(
+                    "INSERT INTO plan_price_history(plan_id,price_cents,effective_period) VALUES(?1,?2,?3)",
+                    params![id, plan.price_cents, effective],
+                ).map_err(|e| e.to_string())?;
+                if let Some(period) = effective {
+                    transaction.execute(
+                        "UPDATE obligations SET amount_cents=(
+                            SELECT history.price_cents FROM plan_price_history history
+                            WHERE history.plan_id=obligations.plan_id
+                              AND history.effective_period IS NOT NULL
+                              AND history.effective_period<=obligations.period
+                            ORDER BY history.effective_period DESC,history.id DESC LIMIT 1
+                         )
+                         WHERE plan_id=?1 AND period>=?2 AND excluded_at IS NULL
+                           AND NOT EXISTS(SELECT 1 FROM payments WHERE obligation_id=obligations.id)",
+                        params![id, period],
+                    ).map_err(|e| e.to_string())?;
+                }
+            }
             id
         } else {
-            connection
+            transaction
                 .execute(
                     "INSERT INTO plans(name,modality,price_cents,is_active) VALUES(?1,?2,?3,?4)",
                     params![name, plan.modality, plan.price_cents, plan.is_active],
                 )
                 .map_err(|e| e.to_string())?;
-            connection.last_insert_rowid()
+            let id = transaction.last_insert_rowid();
+            transaction.execute(
+                "INSERT INTO plan_price_history(plan_id,price_cents,effective_period) VALUES(?1,?2,?3)",
+                params![id, plan.price_cents, if plan.modality == "monthly" { Some("0000-01") } else { None }],
+            ).map_err(|e| e.to_string())?;
+            id
         };
+        transaction.commit().map_err(|e| e.to_string())?;
         Ok(Plan {
             id: Some(id),
             name: name.into(),
             ..plan
         })
+    }
+
+    fn price_for_period(tx: &Transaction<'_>, plan_id: i64, period: &str) -> Result<i64, String> {
+        tx.query_row(
+            "SELECT price_cents FROM plan_price_history
+             WHERE plan_id=?1 AND effective_period IS NOT NULL AND effective_period<=?2
+             ORDER BY effective_period DESC,id DESC LIMIT 1",
+            params![plan_id, period],
+            |row| row.get(0),
+        )
+        .map_err(|_| "No existe un precio vigente para el plan y período".to_string())
     }
 
     fn applicable_plan(tx: &Transaction<'_>, person_id: i64, period: &str) -> Result<i64, String> {
@@ -112,13 +174,18 @@ impl BillingService {
         if let Some(item) = tx.query_row("SELECT o.id,o.person_id,o.period,o.plan_id,o.amount_cents,EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL),o.excluded_at FROM obligations o WHERE person_id=?1 AND period=?2", params![person_id, period], obligation_row).optional().map_err(|e| e.to_string())? { return Ok(item); }
         let plan_id = Self::applicable_plan(tx, person_id, period)
             .or_else(|error| fallback_plan_id.ok_or(error))?;
-        let amount: i64 = tx
+        let active: bool = tx
             .query_row(
-                "SELECT price_cents FROM plans WHERE id=?1 AND is_active=1",
+                "SELECT is_active FROM plans WHERE id=?1",
                 [plan_id],
-                |row| row.get(0),
+                |row| row.get::<_, i64>(0),
             )
-            .map_err(|_| "El plan aplicable está desactivado; seleccioná otro plan".to_string())?;
+            .map_err(|_| "El plan aplicable no existe".to_string())?
+            != 0;
+        if !active {
+            return Err("El plan aplicable está desactivado; seleccioná otro plan".into());
+        }
+        let amount = Self::price_for_period(tx, plan_id, period)?;
         tx.execute(
             "INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(?1,?2,?3,?4)",
             params![person_id, period, plan_id, amount],
@@ -199,10 +266,11 @@ impl BillingService {
             while period <= end {
                 let plan_id = transaction.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period<?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get::<_, i64>(0)).optional().map_err(|e| e.to_string())?;
                 if let Some(plan_id) = plan_id {
+                    let price = Self::price_for_period(&transaction, plan_id, &period)?;
                     let inserted = transaction.execute(
                         "INSERT OR IGNORE INTO obligations(person_id,period,plan_id,amount_cents)
-                         SELECT ?1,?2,p.id,p.price_cents FROM plans p WHERE p.id=?3 AND p.is_active=1",
-                        params![person_id, period, plan_id],
+                         SELECT ?1,?2,p.id,?4 FROM plans p WHERE p.id=?3 AND p.is_active=1",
+                        params![person_id, period, plan_id, price],
                     ).map_err(|e| e.to_string())?;
                     created += inserted;
                 }
@@ -366,25 +434,69 @@ impl BillingService {
         })
     }
 
-    pub fn quote_payment(&self, person_id: i64, period: &str) -> Result<PaymentQuote, String> {
+    pub fn quote_payment(
+        &self,
+        person_id: i64,
+        period: &str,
+        requested_plan_id: Option<i64>,
+    ) -> Result<PaymentQuote, String> {
         if !Self::valid_period(period) {
             return Err("El período debe tener formato AAAA-MM".into());
         }
         let connection = self.connection()?;
         let existing: Option<(i64, i64, i64)> = connection.query_row("SELECT plan_id,amount_cents,EXISTS(SELECT 1 FROM payments WHERE obligation_id=o.id AND reversed_at IS NULL) FROM obligations o WHERE person_id=?1 AND period=?2", params![person_id, period], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(|e| e.to_string())?;
-        if let Some((plan_id, amount_cents, paid)) = existing {
+        if let Some((persisted_plan_id, amount_cents, paid)) = existing {
+            let requested_plan =
+                if let Some(requested) = requested_plan_id {
+                    connection.query_row(
+                    "SELECT id FROM plans WHERE id=?1 AND modality='monthly' AND is_active=1",
+                    [requested],
+                    |row| row.get(0),
+                ).optional().map_err(|e| e.to_string())?
+                } else {
+                    None
+                };
+            let plan_id = requested_plan.unwrap_or(persisted_plan_id);
+            let suggested_amount = if plan_id == persisted_plan_id {
+                amount_cents
+            } else {
+                connection
+                    .query_row(
+                        "SELECT price_cents FROM plan_price_history
+                     WHERE plan_id=?1 AND effective_period IS NOT NULL AND effective_period<=?2
+                     ORDER BY effective_period DESC,id DESC LIMIT 1",
+                        params![plan_id, period],
+                        |row| row.get(0),
+                    )
+                    .map_err(|_| "No existe un precio vigente para el plan y período".to_string())?
+            };
             return Ok(PaymentQuote {
                 plan_id: Some(plan_id),
-                amount_cents: Some(amount_cents),
+                amount_cents: Some(suggested_amount),
                 already_paid: paid != 0,
             });
         }
-        let plan_id = connection.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period<?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get(0)).optional().map_err(|e| e.to_string())?;
+        let plan_id = if let Some(plan_id) = requested_plan_id {
+            connection
+                .query_row(
+                    "SELECT id FROM plans WHERE id=?1 AND modality='monthly' AND is_active=1",
+                    [plan_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?
+        } else {
+            connection.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period<?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get(0)).optional().map_err(|e| e.to_string())?
+        };
         let amount_cents = if let Some(id) = plan_id {
             connection
                 .query_row(
-                    "SELECT price_cents FROM plans WHERE id=?1 AND is_active=1",
-                    [id],
+                    "SELECT history.price_cents
+                     FROM plan_price_history history JOIN plans plan ON plan.id=history.plan_id
+                     WHERE history.plan_id=?1 AND plan.is_active=1
+                       AND history.effective_period IS NOT NULL AND history.effective_period<=?2
+                     ORDER BY history.effective_period DESC,history.id DESC LIMIT 1",
+                    params![id, period],
                     |row| row.get(0),
                 )
                 .optional()

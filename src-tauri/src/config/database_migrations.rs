@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 3;
+pub const CURRENT_SCHEMA_VERSION: i32 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationOutcome {
@@ -94,12 +94,49 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
         migrate_to_v3(&mut connection)?;
     }
 
+    if previous_version < 4 {
+        migrate_to_v4(&mut connection)?;
+    }
+
     validate_schema(&connection)?;
     Ok(MigrationOutcome {
         previous_version,
         current_version: CURRENT_SCHEMA_VERSION,
         backup_path,
     })
+}
+
+fn migrate_to_v4(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de precios: {e}"))?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS plan_price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+            effective_period TEXT NULL CHECK (
+                effective_period IS NULL OR
+                effective_period GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+            ),
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_plan_price_effective
+            ON plan_price_history(plan_id,effective_period,id);
+        INSERT INTO plan_price_history(plan_id,price_cents,effective_period)
+        SELECT id,price_cents,CASE WHEN modality='monthly' THEN '0000-01' ELSE NULL END
+        FROM plans
+        WHERE NOT EXISTS (
+            SELECT 1 FROM plan_price_history history WHERE history.plan_id=plans.id
+        );
+        INSERT OR IGNORE INTO migrations(version) VALUES ('004_plan_price_history');
+        PRAGMA user_version = 4;",
+        )
+        .map_err(|e| format!("No se pudo crear el historial de precios: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de precios: {e}"))
 }
 
 fn migrate_to_v3(connection: &mut Connection) -> Result<(), String> {
@@ -401,6 +438,7 @@ fn validate_schema(connection: &Connection) -> Result<(), String> {
     }
     for table in [
         "plans",
+        "plan_price_history",
         "obligations",
         "payments",
         "person_activity_periods",

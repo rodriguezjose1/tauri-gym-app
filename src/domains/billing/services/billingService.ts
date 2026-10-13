@@ -80,12 +80,14 @@ export interface PersonPaymentHistoryPage {
 
 export const BillingService = {
   plans: (activeOnly = false) => invoke<Plan[]>('list_plans', { activeOnly }),
-  savePlan: (plan: Plan) => invoke<Plan>('save_plan', { plan }),
+  savePlan: (plan: Plan, effectivePeriod?: string) =>
+    invoke<Plan>('save_plan', { plan, effectivePeriod: effectivePeriod ?? null }),
   obligation: (personId: number, period: string) => invoke<Obligation>('ensure_obligation', { personId, period }),
   pay: (request: { person_id: number; modality: Modality; period?: string; plan_id: number; amount_cents: number }) => invoke<Payment>('record_payment', { request }),
   payments: () => invoke<Payment[]>('list_payments'),
   paymentsPage: (month: string, page: number, pageSize = 20) => invoke<PaymentPage>('get_payments_page', { month, page, pageSize }),
-  quote: (personId: number, period: string) => invoke<PaymentQuote>('get_payment_quote', { personId, period }),
+  quote: (personId: number, period: string, planId?: number) =>
+    invoke<PaymentQuote>('get_payment_quote', { personId, period, planId: planId ?? null }),
   reverse: (id: number, reason: string) => invoke<void>('reverse_payment', { id, reason }),
   reconcile: () => invoke<number>('reconcile_payment_periods'),
   personStatuses: (personIds: number[]) => invoke<PersonPaymentStatus[]>('get_person_payment_statuses', { personIds }),

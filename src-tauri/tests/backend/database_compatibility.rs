@@ -42,6 +42,14 @@ fn column_exists(connection: &Connection, table: &str, column: &str) -> bool {
     found
 }
 
+fn table_exists(connection: &Connection, table: &str) -> bool {
+    connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+        [table],
+        |row| row.get::<_, i64>(0),
+    ).unwrap() != 0
+}
+
 fn create_legacy_database(fixture: &Fixture) {
     fixture
         .connection()
@@ -114,6 +122,34 @@ fn fresh_install_creates_the_complete_versioned_schema() {
     assert_eq!(version, CURRENT_SCHEMA_VERSION);
     assert!(column_exists(&connection, "workout_entries", "group_number"));
     assert!(column_exists(&connection, "routine_exercises", "group_number"));
+    assert!(table_exists(&connection, "plan_price_history"));
+}
+
+#[test]
+fn version_three_billing_data_is_backfilled_with_its_existing_price() {
+    let fixture = Fixture::new();
+    migrate_database(&fixture.path).unwrap();
+    let connection = fixture.connection();
+    connection.execute(
+        "INSERT INTO plans(name,modality,price_cents) VALUES('Mensual histórico','monthly',40000)",
+        [],
+    ).unwrap();
+    connection.execute_batch(
+        "DROP TABLE plan_price_history;
+         DELETE FROM migrations WHERE version='004_plan_price_history';
+         PRAGMA user_version=3;",
+    ).unwrap();
+    drop(connection);
+
+    let outcome = migrate_database(&fixture.path).unwrap();
+    assert_eq!(outcome.current_version, CURRENT_SCHEMA_VERSION);
+    let connection = fixture.connection();
+    let price: (i64, String) = connection.query_row(
+        "SELECT price_cents,effective_period FROM plan_price_history",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    ).unwrap();
+    assert_eq!(price, (40000, "0000-01".into()));
 }
 
 #[test]

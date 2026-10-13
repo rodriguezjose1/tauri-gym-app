@@ -3,6 +3,12 @@ export const currentPeriod = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
 
+export const nextPeriod = () => {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const formatter = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' });
 
 export const periodOptions = (monthsBack = 24, monthsAhead = 12) => {

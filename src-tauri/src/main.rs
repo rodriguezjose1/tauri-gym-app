@@ -551,9 +551,13 @@ fn list_plans(service: State<'_, BillingService>, active_only: bool) -> Result<V
     service.list_plans(active_only)
 }
 #[tauri::command]
-fn save_plan(service: State<'_, BillingService>, plan: Plan) -> Result<Plan, String> {
+fn save_plan(
+    service: State<'_, BillingService>,
+    plan: Plan,
+    effective_period: Option<String>,
+) -> Result<Plan, String> {
     let _operation = OperationGuard::begin()?;
-    service.save_plan(plan)
+    service.save_plan(plan, effective_period.as_deref())
 }
 #[tauri::command]
 fn ensure_obligation(
@@ -591,9 +595,10 @@ fn get_payment_quote(
     service: State<'_, BillingService>,
     person_id: i64,
     period: String,
+    plan_id: Option<i64>,
 ) -> Result<PaymentQuote, String> {
     let _operation = OperationGuard::begin()?;
-    service.quote_payment(person_id, &period)
+    service.quote_payment(person_id, &period, plan_id)
 }
 #[tauri::command]
 fn get_payments_page(
