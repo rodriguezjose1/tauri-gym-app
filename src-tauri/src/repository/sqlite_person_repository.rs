@@ -49,6 +49,17 @@ impl SqlitePersonRepository {
                 [],
             )?;
         }
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS person_activity_periods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person_id INTEGER NOT NULL REFERENCES people(id),
+                active_from TEXT NOT NULL,
+                inactive_from TEXT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_open_person_activity
+                ON person_activity_periods(person_id) WHERE inactive_from IS NULL;",
+        )?;
         Ok(())
     }
 
@@ -103,12 +114,19 @@ impl PersonRepository for SqlitePersonRepository {
 
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        conn.execute(
-            "INSERT INTO people (name, last_name, phone) VALUES (?1, ?2, ?3)",
-            params![person.name, person.last_name, person.phone],
-        )
-        .map_err(|e| e.to_string())?;
-
+        let transaction = conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        transaction
+            .execute(
+                "INSERT INTO people (name, last_name, phone) VALUES (?1, ?2, ?3)",
+                params![person.name, person.last_name, person.phone],
+            )
+            .map_err(|e| e.to_string())?;
+        let person_id = transaction.last_insert_rowid();
+        transaction.execute(
+            "INSERT INTO person_activity_periods(person_id,active_from) VALUES(?1,strftime('%Y-%m','now','localtime'))",
+            [person_id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -219,18 +237,22 @@ impl PersonRepository for SqlitePersonRepository {
             return Ok(());
         }
 
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut conn = self.get_connection().map_err(|e| e.to_string())?;
 
         // Logical deletion instead of physical deletion
-        let affected = conn.execute(
+        let transaction = conn.transaction().map_err(|e| e.to_string())?;
+        let affected = transaction.execute(
             "UPDATE people SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1 AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             params![id]
         ).map_err(|e| e.to_string())?;
         if affected == 0 {
-            Err("Active person not found".into())
-        } else {
-            Ok(())
+            return Err("Active person not found".into());
         }
+        transaction.execute(
+            "UPDATE person_activity_periods SET inactive_from=strftime('%Y-%m','now','localtime') WHERE person_id=?1 AND inactive_from IS NULL",
+            [id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())
     }
 
     fn search_paginated(
@@ -340,18 +362,22 @@ impl PersonRepository for SqlitePersonRepository {
             return Ok(());
         }
 
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut conn = self.get_connection().map_err(|e| e.to_string())?;
 
         // Restore logically deleted person
-        let affected = conn.execute(
+        let transaction = conn.transaction().map_err(|e| e.to_string())?;
+        let affected = transaction.execute(
             "UPDATE people SET deleted_at = NULL, is_active = 1 WHERE id = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
             params![id]
         ).map_err(|e| e.to_string())?;
         if affected == 0 {
-            Err("Deleted person not found".into())
-        } else {
-            Ok(())
+            return Err("Deleted person not found".into());
         }
+        transaction.execute(
+            "INSERT INTO person_activity_periods(person_id,active_from) VALUES(?1,strftime('%Y-%m','now','localtime'))",
+            [id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())
     }
 
     fn list_deleted(&self) -> Result<Vec<Person>, String> {

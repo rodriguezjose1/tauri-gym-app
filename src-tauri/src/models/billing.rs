@@ -17,6 +17,35 @@ pub struct Obligation {
     pub plan_id: i64,
     pub amount_cents: i64,
     pub paid: bool,
+    pub excluded_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonPaymentStatus {
+    pub person_id: i64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonPaymentHistoryItem {
+    pub item_type: String,
+    pub obligation_id: Option<i64>,
+    pub payment_id: Option<i64>,
+    pub period: Option<String>,
+    pub plan_id: i64,
+    pub plan_name: String,
+    pub amount_cents: i64,
+    pub status: String,
+    pub paid_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonPaymentHistoryPage {
+    pub items: Vec<PersonPaymentHistoryItem>,
+    pub total: i64,
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +72,7 @@ pub struct PaymentPage {
     pub page_size: i64,
     pub total_pages: i64,
     pub collected_cents: i64,
+    pub period_paid_cents: i64,
     pub payment_count: i64,
 }
 

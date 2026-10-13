@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { PersonService, Person } from "../../../services";
 import { Button, Input, Title, Card, Modal, ErrorMessage } from "../../../shared/components/base";
 import "../../../styles/PersonCrud.css";
+import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
+import { PersonPaymentProfile } from '../../billing/components/PersonPaymentProfile';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -31,6 +33,19 @@ export default function PersonCrud() {
     personName: ""
   });
   const [isInitialized, setIsInitialized] = useState(false);
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<number, PaymentStatus>>({});
+  const [profilePerson, setProfilePerson] = useState<Person | null>(null);
+
+  const loadPaymentStatuses = async (items: Person[]) => {
+    const ids = items.flatMap((person) => person.id ? [person.id] : []);
+    if (ids.length === 0) { setPaymentStatuses({}); return; }
+    try {
+      const statuses = await BillingService.personStatuses(ids);
+      setPaymentStatuses(Object.fromEntries(statuses.map((item) => [item.person_id, item.status])));
+    } catch (statusError) {
+      console.error('Error loading payment statuses:', statusError);
+    }
+  };
 
   // Initial load - only run once
   useEffect(() => {
@@ -100,6 +115,7 @@ export default function PersonCrud() {
       } else {
         setPersons(response.persons);
       }
+      await loadPaymentStatuses(append ? [...persons, ...response.persons] : response.persons);
       
       setTotalPersons(response.total);
       setHasMore(response.persons.length === ITEMS_PER_PAGE);
@@ -136,6 +152,7 @@ export default function PersonCrud() {
       } else {
         setPersons(response.persons);
       }
+      await loadPaymentStatuses(append ? [...persons, ...response.persons] : response.persons);
       
       setTotalPersons(response.total);
       setHasMore(response.persons.length === ITEMS_PER_PAGE);
@@ -482,9 +499,13 @@ export default function PersonCrud() {
                           {person.phone && person.phone !== "0" && (
                             <p className="person-phone">Tel: {person.phone}</p>
                           )}
+                          <span className={`person-payment-status ${paymentStatuses[person.id!] ?? 'no_plan'}`}>
+                            {{ overdue: 'Vencido', pending: 'Pendiente', current: 'Al día', no_plan: 'Sin plan determinado' }[paymentStatuses[person.id!] ?? 'no_plan']}
+                          </span>
                         </div>
                         
                         <div className="person-actions">
+                          <Button onClick={() => setProfilePerson(person)} variant="primary" size="sm">Pagos</Button>
                           <Button
                             onClick={() => handleEdit(person)}
                             variant="secondary"
@@ -537,7 +558,7 @@ export default function PersonCrud() {
                             <p className="person-phone">Tel: {person.phone}</p>
                           )}
                           <p className="person-deleted-status">
-                            🗑️ Eliminada
+                            Inactivo
                           </p>
                         </div>
                         
@@ -599,6 +620,14 @@ export default function PersonCrud() {
       </div>
 
       {/* Form Modal */}
+      {profilePerson && (
+        <PersonPaymentProfile
+          person={profilePerson}
+          onClose={() => setProfilePerson(null)}
+          onChanged={() => { if (profilePerson) void loadPaymentStatuses([profilePerson]); }}
+        />
+      )}
+
       <Modal
         isOpen={showFormModal}
         onClose={handleCancelEdit}

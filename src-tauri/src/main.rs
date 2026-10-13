@@ -6,7 +6,10 @@ mod repository;
 mod services;
 
 use config::db::setup_services;
-use models::billing::{Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, Plan};
+use models::billing::{
+    Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, PersonPaymentHistoryPage,
+    PersonPaymentStatus, Plan,
+};
 use models::exercise::Exercise;
 use models::person::Person;
 use models::routine::Routine;
@@ -584,9 +587,56 @@ fn list_payments(service: State<'_, BillingService>) -> Result<Vec<Payment>, Str
     service.list_payments()
 }
 #[tauri::command]
-fn get_payment_quote(service: State<'_, BillingService>, person_id:i64, period:String)->Result<PaymentQuote,String>{let _operation=OperationGuard::begin()?;service.quote_payment(person_id,&period)}
+fn get_payment_quote(
+    service: State<'_, BillingService>,
+    person_id: i64,
+    period: String,
+) -> Result<PaymentQuote, String> {
+    let _operation = OperationGuard::begin()?;
+    service.quote_payment(person_id, &period)
+}
 #[tauri::command]
-fn get_payments_page(service: State<'_, BillingService>, month:String, page:i64, page_size:i64)->Result<PaymentPage,String>{let _operation=OperationGuard::begin()?;service.payments_page(&month,page,page_size)}
+fn get_payments_page(
+    service: State<'_, BillingService>,
+    month: String,
+    page: i64,
+    page_size: i64,
+) -> Result<PaymentPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.payments_page(&month, page, page_size)
+}
+#[tauri::command]
+fn reconcile_payment_periods(service: State<'_, BillingService>) -> Result<usize, String> {
+    let _operation = OperationGuard::begin()?;
+    service.reconcile_periods()
+}
+#[tauri::command]
+fn get_person_payment_statuses(
+    service: State<'_, BillingService>,
+    person_ids: Vec<i64>,
+) -> Result<Vec<PersonPaymentStatus>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.payment_statuses(&person_ids)
+}
+#[tauri::command]
+fn get_person_payment_history(
+    service: State<'_, BillingService>,
+    person_id: i64,
+    page: i64,
+    page_size: i64,
+) -> Result<PersonPaymentHistoryPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.person_history(person_id, page, page_size)
+}
+#[tauri::command]
+fn set_payment_period_excluded(
+    service: State<'_, BillingService>,
+    obligation_id: i64,
+    excluded: bool,
+) -> Result<(), String> {
+    let _operation = OperationGuard::begin()?;
+    service.set_period_excluded(obligation_id, excluded)
+}
 
 fn main() {
     // Load environment variables from .env file
@@ -610,6 +660,9 @@ fn main() {
             app.manage(exercise_service);
             app.manage(workout_entry_service);
             app.manage(routine_service);
+            if let Err(error) = billing_service.reconcile_periods() {
+                log::error!("No se pudieron reconciliar los períodos de pago: {error}");
+            }
             app.manage(billing_service);
             app.manage(backup_service);
 
@@ -685,8 +738,13 @@ fn main() {
             ensure_obligation,
             record_payment,
             reverse_payment,
-            list_payments
-            ,get_payment_quote, get_payments_page
+            list_payments,
+            get_payment_quote,
+            get_payments_page,
+            reconcile_payment_periods,
+            get_person_payment_statuses,
+            get_person_payment_history,
+            set_payment_period_excluded
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -32,6 +32,72 @@ fn plan(s: &BillingService, name: &str, modality: &str, price: i64) -> i64 {
     .unwrap()
 }
 
+fn activity(path: &str, from: &str, until: Option<&str>) {
+    let connection = Connection::open(path).unwrap();
+    connection.execute(
+        "INSERT INTO person_activity_periods(person_id,active_from,inactive_from) VALUES(1,?1,?2)",
+        rusqlite::params![from, until],
+    ).unwrap();
+}
+
+#[test]
+fn reconciliation_skips_people_without_a_monthly_payment() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2026-01", None);
+    assert_eq!(service.reconcile_through("2026-04").unwrap(), 0);
+    assert_eq!(service.person_history(1, 1, 20).unwrap().total, 0);
+}
+
+#[test]
+fn monthly_due_date_moves_weekends_to_monday() {
+    let (_d, _path, service) = fixture();
+    assert_eq!(service.monthly_due_date("2026-10").unwrap(), "2026-10-12");
+    assert_eq!(service.monthly_due_date("2026-05").unwrap(), "2026-05-11");
+    assert_eq!(service.monthly_due_date("2026-11").unwrap(), "2026-11-10");
+}
+
+#[test]
+fn reconciliation_recovers_missing_months_and_is_idempotent() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2026-10", None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service.record_payment(PaymentRequest { person_id: 1, modality: "monthly".into(), period: Some("2026-10".into()), plan_id: monthly, amount_cents: 40000 }).unwrap();
+    assert_eq!(service.reconcile_through("2027-01").unwrap(), 3);
+    assert_eq!(service.reconcile_through("2027-01").unwrap(), 0);
+    let history = service.person_history(1, 1, 20).unwrap();
+    assert_eq!(history.total, 4);
+    assert_eq!(history.items.iter().filter(|item| item.status == "paid").count(), 1);
+}
+
+#[test]
+fn exclusion_and_restoration_change_status_without_creating_payments() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2020-01", None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service.record_payment(PaymentRequest { person_id: 1, modality: "monthly".into(), period: Some("2020-01".into()), plan_id: monthly, amount_cents: 40000 }).unwrap();
+    service.reconcile_through("2020-02").unwrap();
+    let period = service.person_history(1, 1, 20).unwrap().items.into_iter().find(|item| item.period.as_deref() == Some("2020-02")).unwrap();
+    assert_eq!(service.payment_statuses(&[1]).unwrap()[0].status, "overdue");
+    service.set_period_excluded(period.obligation_id.unwrap(), true).unwrap();
+    assert_eq!(service.payment_statuses(&[1]).unwrap()[0].status, "current");
+    service.set_period_excluded(period.obligation_id.unwrap(), false).unwrap();
+    assert_eq!(service.payment_statuses(&[1]).unwrap()[0].status, "overdue");
+    assert_eq!(service.list_payments().unwrap().len(), 1);
+}
+
+#[test]
+fn inactive_months_are_not_generated_after_reactivation() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2026-10", Some("2026-12"));
+    activity(&path, "2027-04", None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service.record_payment(PaymentRequest { person_id: 1, modality: "monthly".into(), period: Some("2026-10".into()), plan_id: monthly, amount_cents: 40000 }).unwrap();
+    service.reconcile_through("2027-04").unwrap();
+    let periods = service.person_history(1, 1, 20).unwrap().items.into_iter().filter_map(|item| item.period).collect::<Vec<_>>();
+    assert!(periods.contains(&"2026-11".into()) && periods.contains(&"2026-12".into()) && periods.contains(&"2027-04".into()));
+    assert!(!periods.contains(&"2027-01".into()) && !periods.contains(&"2027-02".into()) && !periods.contains(&"2027-03".into()));
+}
+
 #[test]
 fn first_payment_creates_idempotent_obligation() {
     let (_d, _p, s) = fixture();
@@ -238,4 +304,52 @@ fn empty_payment_month_returns_zero_summary() {
         ),
         (0, 0, 0, 0)
     );
+}
+
+#[test]
+fn monthly_summary_uses_the_payment_period_instead_of_registration_month() {
+    let (_d, path, service) = fixture();
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service.record_payment(PaymentRequest {
+        person_id: 1,
+        modality: "monthly".into(),
+        period: Some("2026-10".into()),
+        plan_id: monthly,
+        amount_cents: 40000,
+    }).unwrap();
+    let connection = Connection::open(path).unwrap();
+    connection.execute("UPDATE payments SET paid_at='2026-11-03 10:00:00'", []).unwrap();
+    let october = service.payments_page("2026-10", 1, 20).unwrap();
+    let november = service.payments_page("2026-11", 1, 20).unwrap();
+    assert_eq!(october.collected_cents, 0);
+    assert_eq!(october.period_paid_cents, 40000);
+    assert_eq!(november.collected_cents, 40000);
+    assert_eq!(november.period_paid_cents, 0);
+}
+
+#[test]
+fn monthly_metrics_separate_cash_flow_from_paid_periods() {
+    let (_d, path, service) = fixture();
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    let particular = plan(&service, "Particular", "particular", 12000);
+    for (period, amount) in [("2026-10", 40000), ("2026-11", 35000), ("2026-12", 45000)] {
+        service.record_payment(PaymentRequest { person_id: 1, modality: "monthly".into(), period: Some(period.into()), plan_id: monthly, amount_cents: amount }).unwrap();
+    }
+    service.record_payment(PaymentRequest { person_id: 1, modality: "particular".into(), period: None, plan_id: particular, amount_cents: 12000 }).unwrap();
+    let reversed = service.record_payment(PaymentRequest { person_id: 1, modality: "particular".into(), period: None, plan_id: particular, amount_cents: 5000 }).unwrap();
+    let connection = Connection::open(path).unwrap();
+    connection.execute("UPDATE payments SET paid_at='2026-11-15 10:00:00'", []).unwrap();
+    drop(connection);
+    service.reverse_payment(reversed.id, "prueba").unwrap();
+
+    let november = service.payments_page("2026-11", 1, 20).unwrap();
+    assert_eq!(november.collected_cents, 132000);
+    assert_eq!(november.period_paid_cents, 35000);
+    assert_eq!(november.payment_count, 4);
+    assert_eq!(november.total, 5);
+
+    let december = service.payments_page("2026-12", 1, 20).unwrap();
+    assert_eq!(december.collected_cents, 0);
+    assert_eq!(december.period_paid_cents, 45000);
+    assert_eq!(december.payment_count, 0);
 }

@@ -4,7 +4,7 @@
 .billing-header, .billing-actions, .billing-pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .billing-header { align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
 .billing-description { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; }
-.billing-summary { display: grid; grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(180px, 1fr)); gap: 16px; align-items: stretch; padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 10px; }
+.billing-summary { display: grid; grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(160px, 1fr)); gap: 16px; align-items: stretch; padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 10px; }
 .billing-metric { display: grid; align-content: center; gap: 6px; padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: 8px; }
 .billing-metric span { color: var(--text-secondary); font-size: 14px; }
 .billing-metric strong { font-size: 1.6rem; color: var(--text-primary); }

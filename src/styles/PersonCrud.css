@@ -201,6 +201,25 @@
   flex-shrink: 0;
 }
 
+.person-payment-status { display: inline-flex; width: fit-content; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.person-payment-status.overdue { color: #fca5a5; background: rgba(239,68,68,.14); }
+.person-payment-status.pending { color: #fcd34d; background: rgba(245,158,11,.14); }
+.person-payment-status.current { color: #6ee7b7; background: rgba(16,185,129,.14); }
+.person-payment-status.no_plan { color: var(--text-secondary); background: var(--bg-tertiary); }
+.person-payment-profile-modal { display: flex; flex-direction: column; overflow: hidden; }
+.person-payment-profile-modal .ui-modal-header { flex: 0 0 auto; background: var(--bg-primary); z-index: 2; }
+.person-payment-profile-modal .ui-modal-body { display: flex; min-height: 0; padding: 0; overflow: hidden; }
+.person-payment-profile { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.person-payment-profile-scroll { display: grid; gap: 20px; padding: 24px; overflow-y: auto; }
+.person-payment-profile-scroll > div:first-child p { margin: 8px 0 0; color: var(--text-secondary); }
+.person-payment-profile-footer { flex: 0 0 auto; margin: 0; padding: 16px 24px; background: var(--bg-primary); border-top: 1px solid var(--border-light); }
+.profile-payment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.payment-status { font-weight: 700; }
+.payment-status.overdue { color: #f87171; }
+.payment-status.pending { color: #fbbf24; }
+.payment-status.paid { color: #34d399; }
+.payment-status.excluded, .payment-status.reversed { color: var(--text-secondary); }
+
 /* States */
 .person-loading-state,
 .person-empty-state {
@@ -468,4 +487,4 @@
   .person-page-indicator {
     font-size: 11px;
   }
-} 
+}

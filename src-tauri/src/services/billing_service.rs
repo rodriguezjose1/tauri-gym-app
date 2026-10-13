@@ -1,7 +1,8 @@
 use crate::models::billing::{
-    Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, Plan,
+    Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, PersonPaymentHistoryItem,
+    PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Transaction};
 
 pub struct BillingService {
     db_path: String,
@@ -13,27 +14,46 @@ impl BillingService {
             db_path: db_path.into(),
         }
     }
+
     fn connection(&self) -> Result<Connection, String> {
-        let c = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
-        c.execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")
+        let connection = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
+        connection
+            .execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")
             .map_err(|e| e.to_string())?;
-        Ok(c)
+        Ok(connection)
     }
+
     fn valid_period(period: &str) -> bool {
-        let mut p = period.split('-');
-        matches!((p.next(), p.next(), p.next()), (Some(y), Some(m), None) if y.len()==4 && y.chars().all(|c| c.is_ascii_digit()) && m.parse::<u8>().is_ok_and(|v| (1..=12).contains(&v)))
+        let mut parts = period.split('-');
+        matches!((parts.next(), parts.next(), parts.next()), (Some(y), Some(m), None)
+            if y.len() == 4 && y.chars().all(|c| c.is_ascii_digit())
+            && m.parse::<u8>().is_ok_and(|v| (1..=12).contains(&v)))
     }
+
+    fn next_period(period: &str) -> Result<String, String> {
+        if !Self::valid_period(period) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let year: i32 = period[0..4].parse().map_err(|_| "Período inválido")?;
+        let month: i32 = period[5..7].parse().map_err(|_| "Período inválido")?;
+        Ok(if month == 12 {
+            format!("{:04}-01", year + 1)
+        } else {
+            format!("{year:04}-{:02}", month + 1)
+        })
+    }
+
     pub fn list_plans(&self, active_only: bool) -> Result<Vec<Plan>, String> {
-        let c = self.connection()?;
-        let mut s=c.prepare("SELECT id,name,modality,price_cents,is_active FROM plans WHERE (?1=0 OR is_active=1) ORDER BY name").map_err(|e|e.to_string())?;
-        let result = s
-            .query_map([active_only as i32], |r| {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare("SELECT id,name,modality,price_cents,is_active FROM plans WHERE (?1=0 OR is_active=1) ORDER BY name").map_err(|e| e.to_string())?;
+        let result = statement
+            .query_map([active_only as i32], |row| {
                 Ok(Plan {
-                    id: Some(r.get(0)?),
-                    name: r.get(1)?,
-                    modality: r.get(2)?,
-                    price_cents: r.get(3)?,
-                    is_active: r.get::<_, i64>(4)? != 0,
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    modality: row.get(2)?,
+                    price_cents: row.get(3)?,
+                    is_active: row.get::<_, i64>(4)? != 0,
                 })
             })
             .map_err(|e| e.to_string())?
@@ -41,6 +61,7 @@ impl BillingService {
             .map_err(|e| e.to_string());
         result
     }
+
     pub fn save_plan(&self, plan: Plan) -> Result<Plan, String> {
         let name = plan.name.trim();
         if name.is_empty() {
@@ -52,20 +73,21 @@ impl BillingService {
         if plan.price_cents <= 0 {
             return Err("El precio debe ser positivo".into());
         }
-        let c = self.connection()?;
+        let connection = self.connection()?;
         let id = if let Some(id) = plan.id {
-            let changed=c.execute("UPDATE plans SET name=?1,price_cents=?2,is_active=?3,updated_at=CURRENT_TIMESTAMP WHERE id=?4 AND modality=?5",params![name,plan.price_cents,plan.is_active,id,plan.modality]).map_err(|e|e.to_string())?;
+            let changed = connection.execute("UPDATE plans SET name=?1,price_cents=?2,is_active=?3,updated_at=CURRENT_TIMESTAMP WHERE id=?4 AND modality=?5", params![name, plan.price_cents, plan.is_active, id, plan.modality]).map_err(|e| e.to_string())?;
             if changed == 0 {
                 return Err("El plan no existe o su modalidad no puede modificarse".into());
             }
             id
         } else {
-            c.execute(
-                "INSERT INTO plans(name,modality,price_cents,is_active) VALUES(?1,?2,?3,?4)",
-                params![name, plan.modality, plan.price_cents, plan.is_active],
-            )
-            .map_err(|e| e.to_string())?;
-            c.last_insert_rowid()
+            connection
+                .execute(
+                    "INSERT INTO plans(name,modality,price_cents,is_active) VALUES(?1,?2,?3,?4)",
+                    params![name, plan.modality, plan.price_cents, plan.is_active],
+                )
+                .map_err(|e| e.to_string())?;
+            connection.last_insert_rowid()
         };
         Ok(Plan {
             id: Some(id),
@@ -73,9 +95,11 @@ impl BillingService {
             ..plan
         })
     }
+
     fn applicable_plan(tx: &Transaction<'_>, person_id: i64, period: &str) -> Result<i64, String> {
-        tx.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period < ?2 ORDER BY period DESC, id DESC LIMIT 1",params![person_id,period],|r|r.get(0)).optional().map_err(|e|e.to_string())?.ok_or_else(||"El alumno todavía no tiene pagos mensuales anteriores".into())
+        tx.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period < ?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get(0)).optional().map_err(|e| e.to_string())?.ok_or_else(|| "El alumno todavía no tiene pagos mensuales anteriores".into())
     }
+
     fn ensure_obligation_tx(
         tx: &Transaction<'_>,
         person_id: i64,
@@ -85,20 +109,16 @@ impl BillingService {
         if !Self::valid_period(period) {
             return Err("El período debe tener formato AAAA-MM".into());
         }
-        if let Some(o)=tx.query_row("SELECT o.id,o.person_id,o.period,o.plan_id,o.amount_cents,EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL) FROM obligations o WHERE person_id=?1 AND period=?2",params![person_id,period],|r|Ok(Obligation{id:r.get(0)?,person_id:r.get(1)?,period:r.get(2)?,plan_id:r.get(3)?,amount_cents:r.get(4)?,paid:r.get::<_,i64>(5)?!=0})).optional().map_err(|e|e.to_string())?{return Ok(o)}
-        let plan_id = match Self::applicable_plan(tx, person_id, period) {
-            Ok(id) => id,
-            Err(e) => fallback_plan_id.ok_or(e)?,
-        };
+        if let Some(item) = tx.query_row("SELECT o.id,o.person_id,o.period,o.plan_id,o.amount_cents,EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL),o.excluded_at FROM obligations o WHERE person_id=?1 AND period=?2", params![person_id, period], obligation_row).optional().map_err(|e| e.to_string())? { return Ok(item); }
+        let plan_id = Self::applicable_plan(tx, person_id, period)
+            .or_else(|error| fallback_plan_id.ok_or(error))?;
         let amount: i64 = tx
             .query_row(
                 "SELECT price_cents FROM plans WHERE id=?1 AND is_active=1",
                 [plan_id],
-                |r| r.get(0),
+                |row| row.get(0),
             )
-            .map_err(|_| {
-                "El plan aplicable está desactivado; seleccioná otro plan al cobrar".to_string()
-            })?;
+            .map_err(|_| "El plan aplicable está desactivado; seleccioná otro plan".to_string())?;
         tx.execute(
             "INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(?1,?2,?3,?4)",
             params![person_id, period, plan_id, amount],
@@ -111,107 +131,291 @@ impl BillingService {
             plan_id,
             amount_cents: amount,
             paid: false,
+            excluded_at: None,
         })
     }
+
     pub fn ensure_obligation(&self, person_id: i64, period: &str) -> Result<Obligation, String> {
-        let mut c = self.connection()?;
-        let tx = c.transaction().map_err(|e| e.to_string())?;
-        let o = Self::ensure_obligation_tx(&tx, person_id, period, None)?;
-        tx.commit().map_err(|e| e.to_string())?;
-        Ok(o)
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let item = Self::ensure_obligation_tx(&transaction, person_id, period, None)?;
+        transaction.commit().map_err(|e| e.to_string())?;
+        Ok(item)
     }
-    pub fn record_payment(&self, r: PaymentRequest) -> Result<Payment, String> {
-        if r.amount_cents <= 0 {
+
+    pub fn reconcile_periods(&self) -> Result<usize, String> {
+        let connection = self.connection()?;
+        let current: String = connection
+            .query_row("SELECT strftime('%Y-%m','now','localtime')", [], |row| {
+                row.get(0)
+            })
+            .map_err(|e| e.to_string())?;
+        drop(connection);
+        self.reconcile_through(&current)
+    }
+
+    pub fn monthly_due_date(&self, period: &str) -> Result<String, String> {
+        if !Self::valid_period(period) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let connection = self.connection()?;
+        connection.query_row(
+            "SELECT date(?1||'-10',CASE strftime('%w',?1||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END)",
+            [period],
+            |row| row.get(0),
+        ).map_err(|e| e.to_string())
+    }
+
+    pub fn reconcile_through(&self, through: &str) -> Result<usize, String> {
+        if !Self::valid_period(through) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let ranges: Vec<(i64, String, Option<String>, String)> = {
+            let mut statement = transaction.prepare(
+                "SELECT a.person_id,a.active_from,a.inactive_from,MIN(p.period)
+                 FROM person_activity_periods a JOIN payments p ON p.person_id=a.person_id
+                   AND p.modality='monthly' AND p.reversed_at IS NULL AND p.period IS NOT NULL
+                 WHERE a.active_from<=?1 AND (a.inactive_from IS NULL OR a.inactive_from>=a.active_from)
+                 GROUP BY a.id ORDER BY a.person_id,a.active_from"
+            ).map_err(|e| e.to_string())?;
+            let result = statement
+                .query_map([through], |row| {
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                })
+                .map_err(|e| e.to_string())?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?;
+            result
+        };
+        let mut created = 0;
+        for (person_id, active_from, inactive_from, first_payment) in ranges {
+            let first_missing = Self::next_period(&first_payment)?;
+            let mut period = active_from.max(first_missing);
+            let end = inactive_from
+                .unwrap_or_else(|| through.to_string())
+                .min(through.to_string());
+            while period <= end {
+                let plan_id = transaction.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period<?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get::<_, i64>(0)).optional().map_err(|e| e.to_string())?;
+                if let Some(plan_id) = plan_id {
+                    let inserted = transaction.execute(
+                        "INSERT OR IGNORE INTO obligations(person_id,period,plan_id,amount_cents)
+                         SELECT ?1,?2,p.id,p.price_cents FROM plans p WHERE p.id=?3 AND p.is_active=1",
+                        params![person_id, period, plan_id],
+                    ).map_err(|e| e.to_string())?;
+                    created += inserted;
+                }
+                period = Self::next_period(&period)?;
+            }
+        }
+        transaction.commit().map_err(|e| e.to_string())?;
+        Ok(created)
+    }
+
+    pub fn record_payment(&self, request: PaymentRequest) -> Result<Payment, String> {
+        if request.amount_cents <= 0 {
             return Err("El importe debe ser positivo".into());
         }
-        let mut c = self.connection()?;
-        let tx = c.transaction().map_err(|e| e.to_string())?;
-        let (name, modality): (String, String) = tx
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let (plan_name, plan_modality): (String, String) = transaction
             .query_row(
                 "SELECT name,modality FROM plans WHERE id=?1 AND is_active=1",
-                [r.plan_id],
-                |x| Ok((x.get(0)?, x.get(1)?)),
+                [request.plan_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|_| "Plan inexistente".to_string())?;
-        let (obligation_id, period) = if r.modality == "monthly" {
-            let p = r.period.as_deref().ok_or("El período es obligatorio")?;
-            let o = Self::ensure_obligation_tx(&tx, r.person_id, p, Some(r.plan_id))?;
-            if o.paid {
-                return Err("La obligación ya está pagada".into());
+        if plan_modality != request.modality {
+            return Err("La modalidad no coincide con el plan".into());
+        }
+        let (obligation_id, period) = if request.modality == "monthly" {
+            let period = request
+                .period
+                .as_deref()
+                .ok_or("El período es obligatorio")?;
+            let obligation = Self::ensure_obligation_tx(
+                &transaction,
+                request.person_id,
+                period,
+                Some(request.plan_id),
+            )?;
+            if obligation.paid {
+                return Err("El período ya está pagado".into());
             }
-            tx.execute(
-                "UPDATE obligations SET plan_id=?1,amount_cents=?2 WHERE id=?3",
-                params![r.plan_id, r.amount_cents, o.id],
-            )
-            .map_err(|e| e.to_string())?;
-            (Some(o.id), Some(p.to_string()))
-        } else if r.modality == "particular" {
+            if obligation.excluded_at.is_some() {
+                return Err("Restaurá el período antes de registrar el pago".into());
+            }
+            transaction
+                .execute(
+                    "UPDATE obligations SET plan_id=?1,amount_cents=?2 WHERE id=?3",
+                    params![request.plan_id, request.amount_cents, obligation.id],
+                )
+                .map_err(|e| e.to_string())?;
+            (Some(obligation.id), Some(period.to_string()))
+        } else if request.modality == "particular" {
             (None, None)
         } else {
             return Err("Modalidad inválida".into());
         };
-        if modality != r.modality {
-            return Err("La modalidad no coincide con el plan".into());
-        }
-        tx.execute("INSERT INTO payments(person_id,obligation_id,plan_id,plan_name,modality,period,amount_cents,paid_at) VALUES(?1,?2,?3,?4,?5,?6,?7,datetime('now','localtime'))",params![r.person_id,obligation_id,r.plan_id,name,r.modality,period,r.amount_cents]).map_err(|e|e.to_string())?;
-        let id = tx.last_insert_rowid();
-        let p=tx.query_row("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE p.id=?1",[id],payment_row).map_err(|e|e.to_string())?;
-        tx.commit().map_err(|e| e.to_string())?;
-        Ok(p)
+        transaction.execute("INSERT INTO payments(person_id,obligation_id,plan_id,plan_name,modality,period,amount_cents,paid_at) VALUES(?1,?2,?3,?4,?5,?6,?7,datetime('now','localtime'))", params![request.person_id, obligation_id, request.plan_id, plan_name, request.modality, period, request.amount_cents]).map_err(|e| e.to_string())?;
+        let id = transaction.last_insert_rowid();
+        let payment = transaction
+            .query_row(PAYMENT_SELECT_BY_ID, [id], payment_row)
+            .map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())?;
+        Ok(payment)
     }
+
     pub fn reverse_payment(&self, id: i64, reason: &str) -> Result<(), String> {
         if reason.trim().is_empty() {
             return Err("El motivo es obligatorio".into());
         }
-        let c = self.connection()?;
-        let n=c.execute("UPDATE payments SET reversed_at=CURRENT_TIMESTAMP,reversal_reason=?1 WHERE id=?2 AND reversed_at IS NULL",params![reason.trim(),id]).map_err(|e|e.to_string())?;
-        if n == 0 {
+        let connection = self.connection()?;
+        let changed = connection.execute("UPDATE payments SET reversed_at=datetime('now','localtime'),reversal_reason=?1 WHERE id=?2 AND reversed_at IS NULL", params![reason.trim(), id]).map_err(|e| e.to_string())?;
+        if changed == 0 {
             Err("Pago inexistente o ya revertido".into())
         } else {
             Ok(())
         }
     }
+
+    pub fn set_period_excluded(&self, obligation_id: i64, excluded: bool) -> Result<(), String> {
+        let connection = self.connection()?;
+        let sql = if excluded {
+            "UPDATE obligations SET excluded_at=datetime('now','localtime') WHERE id=?1 AND excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments WHERE obligation_id=?1 AND reversed_at IS NULL)"
+        } else {
+            "UPDATE obligations SET excluded_at=NULL WHERE id=?1 AND excluded_at IS NOT NULL"
+        };
+        let changed = connection
+            .execute(sql, [obligation_id])
+            .map_err(|e| e.to_string())?;
+        if changed == 0 {
+            Err("El período no admite esa acción o ya fue actualizado".into())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn payment_statuses(&self, person_ids: &[i64]) -> Result<Vec<PersonPaymentStatus>, String> {
+        if person_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let connection = self.connection()?;
+        let placeholders = (1..=person_ids.len())
+            .map(|index| format!("?{index}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!("SELECT pe.id,CASE
+            WHEN NOT EXISTS(SELECT 1 FROM payments p WHERE p.person_id=pe.id AND p.modality='monthly' AND p.reversed_at IS NULL) THEN 'no_plan'
+            WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL) AND date('now','localtime') > date(o.period||'-10',CASE strftime('%w',o.period||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END)) THEN 'overdue'
+            WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL)) THEN 'pending'
+            ELSE 'current' END FROM people pe WHERE pe.id IN ({placeholders})");
+        let mut statement = connection.prepare(&sql).map_err(|e| e.to_string())?;
+        let result = statement
+            .query_map(params_from_iter(person_ids.iter()), |row| {
+                Ok(PersonPaymentStatus {
+                    person_id: row.get(0)?,
+                    status: row.get(1)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    pub fn person_history(
+        &self,
+        person_id: i64,
+        page: i64,
+        page_size: i64,
+    ) -> Result<PersonPaymentHistoryPage, String> {
+        if page < 1 || !(1..=100).contains(&page_size) {
+            return Err("Parámetros de paginación inválidos".into());
+        }
+        let connection = self.connection()?;
+        let total: i64 = connection.query_row("SELECT (SELECT COUNT(*) FROM obligations WHERE person_id=?1)+(SELECT COUNT(*) FROM payments WHERE person_id=?1 AND modality='particular')", [person_id], |row| row.get(0)).map_err(|e| e.to_string())?;
+        let total_pages = if total == 0 {
+            0
+        } else {
+            (total + page_size - 1) / page_size
+        };
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let mut statement = connection
+            .prepare(HISTORY_QUERY)
+            .map_err(|e| e.to_string())?;
+        let items = statement
+            .query_map(
+                params![person_id, page_size, (effective_page - 1) * page_size],
+                history_row,
+            )
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(PersonPaymentHistoryPage {
+            items,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
+    }
+
+    pub fn quote_payment(&self, person_id: i64, period: &str) -> Result<PaymentQuote, String> {
+        if !Self::valid_period(period) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let connection = self.connection()?;
+        let existing: Option<(i64, i64, i64)> = connection.query_row("SELECT plan_id,amount_cents,EXISTS(SELECT 1 FROM payments WHERE obligation_id=o.id AND reversed_at IS NULL) FROM obligations o WHERE person_id=?1 AND period=?2", params![person_id, period], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(|e| e.to_string())?;
+        if let Some((plan_id, amount_cents, paid)) = existing {
+            return Ok(PaymentQuote {
+                plan_id: Some(plan_id),
+                amount_cents: Some(amount_cents),
+                already_paid: paid != 0,
+            });
+        }
+        let plan_id = connection.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period<?2 ORDER BY period DESC,id DESC LIMIT 1", params![person_id, period], |row| row.get(0)).optional().map_err(|e| e.to_string())?;
+        let amount_cents = if let Some(id) = plan_id {
+            connection
+                .query_row(
+                    "SELECT price_cents FROM plans WHERE id=?1 AND is_active=1",
+                    [id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?
+        } else {
+            None
+        };
+        Ok(PaymentQuote {
+            plan_id: if amount_cents.is_some() {
+                plan_id
+            } else {
+                None
+            },
+            amount_cents,
+            already_paid: false,
+        })
+    }
+
     pub fn list_payments(&self) -> Result<Vec<Payment>, String> {
-        let c = self.connection()?;
-        let mut s=c.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id ORDER BY p.paid_at DESC,p.id DESC").map_err(|e|e.to_string())?;
-        let result = s
+        let connection = self.connection()?;
+        let mut statement = connection
+            .prepare(PAYMENT_SELECT_ALL)
+            .map_err(|e| e.to_string())?;
+        let result = statement
             .query_map([], payment_row)
             .map_err(|e| e.to_string())?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string());
         result
     }
-    pub fn quote_payment(&self, person_id: i64, period: &str) -> Result<PaymentQuote, String> {
-        if !Self::valid_period(period) {
-            return Err("El período debe tener formato AAAA-MM".into());
-        }
-        let c = self.connection()?;
-        let existing:Option<(i64,i64,i64)>=c.query_row("SELECT plan_id,amount_cents,EXISTS(SELECT 1 FROM payments WHERE obligation_id=o.id AND reversed_at IS NULL) FROM obligations o WHERE person_id=?1 AND period=?2",params![person_id,period],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|e|e.to_string())?;
-        if let Some((p, a, paid)) = existing {
-            return Ok(PaymentQuote {
-                plan_id: Some(p),
-                amount_cents: Some(a),
-                already_paid: paid != 0,
-            });
-        }
-        let plan_id=c.query_row("SELECT plan_id FROM payments WHERE person_id=?1 AND modality='monthly' AND reversed_at IS NULL AND period < ?2 ORDER BY period DESC,id DESC LIMIT 1",params![person_id,period],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
-        let amount = if let Some(id) = plan_id {
-            c.query_row(
-                "SELECT price_cents FROM plans WHERE id=?1 AND is_active=1",
-                [id],
-                |r| r.get(0),
-            )
-            .optional()
-            .map_err(|e| e.to_string())?
-        } else {
-            None
-        };
-        Ok(PaymentQuote {
-            plan_id: if amount.is_some() { plan_id } else { None },
-            amount_cents: amount,
-            already_paid: false,
-        })
-    }
+
     pub fn payments_page(
         &self,
         month: &str,
@@ -221,18 +425,33 @@ impl BillingService {
         if !Self::valid_period(month) || page < 1 || !(1..=100).contains(&page_size) {
             return Err("Parámetros de paginación inválidos".into());
         }
-        let c = self.connection()?;
-        let (total,collected,count):(i64,i64,i64)=c.query_row("SELECT COUNT(*),COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN amount_cents ELSE 0 END),0),COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN 1 ELSE 0 END),0) FROM payments WHERE substr(paid_at,1,7)=?1",[month],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|e|e.to_string())?;
-        let pages = if total == 0 {
+        let connection = self.connection()?;
+        // `paid_at` is the effective payment date available in the current schema.
+        // It is persisted in local time, so its YYYY-MM prefix defines cash flow.
+        let (total, collected, count, period_paid): (i64, i64, i64, i64) = connection.query_row(
+            "SELECT
+                COUNT(*),
+                COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN amount_cents ELSE 0 END),0),
+                COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN 1 ELSE 0 END),0),
+                COALESCE((SELECT SUM(amount_cents) FROM payments WHERE modality='monthly' AND period=?1 AND reversed_at IS NULL),0)
+             FROM payments WHERE substr(paid_at,1,7)=?1",
+            [month],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        ).map_err(|e| e.to_string())?;
+        let total_pages = if total == 0 {
             0
         } else {
             (total + page_size - 1) / page_size
         };
-        let effective = if pages > 0 { page.min(pages) } else { 1 };
-        let mut s=c.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 ORDER BY p.paid_at DESC,p.id DESC LIMIT ?2 OFFSET ?3").map_err(|e|e.to_string())?;
-        let payments = s
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let mut statement = connection.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 ORDER BY p.paid_at DESC,p.id DESC LIMIT ?2 OFFSET ?3").map_err(|e| e.to_string())?;
+        let payments = statement
             .query_map(
-                params![month, page_size, (effective - 1) * page_size],
+                params![month, page_size, (effective_page - 1) * page_size],
                 payment_row,
             )
             .map_err(|e| e.to_string())?
@@ -241,27 +460,64 @@ impl BillingService {
         Ok(PaymentPage {
             payments,
             total,
-            page: effective,
+            page: effective_page,
             page_size,
-            total_pages: pages,
+            total_pages,
             collected_cents: collected,
+            period_paid_cents: period_paid,
             payment_count: count,
         })
     }
 }
-fn payment_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Payment> {
+
+const PAYMENT_SELECT_BY_ID: &str = "SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE p.id=?1";
+const PAYMENT_SELECT_ALL: &str = "SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id ORDER BY p.paid_at DESC,p.id DESC";
+const HISTORY_QUERY: &str = "SELECT item_type,obligation_id,payment_id,period,plan_id,plan_name,amount_cents,status,paid_at FROM (
+    SELECT 'monthly' item_type,o.id obligation_id,p.id payment_id,o.period,o.plan_id,pl.name plan_name,o.amount_cents,
+      CASE WHEN o.excluded_at IS NOT NULL THEN 'excluded' WHEN p.id IS NOT NULL THEN 'paid'
+           WHEN date('now','localtime') > date(o.period||'-10',CASE strftime('%w',o.period||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END) THEN 'overdue' ELSE 'pending' END status,p.paid_at
+    FROM obligations o JOIN plans pl ON pl.id=o.plan_id LEFT JOIN payments p ON p.obligation_id=o.id AND p.reversed_at IS NULL WHERE o.person_id=?1
+    UNION ALL
+    SELECT 'particular',NULL,p.id,NULL,p.plan_id,p.plan_name,p.amount_cents,CASE WHEN p.reversed_at IS NULL THEN 'paid' ELSE 'reversed' END,p.paid_at FROM payments p WHERE p.person_id=?1 AND p.modality='particular'
+  ) ORDER BY COALESCE(period,substr(paid_at,1,7)) DESC,COALESCE(paid_at,'') DESC,payment_id DESC LIMIT ?2 OFFSET ?3";
+
+fn obligation_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Obligation> {
+    Ok(Obligation {
+        id: row.get(0)?,
+        person_id: row.get(1)?,
+        period: row.get(2)?,
+        plan_id: row.get(3)?,
+        amount_cents: row.get(4)?,
+        paid: row.get::<_, i64>(5)? != 0,
+        excluded_at: row.get(6)?,
+    })
+}
+fn payment_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Payment> {
     Ok(Payment {
-        id: r.get(0)?,
-        person_id: r.get(1)?,
-        obligation_id: r.get(2)?,
-        plan_id: r.get(3)?,
-        plan_name: r.get(4)?,
-        modality: r.get(5)?,
-        period: r.get(6)?,
-        amount_cents: r.get(7)?,
-        paid_at: r.get(8)?,
-        reversed_at: r.get(9)?,
-        reversal_reason: r.get(10)?,
-        person_name: r.get(11)?,
+        id: row.get(0)?,
+        person_id: row.get(1)?,
+        obligation_id: row.get(2)?,
+        plan_id: row.get(3)?,
+        plan_name: row.get(4)?,
+        modality: row.get(5)?,
+        period: row.get(6)?,
+        amount_cents: row.get(7)?,
+        paid_at: row.get(8)?,
+        reversed_at: row.get(9)?,
+        reversal_reason: row.get(10)?,
+        person_name: row.get(11)?,
+    })
+}
+fn history_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<PersonPaymentHistoryItem> {
+    Ok(PersonPaymentHistoryItem {
+        item_type: row.get(0)?,
+        obligation_id: row.get(1)?,
+        payment_id: row.get(2)?,
+        period: row.get(3)?,
+        plan_id: row.get(4)?,
+        plan_name: row.get(5)?,
+        amount_cents: row.get(6)?,
+        status: row.get(7)?,
+        paid_at: row.get(8)?,
     })
 }

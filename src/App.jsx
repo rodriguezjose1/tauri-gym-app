@@ -98,6 +98,22 @@ function App() {
     backup();
   }, []);
 
+  useEffect(() => {
+    let timer;
+    const reconcile = async () => {
+      try {
+        await invoke('reconcile_payment_periods');
+      } catch (error) {
+        console.error('Error reconciling payment periods:', error);
+      }
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 1);
+      timer = window.setTimeout(reconcile, nextMonth.getTime() - now.getTime());
+    };
+    void reconcile();
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <ChakraProvider value={defaultSystem}>
       <ConfigProvider><BrowserRouter>

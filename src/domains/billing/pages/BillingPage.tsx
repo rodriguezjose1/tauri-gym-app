@@ -63,8 +63,9 @@ export default function BillingPage() {
           </div>
           <div className="billing-summary">
             <Select label="Período" value={month} options={periodOptions()} onChange={(value) => setMonth(String(value))} fullWidth />
-            <div className="billing-metric"><span>Total recaudado</span><strong>{money.format((data?.collected_cents || 0) / 100)}</strong></div>
-            <div className="billing-metric"><span>Pagos realizados</span><strong>{data?.payment_count || 0}</strong></div>
+            <div className="billing-metric"><span>Recaudado en el mes</span><strong>{loading ? '—' : money.format((data?.collected_cents || 0) / 100)}</strong></div>
+            <div className="billing-metric"><span>Pagado del período</span><strong>{loading ? '—' : money.format((data?.period_paid_cents || 0) / 100)}</strong></div>
+            <div className="billing-metric"><span>Pagos registrados en el mes</span><strong>{loading ? '—' : data?.payment_count || 0}</strong></div>
           </div>
           <section className="billing-history">
             <Title level={3}>{billingTexts.page.history}</Title>

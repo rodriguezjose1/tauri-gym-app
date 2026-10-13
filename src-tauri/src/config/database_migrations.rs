@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 2;
+pub const CURRENT_SCHEMA_VERSION: i32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationOutcome {
@@ -90,12 +90,49 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
         migrate_to_v2(&mut connection)?;
     }
 
+    if previous_version < 3 {
+        migrate_to_v3(&mut connection)?;
+    }
+
     validate_schema(&connection)?;
     Ok(MigrationOutcome {
         previous_version,
         current_version: CURRENT_SCHEMA_VERSION,
         backup_path,
     })
+}
+
+fn migrate_to_v3(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de períodos: {e}"))?;
+    transaction.execute_batch(
+        "CREATE TABLE IF NOT EXISTS person_activity_periods (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER NOT NULL REFERENCES people(id),
+            active_from TEXT NOT NULL CHECK (active_from GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'),
+            inactive_from TEXT NULL CHECK (inactive_from IS NULL OR inactive_from GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'),
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CHECK (inactive_from IS NULL OR inactive_from >= active_from)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_open_person_activity
+            ON person_activity_periods(person_id) WHERE inactive_from IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_person_activity_range
+            ON person_activity_periods(person_id, active_from, inactive_from);
+        INSERT INTO person_activity_periods(person_id, active_from, inactive_from)
+        SELECT pe.id,
+               COALESCE(MIN(p.period), substr(COALESCE(pe.deleted_at, datetime('now','localtime')),1,7)),
+               CASE WHEN pe.is_active=0 THEN substr(pe.deleted_at,1,7) ELSE NULL END
+        FROM people pe
+        LEFT JOIN payments p ON p.person_id=pe.id AND p.modality='monthly'
+                            AND p.reversed_at IS NULL AND p.period IS NOT NULL
+        GROUP BY pe.id;
+        INSERT OR IGNORE INTO migrations(version) VALUES ('003_payment_periods');
+        PRAGMA user_version = 3;"
+    ).map_err(|e| format!("No se pudo crear el esquema de períodos: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de períodos: {e}"))
 }
 
 fn migrate_to_v2(connection: &mut Connection) -> Result<(), String> {
@@ -362,7 +399,12 @@ fn validate_schema(connection: &Connection) -> Result<(), String> {
             }
         }
     }
-    for table in ["plans", "obligations", "payments"] {
+    for table in [
+        "plans",
+        "obligations",
+        "payments",
+        "person_activity_periods",
+    ] {
         let exists: Option<i32> = connection
             .query_row(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1",
