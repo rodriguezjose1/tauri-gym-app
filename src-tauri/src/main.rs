@@ -7,8 +7,8 @@ mod services;
 
 use config::db::setup_services;
 use models::billing::{
-    Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, PersonPaymentHistoryPage,
-    PersonPaymentStatus, Plan,
+    DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest,
+    PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
 use models::exercise::Exercise;
 use models::person::Person;
@@ -617,6 +617,30 @@ fn reconcile_payment_periods(service: State<'_, BillingService>) -> Result<usize
     service.reconcile_periods()
 }
 #[tauri::command]
+fn dev_preview_payment_periods(
+    service: State<'_, BillingService>,
+    through: String,
+) -> Result<DevGenerationResult, String> {
+    let _operation = OperationGuard::begin()?;
+    service.dev_preview_reconciliation(&through)
+}
+#[tauri::command]
+fn dev_apply_payment_periods(
+    service: State<'_, BillingService>,
+    through: String,
+) -> Result<DevGenerationResult, String> {
+    let _operation = OperationGuard::begin()?;
+    service.dev_apply_reconciliation(&through)
+}
+#[tauri::command]
+fn dev_rollback_payment_periods(
+    service: State<'_, BillingService>,
+    generated_items: Vec<models::billing::DevGeneratedObligation>,
+) -> Result<usize, String> {
+    let _operation = OperationGuard::begin()?;
+    service.dev_rollback_reconciliation(&generated_items)
+}
+#[tauri::command]
 fn get_person_payment_statuses(
     service: State<'_, BillingService>,
     person_ids: Vec<i64>,
@@ -748,6 +772,9 @@ fn main() {
             get_payment_quote,
             get_payments_page,
             reconcile_payment_periods,
+            dev_preview_payment_periods,
+            dev_apply_payment_periods,
+            dev_rollback_payment_periods,
             get_person_payment_statuses,
             get_person_payment_history,
             set_payment_period_excluded

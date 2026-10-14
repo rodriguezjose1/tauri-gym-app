@@ -1,6 +1,6 @@
 use crate::models::billing::{
-    Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest, PersonPaymentHistoryItem,
-    PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
+    DevGeneratedObligation, DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote,
+    PaymentRequest, PersonPaymentHistoryItem, PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Transaction};
 
@@ -239,6 +239,15 @@ impl BillingService {
         }
         let mut connection = self.connection()?;
         let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let created = Self::reconcile_through_tx(&transaction, through)?;
+        transaction.commit().map_err(|e| e.to_string())?;
+        Ok(created.len())
+    }
+
+    fn reconcile_through_tx(
+        transaction: &Transaction<'_>,
+        through: &str,
+    ) -> Result<Vec<i64>, String> {
         let ranges: Vec<(i64, String, Option<String>, String)> = {
             let mut statement = transaction.prepare(
                 "SELECT a.person_id,a.active_from,a.inactive_from,MIN(p.period)
@@ -256,7 +265,7 @@ impl BillingService {
                 .map_err(|e| e.to_string())?;
             result
         };
-        let mut created = 0;
+        let mut created_ids = Vec::new();
         for (person_id, active_from, inactive_from, first_payment) in ranges {
             let first_missing = Self::next_period(&first_payment)?;
             let mut period = active_from.max(first_missing);
@@ -272,13 +281,131 @@ impl BillingService {
                          SELECT ?1,?2,p.id,?4 FROM plans p WHERE p.id=?3 AND p.is_active=1",
                         params![person_id, period, plan_id, price],
                     ).map_err(|e| e.to_string())?;
-                    created += inserted;
+                    if inserted == 1 {
+                        created_ids.push(transaction.last_insert_rowid());
+                    }
                 }
                 period = Self::next_period(&period)?;
             }
         }
-        transaction.commit().map_err(|e| e.to_string())?;
-        Ok(created)
+        Ok(created_ids)
+    }
+
+    fn dev_generation_result(
+        transaction: &Transaction<'_>,
+        ids: &[i64],
+    ) -> Result<DevGenerationResult, String> {
+        let mut items = Vec::with_capacity(ids.len());
+        for id in ids {
+            let item = transaction
+                .query_row(
+                    "SELECT o.id,o.person_id,trim(pe.name||' '||pe.last_name),o.period,o.plan_id,pl.name,o.amount_cents
+                     FROM obligations o JOIN people pe ON pe.id=o.person_id JOIN plans pl ON pl.id=o.plan_id
+                     WHERE o.id=?1",
+                    [id],
+                    |row| {
+                        Ok(DevGeneratedObligation {
+                            id: row.get(0)?,
+                            person_id: row.get(1)?,
+                            person_name: row.get(2)?,
+                            period: row.get(3)?,
+                            plan_id: row.get(4)?,
+                            plan_name: row.get(5)?,
+                            amount_cents: row.get(6)?,
+                        })
+                    },
+                )
+                .map_err(|error| error.to_string())?;
+            items.push(item);
+        }
+        let total_amount_cents = items.iter().map(|item| item.amount_cents).sum();
+        Ok(DevGenerationResult {
+            items,
+            total_amount_cents,
+        })
+    }
+
+    pub fn dev_preview_reconciliation(&self, through: &str) -> Result<DevGenerationResult, String> {
+        if !cfg!(debug_assertions) {
+            return Err("La simulación solo está disponible en desarrollo".into());
+        }
+        if !Self::valid_period(through) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let ids = Self::reconcile_through_tx(&transaction, through)?;
+        let result = Self::dev_generation_result(&transaction, &ids)?;
+        transaction.rollback().map_err(|error| error.to_string())?;
+        Ok(result)
+    }
+
+    pub fn dev_apply_reconciliation(&self, through: &str) -> Result<DevGenerationResult, String> {
+        if !cfg!(debug_assertions) {
+            return Err("La simulación solo está disponible en desarrollo".into());
+        }
+        if !Self::valid_period(through) {
+            return Err("El período debe tener formato AAAA-MM".into());
+        }
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        let ids = Self::reconcile_through_tx(&transaction, through)?;
+        let result = Self::dev_generation_result(&transaction, &ids)?;
+        transaction.commit().map_err(|error| error.to_string())?;
+        Ok(result)
+    }
+
+    pub fn dev_rollback_reconciliation(
+        &self,
+        generated_items: &[DevGeneratedObligation],
+    ) -> Result<usize, String> {
+        if !cfg!(debug_assertions) {
+            return Err("La simulación solo está disponible en desarrollo".into());
+        }
+        if generated_items.is_empty() {
+            return Ok(0);
+        }
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction().map_err(|e| e.to_string())?;
+        for item in generated_items {
+            let matches_original: bool = transaction
+                .query_row(
+                    "SELECT EXISTS(
+                        SELECT 1 FROM obligations
+                        WHERE id=?1 AND person_id=?2 AND period=?3 AND plan_id=?4 AND amount_cents=?5
+                    )",
+                    params![item.id, item.person_id, item.period, item.plan_id, item.amount_cents],
+                    |row| row.get(0),
+                )
+                .map_err(|error| error.to_string())?;
+            if !matches_original {
+                return Err(format!(
+                    "No se puede revertir: la obligación {} cambió o ya no existe",
+                    item.id
+                ));
+            }
+            let used: bool = transaction
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM payments WHERE obligation_id=?1)",
+                    [item.id],
+                    |row| row.get(0),
+                )
+                .map_err(|error| error.to_string())?;
+            if used {
+                return Err(format!(
+                    "No se puede revertir: la obligación {} ya tiene pagos asociados",
+                    item.id
+                ));
+            }
+        }
+        let mut deleted = 0;
+        for item in generated_items {
+            deleted += transaction
+                .execute("DELETE FROM obligations WHERE id=?1", [item.id])
+                .map_err(|error| error.to_string())?;
+        }
+        transaction.commit().map_err(|error| error.to_string())?;
+        Ok(deleted)
     }
 
     pub fn record_payment(&self, request: PaymentRequest) -> Result<Payment, String> {

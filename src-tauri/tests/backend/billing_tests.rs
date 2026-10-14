@@ -84,6 +84,71 @@ fn reconciliation_recovers_missing_months_and_is_idempotent() {
 }
 
 #[test]
+fn development_generation_previews_applies_and_rolls_back_exact_obligations() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2026-10", None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service
+        .record_payment(PaymentRequest {
+            person_id: 1,
+            modality: "monthly".into(),
+            period: Some("2026-10".into()),
+            plan_id: monthly,
+            amount_cents: 40000,
+        })
+        .unwrap();
+
+    let preview = service.dev_preview_reconciliation("2026-11").unwrap();
+    assert_eq!(preview.items.len(), 1);
+    assert_eq!(preview.items[0].period, "2026-11");
+    assert_eq!(preview.total_amount_cents, 40000);
+    assert_eq!(service.person_history(1, 1, 20).unwrap().total, 1);
+
+    let applied = service.dev_apply_reconciliation("2026-11").unwrap();
+    assert_eq!(applied.items.len(), 1);
+    assert_eq!(service.person_history(1, 1, 20).unwrap().total, 2);
+    assert_eq!(
+        service
+            .dev_rollback_reconciliation(&applied.items)
+            .unwrap(),
+        1
+    );
+    assert_eq!(service.person_history(1, 1, 20).unwrap().total, 1);
+}
+
+#[test]
+fn development_rollback_refuses_obligations_with_any_payment() {
+    let (_d, path, service) = fixture();
+    activity(&path, "2026-10", None);
+    let monthly = plan(&service, "Mensual", "monthly", 40000);
+    service
+        .record_payment(PaymentRequest {
+            person_id: 1,
+            modality: "monthly".into(),
+            period: Some("2026-10".into()),
+            plan_id: monthly,
+            amount_cents: 40000,
+        })
+        .unwrap();
+    let applied = service.dev_apply_reconciliation("2026-11").unwrap();
+    service
+        .record_payment(PaymentRequest {
+            person_id: 1,
+            modality: "monthly".into(),
+            period: Some("2026-11".into()),
+            plan_id: monthly,
+            amount_cents: 40000,
+        })
+        .unwrap();
+
+    let error = service
+        .dev_rollback_reconciliation(&applied.items)
+        .unwrap_err();
+    assert!(error.contains("pagos asociados"));
+    assert_eq!(service.person_history(1, 1, 20).unwrap().total, 2);
+}
+
+#[test]
 fn exclusion_and_restoration_change_status_without_creating_payments() {
     let (_d, path, service) = fixture();
     activity(&path, "2020-01", None);

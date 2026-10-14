@@ -72,6 +72,22 @@
 .plan-price-help { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.45; }
 .plan-dialog-actions { padding-top: 16px; border-top: 1px solid var(--border-light); }
 
+.billing-dev-tools { display: grid; gap: 20px; }
+.billing-dev-heading { display: flex; align-items: center; gap: 12px; }
+.billing-dev-badge { padding: 5px 9px; border: 1px solid var(--warning-color, #f59e0b); border-radius: 999px; color: var(--warning-color, #f59e0b); font-size: 12px; font-weight: 700; }
+.billing-dev-controls { display: grid; grid-template-columns: minmax(240px, 1fr) auto auto; align-items: end; gap: 12px; padding: 18px; border: 1px solid var(--border-light); border-radius: 10px; background: var(--bg-secondary); }
+.billing-dev-result { display: grid; gap: 14px; min-height: 0; padding: 18px; border: 1px solid var(--border-light); border-radius: 10px; background: var(--bg-secondary); }
+.billing-dev-summary { display: flex; justify-content: space-between; gap: 16px; color: var(--text-secondary); }
+.billing-dev-summary strong { color: var(--text-primary); }
+.billing-dev-empty { margin: 0; color: var(--text-secondary); }
+.billing-dev-table-wrap { max-height: 360px; overflow: auto; border: 1px solid var(--border-light); border-radius: 8px; }
+.billing-dev-table { width: 100%; border-collapse: collapse; }
+.billing-dev-table th, .billing-dev-table td { padding: 11px 13px; border-bottom: 1px solid var(--border-light); text-align: left; }
+.billing-dev-table th { position: sticky; top: 0; background: var(--bg-primary); color: var(--text-secondary); }
+.billing-dev-table tr:last-child td { border-bottom: 0; }
+.billing-dev-rollback { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid var(--error-color); border-radius: 10px; background: rgb(239 68 68 / 6%); }
+.billing-dev-rollback p { margin: 6px 0 0; color: var(--text-secondary); }
+
 @media (max-width: 700px) {
   .configuraciones-container { padding: 16px; }
   .plans-header { flex-direction: column; }
@@ -79,6 +95,9 @@
   .plan-row { grid-template-columns: 1fr; gap: 12px; }
   .plan-actions { width: 100%; }
   .plan-actions > button { flex: 1; }
+  .billing-dev-controls { grid-template-columns: 1fr; }
+  .billing-dev-controls > button { width: 100%; }
+  .billing-dev-summary, .billing-dev-rollback { align-items: stretch; flex-direction: column; }
 }
 
 .configuraciones-grid {

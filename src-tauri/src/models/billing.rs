@@ -91,3 +91,20 @@ pub struct PaymentRequest {
     pub plan_id: i64,
     pub amount_cents: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DevGeneratedObligation {
+    pub id: i64,
+    pub person_id: i64,
+    pub person_name: String,
+    pub period: String,
+    pub plan_id: i64,
+    pub plan_name: String,
+    pub amount_cents: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DevGenerationResult {
+    pub items: Vec<DevGeneratedObligation>,
+    pub total_amount_cents: i64,
+}
