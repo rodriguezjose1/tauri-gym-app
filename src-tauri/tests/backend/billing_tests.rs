@@ -291,8 +291,8 @@ fn paginated_history_and_summary_use_effective_payment_month() {
         .unwrap();
     drop(c);
     s.reverse_payment(1, "error").unwrap();
-    let first = s.payments_page("2026-10", 1, 20).unwrap();
-    let second = s.payments_page("2026-10", 2, 20).unwrap();
+    let first = s.payments_page("2026-10", "", 1, 20).unwrap();
+    let second = s.payments_page("2026-10", "", 2, 20).unwrap();
     assert_eq!(
         (
             first.total,
@@ -304,10 +304,49 @@ fn paginated_history_and_summary_use_effective_payment_month() {
     );
     assert_eq!((first.payment_count, first.collected_cents), (24, 24000));
 }
+
+#[test]
+fn payment_search_filters_people_before_paginating_and_keeps_monthly_summary() {
+    let (_d, path, service) = fixture();
+    let particular = plan(&service, "Clase", "particular", 1000);
+    let connection = Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "INSERT INTO people(name,last_name,phone) VALUES('Bruno','Gómez','2')",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    for person_id in [1, 1, 2] {
+        service
+            .record_payment(PaymentRequest {
+                person_id,
+                modality: "particular".into(),
+                period: None,
+                plan_id: particular,
+                amount_cents: 1000,
+            })
+            .unwrap();
+    }
+    let connection = Connection::open(&path).unwrap();
+    connection
+        .execute("UPDATE payments SET paid_at='2026-10-15 12:00:00'", [])
+        .unwrap();
+
+    let filtered = service.payments_page("2026-10", "  ana  ", 1, 1).unwrap();
+    assert_eq!((filtered.total, filtered.total_pages), (2, 2));
+    assert_eq!(filtered.payments.len(), 1);
+    assert_eq!(filtered.payments[0].person_name, "Ana Test");
+    assert_eq!((filtered.payment_count, filtered.collected_cents), (3, 3000));
+
+    let cleared = service.payments_page("2026-10", "", 1, 20).unwrap();
+    assert_eq!(cleared.total, 3);
+}
 #[test]
 fn empty_payment_month_returns_zero_summary() {
     let (_d, _p, s) = fixture();
-    let page = s.payments_page("2026-10", 1, 20).unwrap();
+    let page = s.payments_page("2026-10", "", 1, 20).unwrap();
     assert!(page.payments.is_empty());
     assert_eq!(
         (
@@ -333,8 +372,8 @@ fn monthly_summary_uses_the_payment_period_instead_of_registration_month() {
     }).unwrap();
     let connection = Connection::open(path).unwrap();
     connection.execute("UPDATE payments SET paid_at='2026-11-03 10:00:00'", []).unwrap();
-    let october = service.payments_page("2026-10", 1, 20).unwrap();
-    let november = service.payments_page("2026-11", 1, 20).unwrap();
+    let october = service.payments_page("2026-10", "", 1, 20).unwrap();
+    let november = service.payments_page("2026-11", "", 1, 20).unwrap();
     assert_eq!(october.collected_cents, 0);
     assert_eq!(october.period_paid_cents, 40000);
     assert_eq!(november.collected_cents, 40000);
@@ -356,13 +395,13 @@ fn monthly_metrics_separate_cash_flow_from_paid_periods() {
     drop(connection);
     service.reverse_payment(reversed.id, "prueba").unwrap();
 
-    let november = service.payments_page("2026-11", 1, 20).unwrap();
+    let november = service.payments_page("2026-11", "", 1, 20).unwrap();
     assert_eq!(november.collected_cents, 132000);
     assert_eq!(november.period_paid_cents, 35000);
     assert_eq!(november.payment_count, 4);
     assert_eq!(november.total, 5);
 
-    let december = service.payments_page("2026-12", 1, 20).unwrap();
+    let december = service.payments_page("2026-12", "", 1, 20).unwrap();
     assert_eq!(december.collected_cents, 0);
     assert_eq!(december.period_paid_cents, 45000);
     assert_eq!(december.payment_count, 0);

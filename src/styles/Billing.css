@@ -101,9 +101,48 @@
 .billing-main-card.is-compact .billing-metric strong { font-size: 1rem; }
 
 .billing-history { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
-.billing-history-scroll { flex: 1 1 auto; min-height: 0; padding-top: 24px; overflow: auto; scrollbar-gutter: stable; }
+.billing-history-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-gutter: stable; }
+.billing-history-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 48px;
+  padding: 20px 16px 12px 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.billing-history-header .ui-title { flex: 0 0 auto; }
+.billing-person-search {
+  position: relative;
+  width: min(100%, 340px);
+}
+
+.billing-person-search .ui-input { min-height: 42px; padding: 9px 42px 9px 12px; }
+.billing-person-search .ui-input--with-left-icon { padding-left: 40px; }
+.billing-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  place-items: center;
+  transform: translateY(-50%);
+}
+
+.billing-search-clear:hover { background: var(--bg-hover); color: var(--text-primary); }
+.billing-search-clear:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
 .billing-error { display: grid; gap: 12px; margin-top: 16px; }
-.payment-table-wrap { overflow-x: auto; }
+.payment-table-wrap { overflow: visible; }
 .payment-table { width: 100%; margin-top: 16px; border-collapse: collapse; }
 .payment-table th, .payment-table td { padding: 13px; border-bottom: 1px solid var(--border-light); text-align: left; }
 .payment-table th { position: sticky; top: 0; z-index: 2; background: var(--bg-primary); box-shadow: 0 1px 0 var(--border-light); }
@@ -155,6 +194,8 @@
   .billing-register-action > button { width: 100%; }
   .billing-summary { grid-template-columns: 1fr; max-height: 290px; overflow-y: auto; }
   .billing-main-card.is-compact .billing-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
+  .billing-history-header { align-items: stretch; flex-direction: column; gap: 10px; }
+  .billing-person-search { width: 100%; }
   .billing-pagination { align-items: flex-start; flex-direction: column; }
 }
 

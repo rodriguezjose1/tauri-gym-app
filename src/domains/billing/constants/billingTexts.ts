@@ -5,6 +5,10 @@ export const billingTexts = {
     register: 'Registrar pago',
     history: 'Historial',
     empty: 'No hay pagos registrados en este período.',
+    searchLabel: 'Buscar pagos por persona',
+    searchPlaceholder: 'Buscar persona…',
+    clearSearch: 'Limpiar búsqueda',
+    emptySearch: (query: string) => `No hay pagos de personas que coincidan con “${query}”.`,
     success: 'Pago registrado correctamente',
   },
   paymentDialog: {

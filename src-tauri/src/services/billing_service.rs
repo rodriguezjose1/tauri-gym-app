@@ -531,6 +531,7 @@ impl BillingService {
     pub fn payments_page(
         &self,
         month: &str,
+        person_query: &str,
         page: i64,
         page_size: i64,
     ) -> Result<PaymentPage, String> {
@@ -540,16 +541,30 @@ impl BillingService {
         let connection = self.connection()?;
         // `paid_at` is the effective payment date available in the current schema.
         // It is persisted in local time, so its YYYY-MM prefix defines cash flow.
-        let (total, collected, count, period_paid): (i64, i64, i64, i64) = connection.query_row(
+        let (collected, count, period_paid): (i64, i64, i64) = connection.query_row(
             "SELECT
-                COUNT(*),
                 COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN amount_cents ELSE 0 END),0),
                 COALESCE(SUM(CASE WHEN reversed_at IS NULL THEN 1 ELSE 0 END),0),
                 COALESCE((SELECT SUM(amount_cents) FROM payments WHERE modality='monthly' AND period=?1 AND reversed_at IS NULL),0)
              FROM payments WHERE substr(paid_at,1,7)=?1",
             [month],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         ).map_err(|e| e.to_string())?;
+        let normalized_query = person_query.trim();
+        let escaped_query = normalized_query
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let search_pattern = format!("%{escaped_query}%");
+        let total: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM payments p JOIN people pe ON pe.id=p.person_id
+             WHERE substr(p.paid_at,1,7)=?1
+               AND (?2='' OR trim(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\' COLLATE NOCASE)",
+                params![month, normalized_query, search_pattern],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
         let total_pages = if total == 0 {
             0
         } else {
@@ -560,10 +575,16 @@ impl BillingService {
         } else {
             1
         };
-        let mut statement = connection.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 ORDER BY p.paid_at DESC,p.id DESC LIMIT ?2 OFFSET ?3").map_err(|e| e.to_string())?;
+        let mut statement = connection.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 AND (?2='' OR trim(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\' COLLATE NOCASE) ORDER BY p.paid_at DESC,p.id DESC LIMIT ?4 OFFSET ?5").map_err(|e| e.to_string())?;
         let payments = statement
             .query_map(
-                params![month, page_size, (effective_page - 1) * page_size],
+                params![
+                    month,
+                    normalized_query,
+                    search_pattern,
+                    page_size,
+                    (effective_page - 1) * page_size
+                ],
                 payment_row,
             )
             .map_err(|e| e.to_string())?

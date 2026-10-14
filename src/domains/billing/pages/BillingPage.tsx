@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { Button, Card, ErrorMessage, Input, Modal, Select, Title } from '../../../shared/components/base';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { PaymentDialog } from '../components/PaymentDialog';
@@ -21,6 +22,8 @@ export default function BillingPage() {
   const [reason, setReason] = useState('');
   const [mutating, setMutating] = useState(false);
   const [compactHeader, setCompactHeader] = useState(false);
+  const [personSearch, setPersonSearch] = useState('');
+  const [personQuery, setPersonQuery] = useState('');
   const requestId = useRef(0);
   const historyScrollRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -66,7 +69,7 @@ export default function BillingPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await BillingService.paymentsPage(month, target);
+      const result = await BillingService.paymentsPage(month, personQuery, target);
       if (id !== requestId.current) return;
       setData(result);
       setPage(result.page);
@@ -75,9 +78,14 @@ export default function BillingPage() {
     } finally {
       if (id === requestId.current) setLoading(false);
     }
-  }, [month]);
+  }, [month, personQuery]);
 
-  useEffect(() => { setPage(1); void load(1); }, [month, load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPersonQuery(personSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [personSearch]);
+
+  useEffect(() => { setPage(1); void load(1); }, [month, personQuery, load]);
   const changeMonth = (value: string | number) => {
     setMonth(String(value));
     if (historyScrollRef.current) historyScrollRef.current.scrollTop = 0;
@@ -89,6 +97,10 @@ export default function BillingPage() {
         window.requestAnimationFrame(() => { paginationInProgress.current = false; });
       });
     });
+  };
+  const clearPersonSearch = () => {
+    setPersonSearch('');
+    setPersonQuery('');
   };
   const refreshed = () => { void load(page); addNotification(billingTexts.page.success, 'success'); };
   const reverse = async () => {
@@ -118,10 +130,26 @@ export default function BillingPage() {
             <div className="billing-register-action" ref={actionRef}><Button onClick={() => setShowPayment(true)}>{billingTexts.page.register}</Button></div>
           </div>
           <section className="billing-history">
-            <div className="billing-history-scroll" ref={historyScrollRef} onScroll={(event) => { if (!paginationInProgress.current && event.currentTarget.scrollTop > 24) setHeaderMode(true); }} data-testid="billing-history-scroll">
+            <div className="billing-history-header">
               <Title level={3}>{billingTexts.page.history}</Title>
+              <div className="billing-person-search">
+                <Input
+                  aria-label={billingTexts.page.searchLabel}
+                  placeholder={billingTexts.page.searchPlaceholder}
+                  value={personSearch}
+                  onChange={(event) => setPersonSearch(event.target.value)}
+                  leftIcon={<Search size={17} aria-hidden="true" />}
+                />
+                {personSearch && (
+                  <button type="button" className="billing-search-clear" onClick={clearPersonSearch} aria-label={billingTexts.page.clearSearch}>
+                    <X size={17} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="billing-history-scroll" ref={historyScrollRef} onScroll={(event) => { if (!paginationInProgress.current && event.currentTarget.scrollTop > 24) setHeaderMode(true); }} data-testid="billing-history-scroll">
               {error && <div className="billing-error"><ErrorMessage message={error} onDismiss={() => setError(null)} /><Button variant="secondary" onClick={() => load(page)}>Reintentar</Button></div>}
-              {loading && !data ? <div className="billing-state">Cargando pagos…</div> : data?.payments.length === 0 ? <div className="billing-state">{billingTexts.page.empty}</div> : (
+              {loading && !data ? <div className="billing-state">Cargando pagos…</div> : data?.payments.length === 0 ? <div className="billing-state">{personQuery ? billingTexts.page.emptySearch(personQuery) : billingTexts.page.empty}</div> : (
                 <div className="payment-table-wrap"><table className="payment-table"><thead><tr><th>Alumno</th><th>Plan o concepto</th><th>Período</th><th>{billingTexts.table.paymentDate}</th><th>Importe</th><th>Estado</th><th>Acción</th></tr></thead><tbody>{data?.payments.map((payment) => (
                   <tr key={payment.id} className={payment.reversed_at ? 'reversed' : ''}><td>{payment.person_name}</td><td>{payment.plan_name}</td><td>{payment.period || 'Clase particular'}</td><td>{date(payment.paid_at)}</td><td>{money.format(payment.amount_cents / 100)}</td><td>{payment.reversed_at ? 'Revertido' : billingTexts.table.paid}</td><td>{payment.reversed_at ? '—' : <Button size="sm" variant="danger" onClick={() => setReversing(payment)}>Revertir</Button>}</td></tr>
                 ))}</tbody></table></div>

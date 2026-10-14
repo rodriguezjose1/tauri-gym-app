@@ -96,7 +96,12 @@ test('mantiene el encabezado compacto al volver arriba mientras continúa en Pag
   expect(await screen.findByText('Ana Test')).toBeInTheDocument();
   const scrollArea = screen.getByTestId('billing-history-scroll');
   const card = scrollArea.closest('.billing-main-card');
+  const historyHeading = screen.getByRole('heading', { name: 'Historial' });
 
+  expect(scrollArea).not.toContainElement(historyHeading);
+  expect(historyHeading.closest('.billing-history-header')).toContainElement(
+    screen.getByRole('textbox', { name: 'Buscar pagos por persona' }),
+  );
   expect(card).not.toHaveClass('is-compact');
   fireEvent.scroll(scrollArea, { target: { scrollTop: 40 } });
   expect(card).toHaveClass('is-compact');
@@ -148,4 +153,45 @@ test('restaura el encabezado normal al salir de Pagos y volver a ingresar', asyn
 
   expect(await screen.findByText('Ana Test')).toBeInTheDocument();
   expect(screen.getByTestId('billing-history-scroll').closest('.billing-main-card')).not.toHaveClass('is-compact');
+});
+
+test('busca por persona, conserva el filtro al paginar y permite limpiarlo', async () => {
+  const user = userEvent.setup();
+  render(
+    <ToastProvider>
+      <BillingPage />
+    </ToastProvider>,
+  );
+
+  expect(await screen.findByText('Ana Test')).toBeInTheDocument();
+  await user.type(screen.getByRole('textbox', { name: 'Buscar pagos por persona' }), 'Ana');
+  await waitFor(() =>
+    expect(invoke).toHaveBeenLastCalledWith('get_payments_page', {
+      month: '2026-10',
+      personQuery: 'Ana',
+      page: 1,
+      pageSize: 20,
+    }),
+  );
+
+  await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+  await waitFor(() =>
+    expect(invoke).toHaveBeenLastCalledWith('get_payments_page', {
+      month: '2026-10',
+      personQuery: 'Ana',
+      page: 2,
+      pageSize: 20,
+    }),
+  );
+
+  await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+  expect(screen.getByRole('textbox', { name: 'Buscar pagos por persona' })).toHaveValue('');
+  await waitFor(() =>
+    expect(invoke).toHaveBeenLastCalledWith('get_payments_page', {
+      month: '2026-10',
+      personQuery: '',
+      page: 1,
+      pageSize: 20,
+    }),
+  );
 });

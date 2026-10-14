@@ -604,11 +604,12 @@ fn get_payment_quote(
 fn get_payments_page(
     service: State<'_, BillingService>,
     month: String,
+    person_query: String,
     page: i64,
     page_size: i64,
 ) -> Result<PaymentPage, String> {
     let _operation = OperationGuard::begin()?;
-    service.payments_page(&month, page, page_size)
+    service.payments_page(&month, &person_query, page, page_size)
 }
 #[tauri::command]
 fn reconcile_payment_periods(service: State<'_, BillingService>) -> Result<usize, String> {

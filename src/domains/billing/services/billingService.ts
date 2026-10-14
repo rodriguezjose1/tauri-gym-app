@@ -85,7 +85,8 @@ export const BillingService = {
   obligation: (personId: number, period: string) => invoke<Obligation>('ensure_obligation', { personId, period }),
   pay: (request: { person_id: number; modality: Modality; period?: string; plan_id: number; amount_cents: number }) => invoke<Payment>('record_payment', { request }),
   payments: () => invoke<Payment[]>('list_payments'),
-  paymentsPage: (month: string, page: number, pageSize = 20) => invoke<PaymentPage>('get_payments_page', { month, page, pageSize }),
+  paymentsPage: (month: string, personQuery: string, page: number, pageSize = 20) =>
+    invoke<PaymentPage>('get_payments_page', { month, personQuery, page, pageSize }),
   quote: (personId: number, period: string, planId?: number) =>
     invoke<PaymentQuote>('get_payment_quote', { personId, period, planId: planId ?? null }),
   reverse: (id: number, reason: string) => invoke<void>('reverse_payment', { id, reason }),
