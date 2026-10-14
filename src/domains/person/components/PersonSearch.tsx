@@ -2,6 +2,7 @@ import { PersonService, Person } from "../../../services";
 import React, { useState, useEffect, useRef } from "react";
 import { Input, Button } from "../../../shared/components/base";
 import '../../../styles/PersonSearch.css';
+import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 
 interface PersonSearchProps {
   selectedPerson: Person | null;
@@ -24,6 +25,8 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const debouncedSearchTerm = useDebouncedValue(searchTerm.trim(), 300);
+  const requestId = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
 
@@ -53,9 +56,11 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       return;
     }
 
+    const id = ++requestId.current;
     setLoading(true);
     try {
       const data = await PersonService.searchPersonsPaginated(query, page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       if (reset) {
         setPersons(data);
@@ -72,7 +77,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       setPersons([]);
       setHasMore(false);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
@@ -107,14 +112,22 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setSelectedIndex(-1);
   };
 
-  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (debouncedSearchTerm.length >= 2) {
+      setShowDropdown(true);
+      void searchPersons(debouncedSearchTerm);
+    } else {
+      requestId.current += 1;
+      setPersons([]);
+      setHasMore(false);
+    }
+  }, [debouncedSearchTerm]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
     
-    if (value.length >= 2) {
-      setShowDropdown(true);
-      await searchPersons(value);
-    } else {
+    if (value.length < 2) {
       setShowDropdown(false);
       setPersons([]);
       setHasMore(true);
@@ -287,4 +300,4 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       </div>
     </div>
   );
-}; 
+};

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { RoutineService } from '../services';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { Routine, RoutineForm } from '../../../shared/types/dashboard';
@@ -15,8 +15,11 @@ interface UseRoutineDataReturn {
   selectedRoutine: Routine | null;
   selectedRoutineId: number | null;
   loading: boolean;
+  total: number;
+  page: number;
+  totalPages: number;
   
-  loadRoutines: () => Promise<void>;
+  loadRoutines: (query?: string, page?: number) => Promise<void>;
   selectRoutine: (routineId: number) => Promise<void>;
   createRoutine: (form: RoutineForm) => Promise<boolean>;
   updateRoutine: (routineId: number, form: RoutineForm) => Promise<boolean>;
@@ -30,19 +33,28 @@ export const useRoutineData = (): UseRoutineDataReturn => {
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const requestId = useRef(0);
   
   const { addNotification } = useToast();
 
-  const loadRoutines = useCallback(async () => {
+  const loadRoutines = useCallback(async (query = '', targetPage = 1) => {
+    const id = ++requestId.current;
     try {
       setLoading(true);
-      const data = await RoutineService.listRoutines();
-      setRoutines(data);
+      const data = await RoutineService.getRoutinesPage(query, false, targetPage, 10);
+      if (id !== requestId.current) return;
+      setRoutines(data.routines);
+      setTotal(data.total);
+      setPage(data.page);
+      setTotalPages(data.total_pages);
     } catch (error) {
       console.error('Error loading routines:', error);
       addNotification(ROUTINE_ERROR_MESSAGES.LOAD_ROUTINES_FAILED, 'error');
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, [addNotification]);
 
@@ -169,18 +181,7 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     }
   }, [selectedRoutineId, addNotification]);
 
-  const searchRoutines = useCallback(async (searchTerm: string) => {
-    try {
-      setLoading(true);
-      const data = await RoutineService.searchRoutines(searchTerm);
-      setRoutines(data);
-    } catch (error) {
-      console.error('Error searching routines:', error);
-      addNotification(ROUTINE_ERROR_MESSAGES.SEARCH_ROUTINES_FAILED, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addNotification]);
+  const searchRoutines = useCallback(async (searchTerm: string) => loadRoutines(searchTerm, 1), [loadRoutines]);
 
   const clearSelection = useCallback(() => {
     setSelectedRoutine(null);
@@ -192,6 +193,9 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     selectedRoutine,
     selectedRoutineId,
     loading,
+    total,
+    page,
+    totalPages,
     loadRoutines,
     selectRoutine,
     createRoutine,
@@ -200,4 +204,4 @@ export const useRoutineData = (): UseRoutineDataReturn => {
     searchRoutines,
     clearSelection
   };
-}; 
+};

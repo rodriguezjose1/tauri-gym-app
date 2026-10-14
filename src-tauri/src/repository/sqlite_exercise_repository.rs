@@ -249,6 +249,33 @@ impl ExerciseRepository for SqliteExerciseRepository {
         )
     }
 
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedExercise>, String> {
+        let pattern = format!("%{query}%");
+        let offset = (page - 1)
+            .checked_mul(page_size)
+            .ok_or("Pagination overflow")?;
+        self.query_deleted_list(
+            "SELECT id,name,code,deleted_at FROM exercise
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (name LIKE ?1 OR code LIKE ?1)
+             ORDER BY name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
+            &[&pattern, &page_size, &offset],
+        )
+    }
+
+    fn search_deleted_count(&self, query: &str) -> Result<i32, String> {
+        let pattern = format!("%{query}%");
+        self.connection()?.query_row(
+            "SELECT COUNT(*) FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (name LIKE ?1 OR code LIKE ?1)", [pattern], |row| row.get(0),
+        ).map_err(|e| e.to_string())
+    }
+
     fn count_deleted(&self) -> Result<i32, String> {
         self.connection()?.query_row(
             "SELECT COUNT(*) FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
-import { Button, Card, ErrorMessage, Input, Modal, Pagination, Select, Title } from '../../../shared/components/base';
+import { Button, Card, ErrorMessage, Input, Modal, Pagination, SearchInput, Select, Title } from '../../../shared/components/base';
+import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { PaymentDialog } from '../components/PaymentDialog';
 import { BillingService, type Payment, type PaymentPage } from '../services/billingService';
@@ -23,7 +23,8 @@ export default function BillingPage() {
   const [mutating, setMutating] = useState(false);
   const [compactHeader, setCompactHeader] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
-  const [personQuery, setPersonQuery] = useState('');
+  const debouncedPersonSearch = useDebouncedValue(personSearch.trim(), 300);
+  const personQuery = personSearch.trim() ? debouncedPersonSearch : '';
   const requestId = useRef(0);
   const historyScrollRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -80,11 +81,6 @@ export default function BillingPage() {
     }
   }, [month, personQuery]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setPersonQuery(personSearch.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [personSearch]);
-
   useEffect(() => { setPage(1); void load(1); }, [month, personQuery, load]);
   const changeMonth = (value: string | number) => {
     setMonth(String(value));
@@ -100,7 +96,6 @@ export default function BillingPage() {
   };
   const clearPersonSearch = () => {
     setPersonSearch('');
-    setPersonQuery('');
   };
   const refreshed = () => { void load(page); addNotification(billingTexts.page.success, 'success'); };
   const reverse = async () => {
@@ -132,20 +127,15 @@ export default function BillingPage() {
           <section className="billing-history">
             <div className="billing-history-header">
               <Title level={3}>{billingTexts.page.history}</Title>
-              <div className="billing-person-search">
-                <Input
-                  aria-label={billingTexts.page.searchLabel}
+              <SearchInput
+                  className="billing-person-search"
+                  ariaLabel={billingTexts.page.searchLabel}
                   placeholder={billingTexts.page.searchPlaceholder}
                   value={personSearch}
-                  onChange={(event) => setPersonSearch(event.target.value)}
-                  leftIcon={<Search size={17} aria-hidden="true" />}
-                />
-                {personSearch && (
-                  <button type="button" className="billing-search-clear" onClick={clearPersonSearch} aria-label={billingTexts.page.clearSearch}>
-                    <X size={17} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
+                  onChange={setPersonSearch}
+                  onClear={clearPersonSearch}
+                  clearLabel={billingTexts.page.clearSearch}
+              />
             </div>
             <div className="billing-history-scroll" ref={historyScrollRef} onScroll={(event) => { if (!paginationInProgress.current && event.currentTarget.scrollTop > 24) setHeaderMode(true); }} data-testid="billing-history-scroll">
               {error && <div className="billing-error"><ErrorMessage message={error} onDismiss={() => setError(null)} /><Button variant="secondary" onClick={() => load(page)}>Reintentar</Button></div>}

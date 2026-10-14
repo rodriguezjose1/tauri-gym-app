@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { PersonService, Person } from "../../../services";
 import type { DeletedPerson } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
-import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput } from "../../../shared/components/base";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/PersonCrud.css";
 import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
 import { PersonPaymentProfile } from '../../billing/components/PersonPaymentProfile';
@@ -15,7 +16,9 @@ export default function PersonCrud() {
   const [deletedPersonsCount, setDeletedPersonsCount] = useState(0);
   const [deletedPage, setDeletedPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
+  const searchQuery = searchTerm.trim() ? debouncedSearch : '';
+  const requestId = useRef(0);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,20 +55,19 @@ export default function PersonCrud() {
   // Initial load - only run once
   useEffect(() => {
     if (!isInitialized) {
-      loadPersons();
       loadDeletedPersonsCount();
       setIsInitialized(true);
     }
   }, [isInitialized]);
 
-  // Load data when tab changes
+  // Load the selected catalog after the shared debounce.
   useEffect(() => {
     if (activeTab === 'active') {
-      loadPersons(currentPage);
+      void loadPersons(1, searchQuery);
     } else {
-      loadDeletedPersons(deletedPage);
+      void loadDeletedPersons(1, searchQuery);
     }
-  }, [activeTab]);
+  }, [activeTab, searchQuery]);
 
   const loadDeletedPersonsCount = async () => {
     try {
@@ -80,14 +82,17 @@ export default function PersonCrud() {
   const handleTabChange = (tab: 'active' | 'deleted') => {
     setActiveTab(tab);
     setSearchTerm("");
-    setIsSearchActive(false);
   };
 
-  const loadDeletedPersons = async (page = 1) => {
+  const loadDeletedPersons = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
-      const result = await PersonService.getDeletedPeoplePaginated(page, ITEMS_PER_PAGE);
+      const result = query
+        ? await PersonService.searchDeletedPeoplePaginated(query, page, ITEMS_PER_PAGE)
+        : await PersonService.getDeletedPeoplePaginated(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       setDeletedPersons(result.persons);
       setDeletedPersonsCount(result.total);
       setDeletedPage(result.page);
@@ -95,64 +100,38 @@ export default function PersonCrud() {
       console.error("Error loading deleted persons:", error);
       setError("No se pudieron cargar las personas eliminadas.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
   // Remove the debounced search effect - search will only work manually
 
-  const loadPersons = async (page = 1) => {
+  const loadPersons = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     try {
       setLoading(true);
       setError(null);
-      const response = await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
+      const response = query
+        ? await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE)
+        : await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       setPersons(response.persons);
       await loadPaymentStatuses(response.persons);
       
       setTotalPersons(response.total);
-      setCurrentPage(page);
+      setCurrentPage(response.page);
     } catch (error) {
       console.error("Error loading persons:", error);
       setError("No se pudieron cargar las personas.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
-  const searchPersons = useCallback(async (query: string, page = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (query.trim() === "") {
-        // Si no hay query, cargar personas normales
-        await loadPersons(page);
-        return;
-      }
-
-      const response = await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE);
-      
-      setPersons(response.persons);
-      await loadPaymentStatuses(response.persons);
-      
-      setTotalPersons(response.total);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error("Error searching persons:", error);
-      setError("No se pudo completar la búsqueda de personas.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const goToPage = (page: number) => {
     if (page > 0 && page !== currentPage) {
-      if (isSearchActive) {
-        searchPersons(searchTerm, page);
-      } else {
-        loadPersons(page);
-      }
+      loadPersons(page, searchQuery);
     }
   };
 
@@ -192,8 +171,8 @@ export default function PersonCrud() {
         await PersonService.createPerson(newPerson);
         
         // Solo recargar si estamos en modo búsqueda
-        if (isSearchActive) {
-          await searchPersons(searchTerm);
+        if (searchQuery) {
+          await loadPersons(1, searchQuery);
         } else {
           // Para la primera página, solo incrementar el total sin recargar
           setTotalPersons(prev => prev + 1);
@@ -296,24 +275,8 @@ export default function PersonCrud() {
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleSearch = () => {
-    if (searchTerm.trim() !== "") {
-      setIsSearchActive(true);
-      searchPersons(searchTerm);
-    } else {
-      setIsSearchActive(false);
-      loadPersons();
-    }
-  };
-
   const clearSearch = () => {
     setSearchTerm("");
-    setIsSearchActive(false);
-    loadPersons(); // Reload default list when clearing
   };
 
   // No need for filteredPersons anymore since we're using backend search
@@ -353,35 +316,13 @@ export default function PersonCrud() {
                 </div>
                 
                 <div className="person-list-actions">
-                  <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="person-search-form">
-                    <Input
+                  <SearchInput
+                      ariaLabel="Buscar personas"
                       placeholder="Buscar personas..."
                       value={searchTerm}
-                      onChange={handleSearchChange}
-                      variant="primary"
-                      leftIcon="🔍"
-                      fullWidth
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={loading}
-                      className="person-search-button"
-                    >
-                      Buscar
-                    </Button>
-                    {searchTerm.trim() !== "" && (
-                      <Button
-                        type="button"
-                        onClick={clearSearch}
-                        variant="secondary"
-                        size="sm"
-                        className="person-clear-search-button"
-                      >
-                        Limpiar
-                      </Button>
-                    )}
-                  </form>
+                      onChange={setSearchTerm}
+                      onClear={clearSearch}
+                  />
                 </div>
                 <div className="person-list-create-action">
                   <Button
@@ -409,21 +350,21 @@ export default function PersonCrud() {
                 </div>
               ) : activeTab === 'active' ? (
                 // Active people content
-                (isSearchActive ? displayedPersons.length === 0 : persons.length === 0) ? (
+                persons.length === 0 ? (
                   <div className="person-empty-state">
                     <div className="person-empty-icon">
-                      {isSearchActive ? '🔍' : '👥'}
+                      {searchQuery ? '🔍' : '👥'}
                     </div>
                     <Title level={3} variant="secondary" align="center">
-                      {isSearchActive ? 'No se encontraron personas' : 'No hay personas registradas'}
+                      {searchQuery ? 'No se encontraron personas' : 'No hay personas registradas'}
                     </Title>
                     <p className="person-empty-description">
-                      {isSearchActive 
-                        ? `No hay personas que coincidan con "${searchTerm}"`
+                      {searchQuery
+                        ? `No hay personas que coincidan con "${searchQuery}"`
                         : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
                       }
                     </p>
-                    {!isSearchActive && (
+                    {!searchQuery && (
                       <Button
                         onClick={handleOpenCreateModal}
                         variant="primary"
@@ -536,7 +477,7 @@ export default function PersonCrud() {
             {activeTab === 'active' ? (
               <Pagination className="person-pagination" total={totalPersons} page={currentPage} totalPages={Math.ceil(totalPersons / ITEMS_PER_PAGE)} singularLabel="persona" pluralLabel="personas" loading={loading} onPageChange={goToPage} />
             ) : (
-              <Pagination className="person-pagination" total={deletedPersonsCount} page={deletedPage} totalPages={Math.ceil(deletedPersonsCount / ITEMS_PER_PAGE)} singularLabel="persona eliminada" pluralLabel="personas eliminadas" loading={loading} onPageChange={loadDeletedPersons} />
+              <Pagination className="person-pagination" total={deletedPersonsCount} page={deletedPage} totalPages={Math.ceil(deletedPersonsCount / ITEMS_PER_PAGE)} singularLabel="persona eliminada" pluralLabel="personas eliminadas" loading={loading} onPageChange={(page) => loadDeletedPersons(page, searchQuery)} />
             )}
           </div>
         </Card>

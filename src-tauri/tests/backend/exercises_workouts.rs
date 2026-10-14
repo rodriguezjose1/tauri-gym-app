@@ -207,6 +207,8 @@ mod contracts {
             .exercises
             .iter()
             .all(|exercise| !exercise.deleted_at.is_empty()));
+        let searched = f.exercise_service.search_deleted_exercises_paginated("E3", 1, 10).unwrap();
+        assert_eq!((searched.total, searched.exercises[0].code.as_str()), (1, "E3"));
     }
 
     #[test]

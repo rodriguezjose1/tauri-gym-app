@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Input, Title } from '../../../shared/components/base';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Card, Pagination, SearchInput, Title } from '../../../shared/components/base';
+import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { Exercise, RoutineExerciseWithDetails, Routine, RoutineForm as RoutineFormType } from '../../../shared/types/dashboard';
@@ -37,10 +38,16 @@ const RoutineGroup: React.FC<{
 
 export const RoutineManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
+  const searchQuery = searchTerm.trim() ? debouncedSearch : '';
   const [emptyGroups, setEmptyGroups] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deletedRoutines, setDeletedRoutines] = useState<Routine[]>([]);
   const [deletedRoutinesCount, setDeletedRoutinesCount] = useState(0);
+  const [deletedPage, setDeletedPage] = useState(1);
+  const [deletedTotalPages, setDeletedTotalPages] = useState(0);
+  const [deletedLoading, setDeletedLoading] = useState(false);
+  const deletedRequestId = useRef(0);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [restoreConfirm, setRestoreConfirm] = useState<{
     isOpen: boolean;
@@ -68,7 +75,6 @@ export const RoutineManager: React.FC = () => {
   });
 
   useEffect(() => {
-    routineData.loadRoutines();
     loadDeletedRoutinesCount();
   }, []);
 
@@ -88,26 +94,33 @@ export const RoutineManager: React.FC = () => {
     }
   };
 
-  const loadDeletedRoutines = async () => {
+  const loadDeletedRoutines = async (page = 1, query = searchQuery) => {
+    const id = ++deletedRequestId.current;
+    setDeletedLoading(true);
     try {
-      const routines = await RoutineService.getDeletedRoutines();
-      setDeletedRoutines(routines);
-      setDeletedRoutinesCount(routines.length);
+      const result = await RoutineService.getRoutinesPage(query, true, page, 10);
+      if (id !== deletedRequestId.current) return;
+      setDeletedRoutines(result.routines);
+      setDeletedRoutinesCount(result.total);
+      setDeletedPage(result.page);
+      setDeletedTotalPages(result.total_pages);
     } catch (error) {
       console.error("Error loading deleted routines:", error);
       setDeletedRoutines([]);
       setDeletedRoutinesCount(0);
+    } finally {
+      if (id === deletedRequestId.current) setDeletedLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'active') void routineData.loadRoutines(searchQuery, 1);
+    else void loadDeletedRoutines(1, searchQuery);
+  }, [activeTab, searchQuery]);
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
     setActiveTab(tab);
     setSearchTerm('');
-    if (tab === 'deleted') {
-      loadDeletedRoutines();
-    } else {
-      routineData.loadRoutines();
-    }
   };
 
   const handleRestoreClick = (routineId: number, routineName: string) => {
@@ -122,8 +135,7 @@ export const RoutineManager: React.FC = () => {
     if (restoreConfirm.routineId) {
       try {
         await RoutineService.restoreRoutine(restoreConfirm.routineId);
-        setDeletedRoutines(prev => prev.filter(r => r.id !== restoreConfirm.routineId));
-        setDeletedRoutinesCount(prev => prev - 1);
+        await loadDeletedRoutines(deletedPage, searchQuery);
         addNotification(
           `Rutina "${restoreConfirm.routineName}" restaurada correctamente`,
           'success'
@@ -151,18 +163,8 @@ export const RoutineManager: React.FC = () => {
     });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      routineData.searchRoutines(searchTerm);
-    } else {
-      routineData.loadRoutines();
-    }
-  };
-
   const handleClearSearch = () => {
     setSearchTerm('');
-    routineData.loadRoutines();
   };
 
   const handleSelectRoutine = (routineId: number) => {
@@ -186,6 +188,7 @@ export const RoutineManager: React.FC = () => {
           'success'
         );
         setDeletedRoutinesCount(prev => prev + 1);
+        await routineData.loadRoutines(searchQuery, routineData.page);
       } else {
         addNotification(
           'Error al eliminar la rutina',
@@ -309,7 +312,7 @@ export const RoutineManager: React.FC = () => {
                     className={`routine-manager-tab ${activeTab === 'active' ? 'active' : ''}`}
                     onClick={() => handleTabChange('active')}
                   >
-                    Rutinas Activas ({routineData.routines.length})
+                    Rutinas Activas ({routineData.total})
                   </button>
                   <button
                     className={`routine-manager-tab ${activeTab === 'deleted' ? 'active' : ''}`}
@@ -320,37 +323,13 @@ export const RoutineManager: React.FC = () => {
                 </div>
                 
                 <div className="routine-manager-actions">
-                  <form onSubmit={handleSearch} className="routine-manager-search-form">
-                    <Input
+                  <SearchInput
+                      ariaLabel="Buscar rutinas"
                       placeholder="Buscar rutinas..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      variant="primary"
-                      leftIcon="🔍"
-                      fullWidth
-                    />
-                    <div className="routine-manager-search-buttons">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={routineData.loading}
-                        className="routine-manager-search-button"
-                      >
-                        Buscar
-                      </Button>
-                      {searchTerm && (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={handleClearSearch}
-                          disabled={routineData.loading}
-                          className="routine-manager-clear-search-button"
-                        >
-                          Limpiar
-                        </Button>
-                      )}
-                    </div>
-                  </form>
+                      onChange={setSearchTerm}
+                      onClear={handleClearSearch}
+                  />
                 </div>
                 <div className="routine-manager-create-action">
                   <Button
@@ -425,6 +404,16 @@ export const RoutineManager: React.FC = () => {
                       )}
                     </div>
                   )}
+                  <Pagination
+                    className="routine-manager-pagination"
+                    total={activeTab === 'active' ? routineData.total : deletedRoutinesCount}
+                    page={activeTab === 'active' ? routineData.page : deletedPage}
+                    totalPages={activeTab === 'active' ? routineData.totalPages : deletedTotalPages}
+                    singularLabel={activeTab === 'active' ? 'rutina' : 'rutina eliminada'}
+                    pluralLabel={activeTab === 'active' ? 'rutinas' : 'rutinas eliminadas'}
+                    loading={activeTab === 'active' ? routineData.loading : deletedLoading}
+                    onPageChange={(page) => activeTab === 'active' ? routineData.loadRoutines(searchQuery, page) : loadDeletedRoutines(page, searchQuery)}
+                  />
                 </div>
 
                 {/* Right Panel - Routine Details */}
@@ -534,6 +523,7 @@ export const RoutineManager: React.FC = () => {
         onSubmit={async (form) => {
           const success = await routineData.createRoutine(form);
           if (success) {
+            await routineData.loadRoutines(searchQuery, 1);
             routineUI.closeCreateForm();
           }
           return success;

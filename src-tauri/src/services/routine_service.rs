@@ -1,4 +1,4 @@
-use crate::models::routine::{Routine, RoutineWithExercises};
+use crate::models::routine::{PaginatedRoutineResponse, Routine, RoutineWithExercises};
 use crate::models::routine_exercise::{RoutineExercise, RoutineExerciseWithDetails};
 use crate::repository::routine_repository::RoutineRepository;
 use std::sync::Arc;
@@ -8,6 +8,7 @@ pub struct RoutineService {
 }
 
 impl RoutineService {
+    const MAX_PAGE_SIZE: i32 = 100;
     pub fn new(repository: Arc<dyn RoutineRepository + Send + Sync>) -> Self {
         Self { repository }
     }
@@ -148,6 +149,57 @@ impl RoutineService {
             return Err("La página y el tamaño deben ser mayores que cero".into());
         }
         self.repository.list_routines_paginated(page, page_size)
+    }
+
+    pub fn routines_page(
+        &self,
+        query: &str,
+        deleted: bool,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedRoutineResponse, String> {
+        if page < 1 || !(1..=Self::MAX_PAGE_SIZE).contains(&page_size) {
+            return Err("Paginación inválida".into());
+        }
+        let query = query.trim();
+        let total = if query.is_empty() {
+            if deleted {
+                self.repository.count_deleted()?
+            } else {
+                self.repository.count_all()?
+            }
+        } else {
+            self.repository.search_count(query, deleted)?
+        };
+        let total_pages = (total + page_size - 1) / page_size;
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let routines = match (deleted, query.is_empty()) {
+            (false, true) => self
+                .repository
+                .list_routines_paginated(effective_page, page_size)?,
+            (false, false) => {
+                self.repository
+                    .search_routines_paginated(query, effective_page, page_size)?
+            }
+            (true, true) => self
+                .repository
+                .list_deleted_paginated(effective_page, page_size)?,
+            (true, false) => {
+                self.repository
+                    .search_deleted_paginated(query, effective_page, page_size)?
+            }
+        };
+        Ok(PaginatedRoutineResponse {
+            routines,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
     }
 
     pub fn search_routines(&self, query: String) -> Result<Vec<Routine>, String> {

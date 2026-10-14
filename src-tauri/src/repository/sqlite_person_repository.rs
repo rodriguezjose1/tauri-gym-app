@@ -191,7 +191,7 @@ impl PersonRepository for SqlitePersonRepository {
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
+             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name",
             )
@@ -272,7 +272,7 @@ impl PersonRepository for SqlitePersonRepository {
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
+             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name
              LIMIT ?2 OFFSET ?3",
@@ -441,6 +441,52 @@ impl PersonRepository for SqlitePersonRepository {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string());
         result
+    }
+
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let pattern = format!("%{}%", query.to_lowercase());
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn.prepare(
+            "SELECT id,name,last_name,phone,deleted_at FROM people
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
+             ORDER BY name COLLATE NOCASE,last_name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
+        ).map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![pattern, page_size, offset], |row| {
+                Ok(DeletedPerson {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    fn search_deleted_count(&self, query: &str) -> Result<i32, String> {
+        if self.is_dummy {
+            return Ok(0);
+        }
+        let pattern = format!("%{}%", query.to_lowercase());
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            "SELECT COUNT(*) FROM people WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)",
+            params![pattern], |row| row.get(0),
+        ).map_err(|e| e.to_string())
     }
 
     fn count_deleted(&self) -> Result<i32, String> {

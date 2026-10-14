@@ -3,7 +3,8 @@ import {
   Routine, 
   RoutineWithExercises, 
   RoutineExerciseWithDetails,
-  RoutineOption 
+  RoutineOption,
+  PaginatedRoutineResponse,
 } from "../../../shared/types/dashboard";
 
 const requestNames = {
@@ -19,6 +20,7 @@ const requestNames = {
   listRoutinesPaginated: "list_routines_paginated",
   searchRoutines: "search_routines",
   searchRoutinesPaginated: "search_routines_paginated",
+  getRoutinesPage: "get_routines_page",
   addExerciseToRoutine: "add_exercise_to_routine",
   updateRoutineExercise: "update_routine_exercise",
   removeExerciseFromRoutine: "remove_exercise_from_routine",
@@ -28,6 +30,9 @@ const requestNames = {
 };
 
 export class RoutineService {
+  static async getRoutinesPage(query: string, deleted: boolean, page: number, pageSize: number): Promise<PaginatedRoutineResponse> {
+    return await invoke(requestNames.getRoutinesPage, { query, deleted, page, pageSize }) as PaginatedRoutineResponse;
+  }
   /**
    * Crea una nueva rutina
    */

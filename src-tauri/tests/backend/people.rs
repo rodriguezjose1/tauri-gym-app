@@ -300,6 +300,8 @@ mod contracts {
         assert_eq!((clamped.page, clamped.persons.len()), (3, 1));
         assert_eq!(first.persons[0].name, "Persona 0");
         assert!(first.persons.iter().all(|person| !person.deleted_at.is_empty()));
+        let searched = f.service.search_deleted_people_paginated("Persona 3", 1, 10).unwrap();
+        assert_eq!((searched.total, searched.persons[0].name.as_str()), (1, "Persona 3"));
     }
 
     #[test]

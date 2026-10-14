@@ -14,6 +14,7 @@ const requestNames = {
   restorePerson: "restore_person",
   getDeletedPeople: "get_deleted_people",
   getDeletedPeoplePaginated: "get_deleted_people_paginated",
+  searchDeletedPeoplePaginated: "search_deleted_people_paginated",
   countDeletedPeople: "count_deleted_people"
 };
 
@@ -157,6 +158,10 @@ export class PersonService {
       console.error("Error getting paginated deleted people:", error);
       throw new Error(`Error al obtener las personas eliminadas paginadas: ${error}`);
     }
+  }
+
+  static async searchDeletedPeoplePaginated(query: string, page: number, pageSize: number): Promise<PaginatedDeletedPersonResponse> {
+    return await invoke(requestNames.searchDeletedPeoplePaginated, { query, page, pageSize }) as PaginatedDeletedPersonResponse;
   }
 
   /**

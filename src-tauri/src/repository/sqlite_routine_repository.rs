@@ -354,6 +354,26 @@ impl RoutineRepository for SqliteRoutineRepository {
             .map_err(|e| e.to_string())
     }
 
+    fn count_all(&self) -> Result<i32, String> {
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            "SELECT COUNT(*) FROM routines WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
+            [], |row| row.get(0),
+        ).map_err(|e| e.to_string())
+    }
+
+    fn search_count(&self, query: &str, deleted: bool) -> Result<i32, String> {
+        let pattern = format!("%{}%", query.to_lowercase());
+        let condition = if deleted {
+            "deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0"
+        } else {
+            "(deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)"
+        };
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            &format!("SELECT COUNT(*) FROM routines WHERE {condition} AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)"),
+            params![pattern], |row| row.get(0),
+        ).map_err(|e| e.to_string())
+    }
+
     fn search_routines(&self, query: &str) -> Result<Vec<Routine>, String> {
         if self.is_dummy {
             return Err("Routine repository unavailable".into());
@@ -750,6 +770,71 @@ impl RoutineRepository for SqliteRoutineRepository {
         routine_iter
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
+    }
+
+    fn list_deleted_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,code,created_at,updated_at FROM routines
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             ORDER BY name COLLATE NOCASE,id LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Routine>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let pattern = format!("%{}%", query.to_lowercase());
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,code,created_at,updated_at FROM routines
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)
+             ORDER BY name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![pattern, page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
     }
 
     fn count_deleted(&self) -> Result<i32, String> {

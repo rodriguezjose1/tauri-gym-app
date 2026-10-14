@@ -118,6 +118,36 @@ impl ExerciseService {
         })
     }
 
+    pub fn search_deleted_exercises_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedDeletedExerciseResponse, String> {
+        Self::validate_pagination(page, page_size)?;
+        let query = query.trim();
+        if query.is_empty() {
+            return self.list_deleted_exercises_paginated(page, page_size);
+        }
+        let total = self.repository.search_deleted_count(query)?;
+        let total_pages = (total + page_size - 1) / page_size;
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let exercises =
+            self.repository
+                .search_deleted_paginated(query, effective_page, page_size)?;
+        Ok(PaginatedDeletedExerciseResponse {
+            exercises,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
+    }
+
     pub fn search_exercises_paginated(
         &self,
         query: &str,

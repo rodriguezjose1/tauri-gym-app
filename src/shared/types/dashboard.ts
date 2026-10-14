@@ -152,3 +152,11 @@ export interface PaginatedDeletedPersonResponse extends Omit<PaginatedPersonResp
 export interface PaginatedDeletedExerciseResponse extends Omit<PaginatedExerciseResponse, 'exercises'> {
   exercises: DeletedExercise[];
 }
+
+export interface PaginatedRoutineResponse {
+  routines: Routine[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

@@ -19,6 +19,15 @@ pub struct RoutineWithExercises {
     pub exercises: Vec<RoutineExerciseWithDetails>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PaginatedRoutineResponse {
+    pub routines: Vec<Routine>,
+    pub total: i32,
+    pub page: i32,
+    pub page_size: i32,
+    pub total_pages: i32,
+}
+
 impl Routine {
     pub fn new(name: String, code: String) -> Self {
         Self {

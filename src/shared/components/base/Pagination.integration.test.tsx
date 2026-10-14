@@ -39,7 +39,6 @@ describe('paginación compartida en catálogos', () => {
     );
 
     await user.type(screen.getByPlaceholderText('Buscar personas...'), 'Ana');
-    await user.click(screen.getByRole('button', { name: 'Buscar' }));
     expect(await screen.findByText('1 persona · Página 1 de 1')).toBeInTheDocument();
   });
 
@@ -61,7 +60,6 @@ describe('paginación compartida en catálogos', () => {
     expect(screen.queryByText('23 ejercicios total')).not.toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText('Buscar ejercicios...'), 'Sentadilla');
-    await user.click(screen.getByRole('button', { name: 'Buscar' }));
     expect(await screen.findByText('12 ejercicios · Página 1 de 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await waitFor(() =>
@@ -82,6 +80,9 @@ describe('paginación compartida en catálogos', () => {
         const page = restored ? 1 : args?.page;
         return { persons: [{ ...person, deleted_at: '2026-10-14 15:30:00' }], total: restored ? 10 : 11, page, page_size: 10, total_pages: restored ? 1 : 2 };
       }
+      if (command === 'search_deleted_people_paginated') {
+        return { persons: [{ ...person, deleted_at: '2026-10-14 15:30:00' }], total: 1, page: 1, page_size: 10, total_pages: 1 };
+      }
       if (command === 'restore_person') { restored = true; return; }
       throw new Error(`Comando no previsto: ${command}`);
     });
@@ -90,6 +91,11 @@ describe('paginación compartida en catálogos', () => {
     await user.click(await screen.findByRole('button', { name: /Personas Eliminadas/ }));
     expect(await screen.findByText('11 personas eliminadas · Página 1 de 2')).toBeInTheDocument();
     expect(screen.getByText(/Eliminada el/)).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Buscar personas' }), 'Ana Test');
+    expect(await screen.findByText('1 persona eliminada · Página 1 de 1')).toBeInTheDocument();
+    expect(invoke).toHaveBeenCalledWith('search_deleted_people_paginated', { query: 'Ana Test', page: 1, pageSize: 10 });
+    await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+    expect(await screen.findByText('11 personas eliminadas · Página 1 de 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findByText('11 personas eliminadas · Página 2 de 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Restaurar/ }));
@@ -108,6 +114,9 @@ describe('paginación compartida en catálogos', () => {
       if (command === 'get_deleted_exercises_paginated') {
         return { exercises: [{ ...exercise, deleted_at: '2026-10-14 15:30:00' }], total: 14, page: args?.page, page_size: 10, total_pages: 2 };
       }
+      if (command === 'search_deleted_exercises_paginated') {
+        return { exercises: [{ ...exercise, deleted_at: '2026-10-14 15:30:00' }], total: 1, page: 1, page_size: 10, total_pages: 1 };
+      }
       throw new Error(`Comando no previsto: ${command}`);
     });
 
@@ -115,6 +124,10 @@ describe('paginación compartida en catálogos', () => {
     await user.click(await screen.findByRole('button', { name: /Ejercicios Eliminados/ }));
     expect(await screen.findByText('14 ejercicios eliminados · Página 1 de 2')).toBeInTheDocument();
     expect(screen.getByText(/Eliminado el/)).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Buscar ejercicios' }), 'SENTADILLA');
+    expect(await screen.findByText('1 ejercicio eliminado · Página 1 de 1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+    expect(await screen.findByText('14 ejercicios eliminados · Página 1 de 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(await screen.findByText('14 ejercicios eliminados · Página 2 de 2')).toBeInTheDocument();
     expect(invoke).toHaveBeenCalledWith('get_deleted_exercises_paginated', { page: 2, pageSize: 10 });

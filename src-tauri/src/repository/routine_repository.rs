@@ -11,6 +11,15 @@ pub trait RoutineRepository: Send + Sync {
     fn list_all(&self) -> Result<Vec<Routine>, String>;
     fn list_deleted(&self) -> Result<Vec<Routine>, String>;
     fn count_deleted(&self) -> Result<i32, String>;
+    fn count_all(&self) -> Result<i32, String>;
+    fn search_count(&self, query: &str, deleted: bool) -> Result<i32, String>;
+    fn list_deleted_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String>;
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Routine>, String>;
     fn list_routines_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String>;
     fn search_routines(&self, query: &str) -> Result<Vec<Routine>, String>;
     fn search_routines_paginated(

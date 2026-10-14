@@ -23,5 +23,12 @@ pub trait PersonRepository: Send + Sync {
         page: i32,
         page_size: i32,
     ) -> Result<Vec<DeletedPerson>, String>;
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String>;
+    fn search_deleted_count(&self, query: &str) -> Result<i32, String>;
     fn count_deleted(&self) -> Result<i32, String>;
 }

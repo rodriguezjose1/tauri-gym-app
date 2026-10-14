@@ -11,6 +11,7 @@ const requestNames = {
   restoreExercise: "restore_exercise",
   getDeletedExercises: "get_deleted_exercises",
   getDeletedExercisesPaginated: "get_deleted_exercises_paginated",
+  searchDeletedExercisesPaginated: "search_deleted_exercises_paginated",
   countDeletedExercises: "count_deleted_exercises"
 };
 
@@ -124,6 +125,10 @@ export class ExerciseService {
       console.error("Error getting paginated deleted exercises:", error);
       throw new Error(`Error al obtener los ejercicios eliminados paginados: ${error}`);
     }
+  }
+
+  static async searchDeletedExercisesPaginated(query: string, page: number, pageSize: number): Promise<PaginatedDeletedExerciseResponse> {
+    return await invoke(requestNames.searchDeletedExercisesPaginated, { query, page, pageSize }) as PaginatedDeletedExerciseResponse;
   }
 
   /**

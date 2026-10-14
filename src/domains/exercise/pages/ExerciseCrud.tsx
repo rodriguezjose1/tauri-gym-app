@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ExerciseService, Exercise } from "../../../services";
 import type { DeletedExercise } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
-import { Button, Input, Title, Card, Modal, Pagination } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, Pagination, SearchInput } from "../../../shared/components/base";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/ExerciseCrud.css";
 import { useToast } from '../../../shared/contexts/ToastContext';
 
@@ -14,7 +15,9 @@ export default function ExerciseCrud() {
   const [deletedExercisesCount, setDeletedExercisesCount] = useState(0);
   const [deletedPage, setDeletedPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
+  const searchQuery = searchTerm.trim() ? debouncedSearch : '';
+  const requestId = useRef(0);
   const [form, setForm] = useState({ name: "", code: "" });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,20 +51,19 @@ export default function ExerciseCrud() {
   // Initial load - only run once
   useEffect(() => {
     if (!isInitialized) {
-      loadExercises();
       loadDeletedExercisesCount();
       setIsInitialized(true);
     }
   }, [isInitialized]);
 
-  // Load data when tab changes
+  // Load the selected catalog after the shared debounce.
   useEffect(() => {
     if (activeTab === 'active') {
-      loadExercises(currentPage);
+      void loadExercises(1, searchQuery);
     } else {
-      loadDeletedExercises(deletedPage);
+      void loadDeletedExercises(1, searchQuery);
     }
-  }, [activeTab]);
+  }, [activeTab, searchQuery]);
 
   const loadDeletedExercisesCount = async () => {
     try {
@@ -76,29 +78,32 @@ export default function ExerciseCrud() {
   const handleTabChange = (tab: 'active' | 'deleted') => {
     setActiveTab(tab);
     setSearchTerm("");
-    setIsSearchActive(false);
   };
 
   // Reemplazo loadExercises para aceptar page y append
-  const loadExercises = async (page = 1) => {
+  const loadExercises = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     setLoading(true);
     try {
-      const result = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      const result = query ? await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE) : await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       setExercises(result.exercises);
-      setCurrentPage(page);
+      setCurrentPage(result.page);
       setTotalExercises(result.total);
     } catch (error) {
       console.error("Error loading exercises:", error);
       addNotification('No se pudieron cargar los ejercicios.', 'error', 5000);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
-  const loadDeletedExercises = async (page = 1) => {
+  const loadDeletedExercises = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     setLoading(true);
     try {
-      const result = await ExerciseService.getDeletedExercisesPaginated(page, ITEMS_PER_PAGE);
+      const result = query ? await ExerciseService.searchDeletedExercisesPaginated(query, page, ITEMS_PER_PAGE) : await ExerciseService.getDeletedExercisesPaginated(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       setDeletedExercises(result.exercises);
       setDeletedExercisesCount(result.total);
       setDeletedPage(result.page);
@@ -106,42 +111,14 @@ export default function ExerciseCrud() {
       console.error("Error loading deleted exercises:", error);
       addNotification('No se pudieron cargar los ejercicios eliminados.', 'error', 5000);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
-
-  const searchExercises = useCallback(async (query: string, page = 1) => {
-    try {
-      setLoading(true);
-      
-      if (query.trim() === "") {
-        // Si no hay query, cargar ejercicios normales
-        await loadExercises();
-        return;
-      }
-
-      const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
-      
-      setExercises(response.exercises);
-      
-      setCurrentPage(page);
-      setTotalExercises(response.total);
-    } catch (error) {
-      console.error("Error searching exercises:", error);
-      addNotification('No se pudo completar la búsqueda de ejercicios.', 'error', 5000);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Modifico goToPage para usar la nueva función
   const goToPage = (page: number) => {
     if (page >= 1 && !loading) {
-      if (isSearchActive) {
-        searchExercises(searchTerm, page);
-      } else {
-        loadExercises(page);
-      }
+      loadExercises(page, searchQuery);
     }
   };
 
@@ -178,8 +155,8 @@ export default function ExerciseCrud() {
         await ExerciseService.createExercise(newExercise);
         
         // Solo recargar si estamos en modo búsqueda
-        if (isSearchActive) {
-          await searchExercises(searchTerm);
+        if (searchQuery) {
+          await loadExercises(1, searchQuery);
         } else {
           // Para la primera página, solo incrementar el total sin recargar
           setTotalExercises(prev => prev + 1);
@@ -283,7 +260,7 @@ export default function ExerciseCrud() {
       await ExerciseService.restoreExercise(restoreConfirm.exerciseId);
       const remaining = Math.max(deletedExercisesCount - 1, 0);
       const targetPage = Math.min(deletedPage, Math.max(Math.ceil(remaining / ITEMS_PER_PAGE), 1));
-      await loadDeletedExercises(targetPage);
+      await loadDeletedExercises(targetPage, searchQuery);
       setTotalExercises(prev => prev + 1);
       setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" });
       addNotification(`Ejercicio "${restoreConfirm.exerciseName}" restaurado.`, 'success', 5000);
@@ -295,24 +272,8 @@ export default function ExerciseCrud() {
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleSearch = () => {
-    if (searchTerm.trim() !== "") {
-      setIsSearchActive(true);
-      searchExercises(searchTerm);
-    } else {
-      setIsSearchActive(false);
-      loadExercises();
-    }
-  };
-
   const clearSearch = () => {
     setSearchTerm("");
-    setIsSearchActive(false);
-    loadExercises(); // Reload default list when clearing
   };
 
   // No need for filteredExercises anymore since we're using backend search
@@ -352,35 +313,13 @@ export default function ExerciseCrud() {
                 </div>
                 
                 <div className="exercise-list-actions">
-                  <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="exercise-search-form">
-                    <Input
+                  <SearchInput
+                      ariaLabel="Buscar ejercicios"
                       placeholder="Buscar ejercicios..."
                       value={searchTerm}
-                      onChange={handleSearchChange}
-                      variant="primary"
-                      leftIcon="🔍"
-                      fullWidth
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={loading}
-                      className="exercise-search-button"
-                    >
-                      Buscar
-                    </Button>
-                    {searchTerm.trim() !== "" && (
-                      <Button
-                        type="button"
-                        onClick={clearSearch}
-                        variant="secondary"
-                        size="sm"
-                        className="exercise-clear-search-button"
-                      >
-                        Limpiar
-                      </Button>
-                    )}
-                  </form>
+                      onChange={setSearchTerm}
+                      onClear={clearSearch}
+                  />
                 </div>
                 <div className="exercise-list-create-action">
                   <Button
@@ -402,21 +341,21 @@ export default function ExerciseCrud() {
                 </div>
               ) : activeTab === 'active' ? (
                 // Active exercises content
-                (isSearchActive ? displayedExercises.length === 0 : exercises.length === 0) ? (
+                exercises.length === 0 ? (
                   <div className="exercise-empty-state">
                     <div className="exercise-empty-icon">
-                      {isSearchActive ? '🔍' : '🏋️'}
+                      {searchQuery ? '🔍' : '🏋️'}
                     </div>
                     <Title level={3} variant="secondary" align="center">
-                      {isSearchActive ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
+                      {searchQuery ? 'No se encontraron ejercicios' : 'No hay ejercicios registrados'}
                     </Title>
                     <p className="exercise-empty-description">
-                      {isSearchActive 
-                        ? `No hay ejercicios que coincidan con "${searchTerm}"`
+                      {searchQuery
+                        ? `No hay ejercicios que coincidan con "${searchQuery}"`
                         : 'Agrega tu primer ejercicio haciendo clic en "Nuevo Ejercicio"'
                       }
                     </p>
-                    {!isSearchActive && (
+                    {!searchQuery && (
                       <Button
                         onClick={handleOpenCreateModal}
                         variant="primary"
@@ -525,7 +464,7 @@ export default function ExerciseCrud() {
             {activeTab === 'active' ? (
               <Pagination className="exercise-pagination" total={totalExercises} page={currentPage} totalPages={Math.ceil(totalExercises / ITEMS_PER_PAGE)} singularLabel="ejercicio" pluralLabel="ejercicios" loading={loading} onPageChange={goToPage} />
             ) : (
-              <Pagination className="exercise-pagination" total={deletedExercisesCount} page={deletedPage} totalPages={Math.ceil(deletedExercisesCount / ITEMS_PER_PAGE)} singularLabel="ejercicio eliminado" pluralLabel="ejercicios eliminados" loading={loading} onPageChange={loadDeletedExercises} />
+              <Pagination className="exercise-pagination" total={deletedExercisesCount} page={deletedPage} totalPages={Math.ceil(deletedExercisesCount / ITEMS_PER_PAGE)} singularLabel="ejercicio eliminado" pluralLabel="ejercicios eliminados" loading={loading} onPageChange={(page) => loadDeletedExercises(page, searchQuery)} />
             )}
           </div>
         </Card>

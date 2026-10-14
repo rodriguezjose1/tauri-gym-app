@@ -116,6 +116,17 @@ fn get_deleted_people_paginated(
 }
 
 #[tauri::command]
+fn search_deleted_people_paginated(
+    service: State<'_, PersonService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<models::person::PaginatedDeletedPersonResponse, String> {
+    let _operation = OperationGuard::begin()?;
+    service.search_deleted_people_paginated(&query, page, page_size)
+}
+
+#[tauri::command]
 fn count_deleted_people(service: State<'_, PersonService>) -> Result<i32, String> {
     let _operation = OperationGuard::begin()?;
     service.count_deleted_people()
@@ -178,6 +189,17 @@ fn get_deleted_exercises_paginated(
 ) -> Result<models::exercise::PaginatedDeletedExerciseResponse, String> {
     let _operation = OperationGuard::begin()?;
     service.list_deleted_exercises_paginated(page, page_size)
+}
+
+#[tauri::command]
+fn search_deleted_exercises_paginated(
+    service: State<'_, ExerciseService>,
+    query: String,
+    page: i32,
+    page_size: i32,
+) -> Result<models::exercise::PaginatedDeletedExerciseResponse, String> {
+    let _operation = OperationGuard::begin()?;
+    service.search_deleted_exercises_paginated(&query, page, page_size)
 }
 
 #[tauri::command]
@@ -421,6 +443,18 @@ fn search_routines_paginated(
 ) -> Result<Vec<Routine>, String> {
     let _operation = OperationGuard::begin()?;
     service.search_routines_paginated(query, page, page_size)
+}
+
+#[tauri::command]
+fn get_routines_page(
+    service: State<'_, RoutineService>,
+    query: String,
+    deleted: bool,
+    page: i32,
+    page_size: i32,
+) -> Result<models::routine::PaginatedRoutineResponse, String> {
+    let _operation = OperationGuard::begin()?;
+    service.routines_page(&query, deleted, page, page_size)
 }
 
 #[tauri::command]
@@ -735,6 +769,7 @@ fn main() {
             restore_person,
             get_deleted_people,
             get_deleted_people_paginated,
+            search_deleted_people_paginated,
             count_deleted_people,
             update_person,
             // Exercise commands
@@ -745,6 +780,7 @@ fn main() {
             restore_exercise,
             get_deleted_exercises,
             get_deleted_exercises_paginated,
+            search_deleted_exercises_paginated,
             count_deleted_exercises,
             update_exercise,
             search_exercises_paginated,
@@ -775,6 +811,7 @@ fn main() {
             list_routines_paginated,
             search_routines,
             search_routines_paginated,
+            get_routines_page,
             add_exercise_to_routine,
             update_routine_exercise,
             remove_exercise_from_routine,
