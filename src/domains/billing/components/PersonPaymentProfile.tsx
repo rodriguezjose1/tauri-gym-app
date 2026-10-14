@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, ErrorMessage, Input, Modal, Title } from '../../../shared/components/base';
+import { Button, ErrorMessage, Input, Modal, Pagination, Title } from '../../../shared/components/base';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import type { Person } from '../../../shared/types/dashboard';
 import { BillingService, type PersonPaymentHistoryItem, type PersonPaymentHistoryPage } from '../services/billingService';
@@ -74,7 +74,7 @@ export function PersonPaymentProfile({ person, onClose, onChanged }: Props) {
               </tbody></table></div>
             )}
           </div>
-          <div className="billing-pagination person-payment-profile-footer"><span>{data?.total ?? 0} registros · Página {data?.page ?? 1} de {Math.max(data?.total_pages ?? 0, 1)}</span><span className="billing-pagination-actions"><Button size="sm" variant="secondary" disabled={loading || page <= 1} onClick={() => load(page - 1)}>Anterior</Button><Button size="sm" variant="secondary" disabled={loading || !data || page >= data.total_pages} onClick={() => load(page + 1)}>Siguiente</Button></span></div>
+          <Pagination className="person-payment-profile-footer" total={data?.total ?? 0} page={data?.page ?? 1} totalPages={data?.total_pages ?? 0} singularLabel="registro" pluralLabel="registros" loading={loading} onPageChange={load} />
         </div>
       </Modal>
       <PaymentDialog isOpen={Boolean(paying)} onClose={() => setPaying(null)} onSuccess={() => { setPaying(null); void refresh(); }} initial={paying && person.id ? { person, period: paying.period!, planId: paying.plan_id, amountCents: paying.amount_cents } : undefined} />

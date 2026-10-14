@@ -1,0 +1,20 @@
+.ui-pagination {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -8px 20px rgb(0 0 0 / 8%);
+}
+
+.ui-pagination__summary { color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+.ui-pagination__actions { display: flex; gap: 8px; }
+
+@media (max-width: 560px) {
+  .ui-pagination { align-items: stretch; flex-direction: column; }
+  .ui-pagination__actions { width: 100%; }
+  .ui-pagination__actions > button { flex: 1; }
+}

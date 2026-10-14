@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PersonService, Person } from "../../../services";
-import { Button, Input, Title, Card, Modal, ErrorMessage } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination } from "../../../shared/components/base";
 import "../../../styles/PersonCrud.css";
 import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
 import { PersonPaymentProfile } from '../../billing/components/PersonPaymentProfile';
@@ -19,7 +19,6 @@ export default function PersonCrud() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -98,27 +97,16 @@ export default function PersonCrud() {
 
   // Remove the debounced search effect - search will only work manually
 
-  const loadPersons = async (page = 1, append = false) => {
+  const loadPersons = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
       const response = await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
       
-      if (response.persons.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setPersons(prev => [...prev, ...response.persons]);
-      } else {
-        setPersons(response.persons);
-      }
-      await loadPaymentStatuses(append ? [...persons, ...response.persons] : response.persons);
+      setPersons(response.persons);
+      await loadPaymentStatuses(response.persons);
       
       setTotalPersons(response.total);
-      setHasMore(response.persons.length === ITEMS_PER_PAGE);
       setCurrentPage(page);
     } catch (error) {
       console.error("Error loading persons:", error);
@@ -128,34 +116,23 @@ export default function PersonCrud() {
     }
   };
 
-  const searchPersons = useCallback(async (query: string, page = 1, append = false) => {
+  const searchPersons = useCallback(async (query: string, page = 1) => {
     try {
       setLoading(true);
       setError(null);
       
       if (query.trim() === "") {
         // Si no hay query, cargar personas normales
-        await loadPersons(page, append);
+        await loadPersons(page);
         return;
       }
 
       const response = await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE);
       
-      if (response.persons.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setPersons(prev => [...prev, ...response.persons]);
-      } else {
-        setPersons(response.persons);
-      }
-      await loadPaymentStatuses(append ? [...persons, ...response.persons] : response.persons);
+      setPersons(response.persons);
+      await loadPaymentStatuses(response.persons);
       
       setTotalPersons(response.total);
-      setHasMore(response.persons.length === ITEMS_PER_PAGE);
       setCurrentPage(page);
     } catch (error) {
       console.error("Error searching persons:", error);
@@ -164,16 +141,6 @@ export default function PersonCrud() {
       setLoading(false);
     }
   }, []);
-
-  const loadMorePersons = () => {
-    if (hasMore && !loading) {
-      if (isSearchActive) {
-        searchPersons(searchTerm, currentPage + 1, true);
-      } else {
-        loadPersons(currentPage + 1, true);
-      }
-    }
-  };
 
   const goToPage = (page: number) => {
     if (page > 0 && page !== currentPage) {
@@ -428,24 +395,6 @@ export default function PersonCrud() {
                 </div>
               )}
 
-              <div className="person-list-stats">
-                <span className="person-count">
-                  {activeTab === 'active' 
-                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
-                    : deletedPersonsCount
-                  } {(activeTab === 'active' 
-                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
-                    : deletedPersonsCount) === 1 ? 'persona' : 'personas'} {activeTab === 'active' 
-                    ? (isSearchActive ? 'encontradas' : 'total') 
-                    : 'eliminadas'}
-                </span>
-                {activeTab === 'active' && !isSearchActive && (
-                  <span className="person-page-info">
-                    Página {currentPage}
-                  </span>
-                )}
-              </div>
-              
               {loading ? (
                 <div className="person-loading-state">
                   <div className="person-loading-icon">⏳</div>
@@ -580,40 +529,7 @@ export default function PersonCrud() {
 
             {/* Pagination Controls - Always visible at bottom */}
             {activeTab === 'active' && (
-              <div className="person-pagination">
-                <Button
-                  onClick={() => goToPage(currentPage - 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={currentPage === 1 || loading}
-                >
-                  ← Anterior
-                </Button>
-                
-                <span className="person-page-indicator">
-                  Página {currentPage} {totalPersons > 0 && `de ${Math.ceil(totalPersons / ITEMS_PER_PAGE)}`}
-                </span>
-                
-                <Button
-                  onClick={() => goToPage(currentPage + 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={!hasMore || loading}
-                >
-                  Siguiente →
-                </Button>
-                
-                {hasMore && (
-                  <Button
-                    onClick={loadMorePersons}
-                    variant="primary"
-                    size="sm"
-                    disabled={loading}
-                  >
-                    {loading ? "Cargando..." : "Cargar más"}
-                  </Button>
-                )}
-              </div>
+              <Pagination className="person-pagination" total={totalPersons} page={currentPage} totalPages={Math.ceil(totalPersons / ITEMS_PER_PAGE)} singularLabel="persona" pluralLabel="personas" loading={loading} onPageChange={goToPage} />
             )}
           </div>
         </Card>

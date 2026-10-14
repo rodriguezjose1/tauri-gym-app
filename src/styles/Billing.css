@@ -149,20 +149,12 @@
 .payment-table .reversed { opacity: .6; }
 
 .billing-pagination {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   margin: 0 -32px -32px;
-  padding: 14px 32px;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-light);
-  box-shadow: 0 -8px 20px rgb(0 0 0 / 8%);
+  padding-right: 32px;
+  padding-left: 32px;
 }
 
 .billing-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.billing-pagination-actions { display: flex; gap: 8px; }
 .billing-state { padding: 2.5rem; color: var(--text-secondary); text-align: center; }
 .billing-form { display: grid; gap: 1rem; }
 .reversal-dialog { display: grid; gap: 1.25rem; }
@@ -196,7 +188,6 @@
   .billing-main-card.is-compact .billing-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
   .billing-history-header { align-items: stretch; flex-direction: column; gap: 10px; }
   .billing-person-search { width: 100%; }
-  .billing-pagination { align-items: flex-start; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

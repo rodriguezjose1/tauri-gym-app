@@ -94,25 +94,6 @@
   justify-content: center;
 }
 
-.person-list-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #404040;
-}
-
-.person-count {
-  color: #b0b0b0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.person-page-info {
-  color: #808080;
-  font-size: 12px;
-}
 
 /* Search */
 .person-search-container {
@@ -255,24 +236,8 @@
 .person-pagination {
   position: sticky;
   bottom: 0;
-  background: var(--bg-primary, #1a1a1a);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid #404040;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 16px 24px;
   margin-top: auto;
-  flex-shrink: 0;
-}
-
-.person-page-indicator {
-  color: #b0b0b0;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 /* Delete Confirmation Modal */
@@ -323,12 +288,6 @@
     align-self: flex-start;
   }
   
-  .person-list-stats {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  
   .person-card {
     padding: 16px;
   }
@@ -345,16 +304,6 @@
     flex-direction: column;
   }
   
-  .person-pagination {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 8px;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  .person-page-indicator {
-    font-size: 12px;
-  }
 }
 
 /* Person Tabs */
@@ -474,17 +423,4 @@
     gap: 12px;
   }
   
-  .person-pagination {
-    padding: 8px 12px;
-    gap: 6px;
-  }
-  
-  .person-pagination button {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-  
-  .person-page-indicator {
-    font-size: 11px;
-  }
 }

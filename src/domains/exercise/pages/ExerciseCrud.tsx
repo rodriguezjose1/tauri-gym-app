@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ExerciseService, Exercise } from "../../../services";
-import { Button, Input, Title, Card, Modal } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, Pagination } from "../../../shared/components/base";
 import "../../../styles/ExerciseCrud.css";
 import { useToast } from '../../../shared/contexts/ToastContext';
 
@@ -17,7 +17,6 @@ export default function ExerciseCrud() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalExercises, setTotalExercises] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -78,18 +77,13 @@ export default function ExerciseCrud() {
   };
 
   // Reemplazo loadExercises para aceptar page y append
-  const loadExercises = async (page = 1, append = false) => {
+  const loadExercises = async (page = 1) => {
     setLoading(true);
     try {
       const result = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
-      if (append) {
-        setExercises(prev => [...prev, ...result.exercises]);
-      } else {
-        setExercises(result.exercises);
-      }
+      setExercises(result.exercises);
       setCurrentPage(page);
       setTotalExercises(result.total);
-      setHasMore(page < result.total_pages);
     } catch (error) {
       console.error("Error loading exercises:", error);
       addNotification('No se pudieron cargar los ejercicios.', 'error', 5000);
@@ -112,7 +106,7 @@ export default function ExerciseCrud() {
     }
   };
 
-  const searchExercises = useCallback(async (query: string, page = 1, append = false) => {
+  const searchExercises = useCallback(async (query: string, page = 1) => {
     try {
       setLoading(true);
       
@@ -124,21 +118,10 @@ export default function ExerciseCrud() {
 
       const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
       
-      if (response.exercises.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setExercises(prev => [...prev, ...response.exercises]);
-      } else {
-        setExercises(response.exercises);
-      }
+      setExercises(response.exercises);
       
       setCurrentPage(page);
       setTotalExercises(response.total);
-      setHasMore(page < response.total_pages);
     } catch (error) {
       console.error("Error searching exercises:", error);
       addNotification('No se pudo completar la búsqueda de ejercicios.', 'error', 5000);
@@ -147,24 +130,13 @@ export default function ExerciseCrud() {
     }
   }, []);
 
-  // Modifico loadMoreExercises para usar la nueva función
-  const loadMoreExercises = () => {
-    if (hasMore && !loading) {
-      if (isSearchActive) {
-        searchExercises(searchTerm, currentPage + 1, true);
-      } else {
-        loadExercises(currentPage + 1, true);
-      }
-    }
-  };
-
   // Modifico goToPage para usar la nueva función
   const goToPage = (page: number) => {
     if (page >= 1 && !loading) {
       if (isSearchActive) {
-        searchExercises(searchTerm, page, false);
+        searchExercises(searchTerm, page);
       } else {
-        loadExercises(page, false);
+        loadExercises(page);
       }
     }
   };
@@ -416,24 +388,6 @@ export default function ExerciseCrud() {
                 </div>
               </div>
 
-              <div className="exercise-list-stats">
-                <span className="exercise-count">
-                  {activeTab === 'active' 
-                    ? (isSearchActive ? displayedExercises.length : totalExercises) 
-                    : deletedExercisesCount
-                  } {(activeTab === 'active' 
-                    ? (isSearchActive ? displayedExercises.length : totalExercises) 
-                    : deletedExercisesCount) === 1 ? 'ejercicio' : 'ejercicios'} {activeTab === 'active' 
-                    ? (isSearchActive ? 'encontrados' : 'total') 
-                    : 'eliminados'}
-                </span>
-                {activeTab === 'active' && !isSearchActive && (
-                  <span className="exercise-page-info">
-                    Página {currentPage}
-                  </span>
-                )}
-              </div>
-              
               {loading ? (
                 <div className="exercise-loading-state">
                   <div className="exercise-loading-icon">⏳</div>
@@ -564,40 +518,7 @@ export default function ExerciseCrud() {
 
             {/* Pagination Controls - Always visible at bottom */}
             {activeTab === 'active' && (
-              <div className="exercise-pagination">
-                <Button
-                  onClick={() => goToPage(currentPage - 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={currentPage === 1 || loading}
-                >
-                  ← Anterior
-                </Button>
-                
-                <span className="exercise-page-indicator">
-                  Página {currentPage} {totalExercises > 0 && `de ${Math.ceil(totalExercises / ITEMS_PER_PAGE)}`}
-                </span>
-                
-                <Button
-                  onClick={() => goToPage(currentPage + 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={!hasMore || loading}
-                >
-                  Siguiente →
-                </Button>
-                
-                {hasMore && (
-                  <Button
-                    onClick={loadMoreExercises}
-                    variant="success"
-                    size="sm"
-                    disabled={loading}
-                  >
-                    {loading ? "Cargando..." : "Cargar más"}
-                  </Button>
-                )}
-              </div>
+              <Pagination className="exercise-pagination" total={totalExercises} page={currentPage} totalPages={Math.ceil(totalExercises / ITEMS_PER_PAGE)} singularLabel="ejercicio" pluralLabel="ejercicios" loading={loading} onPageChange={goToPage} />
             )}
           </div>
         </Card>

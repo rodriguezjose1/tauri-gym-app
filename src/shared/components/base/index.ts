@@ -5,4 +5,5 @@ export { Select } from './Select';
 export { Card } from './Card';
 export { Title } from './Title';
 export { Modal } from './Modal';
-export { ErrorMessage } from './ErrorMessage'; 
+export { ErrorMessage } from './ErrorMessage';
+export { Pagination } from './Pagination';

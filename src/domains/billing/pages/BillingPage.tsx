@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { Button, Card, ErrorMessage, Input, Modal, Select, Title } from '../../../shared/components/base';
+import { Button, Card, ErrorMessage, Input, Modal, Pagination, Select, Title } from '../../../shared/components/base';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { PaymentDialog } from '../components/PaymentDialog';
 import { BillingService, type Payment, type PaymentPage } from '../services/billingService';
@@ -155,7 +155,7 @@ export default function BillingPage() {
                 ))}</tbody></table></div>
               )}
             </div>
-            <div className="billing-pagination"><span>{data?.total || 0} registros · Página {data?.page || 1} de {Math.max(data?.total_pages || 0, 1)}</span><span className="billing-pagination-actions"><Button size="sm" variant="secondary" disabled={loading || page <= 1} onClick={() => changePage(page - 1)}>Anterior</Button><Button size="sm" variant="secondary" disabled={loading || !data || page >= data.total_pages} onClick={() => changePage(page + 1)}>Siguiente</Button></span></div>
+            <Pagination className="billing-pagination" total={data?.total || 0} page={data?.page || 1} totalPages={data?.total_pages || 0} singularLabel="pago" pluralLabel="pagos" loading={loading} onPageChange={changePage} />
           </section>
         </Card>
       </div>
