@@ -1,4 +1,4 @@
-use crate::models::person::Person;
+use crate::models::person::{DeletedPerson, Person};
 use crate::repository::person_repository::PersonRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
 
@@ -380,7 +380,7 @@ impl PersonRepository for SqlitePersonRepository {
         transaction.commit().map_err(|e| e.to_string())
     }
 
-    fn list_deleted(&self) -> Result<Vec<Person>, String> {
+    fn list_deleted(&self) -> Result<Vec<DeletedPerson>, String> {
         if self.is_dummy {
             return Ok(Vec::new());
         }
@@ -388,25 +388,59 @@ impl PersonRepository for SqlitePersonRepository {
 
         let mut stmt = conn
             .prepare(
-                "SELECT id, name, last_name, phone FROM people
+                "SELECT id, name, last_name, phone, deleted_at FROM people
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             ORDER BY deleted_at DESC",
+             ORDER BY name COLLATE NOCASE, last_name COLLATE NOCASE, id",
             )
             .map_err(|e| e.to_string())?;
 
         let person_iter = stmt
             .query_map([], |row| {
-                Ok(Person {
+                Ok(DeletedPerson {
                     id: Some(row.get(0)?),
                     name: row.get(1)?,
                     last_name: row.get(2)?,
                     phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
                 })
             })
             .map_err(|e| e.to_string())?;
         person_iter
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
+    }
+
+    fn list_deleted_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,last_name,phone,deleted_at FROM people
+                 WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+                 ORDER BY name COLLATE NOCASE,last_name COLLATE NOCASE,id LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(DeletedPerson {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
     }
 
     fn count_deleted(&self) -> Result<i32, String> {

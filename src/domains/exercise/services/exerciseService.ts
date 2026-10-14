@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Exercise, PaginatedExerciseResponse } from "../../../shared/types/dashboard";
+import { DeletedExercise, Exercise, PaginatedDeletedExerciseResponse, PaginatedExerciseResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createExercise: "create_exercise",
@@ -10,6 +10,7 @@ const requestNames = {
   deleteExercise: "delete_exercise",
   restoreExercise: "restore_exercise",
   getDeletedExercises: "get_deleted_exercises",
+  getDeletedExercisesPaginated: "get_deleted_exercises_paginated",
   countDeletedExercises: "count_deleted_exercises"
 };
 
@@ -107,12 +108,21 @@ export class ExerciseService {
   /**
    * Obtiene todos los ejercicios eliminados lógicamente
    */
-  static async getDeletedExercises(): Promise<Exercise[]> {
+  static async getDeletedExercises(): Promise<DeletedExercise[]> {
     try {
       return await invoke(requestNames.getDeletedExercises);
     } catch (error) {
       console.error("Error getting deleted exercises:", error);
       throw new Error(`Error al obtener ejercicios eliminados: ${error}`);
+    }
+  }
+
+  static async getDeletedExercisesPaginated(page: number, pageSize: number): Promise<PaginatedDeletedExerciseResponse> {
+    try {
+      return await invoke(requestNames.getDeletedExercisesPaginated, { page, pageSize }) as PaginatedDeletedExerciseResponse;
+    } catch (error) {
+      console.error("Error getting paginated deleted exercises:", error);
+      throw new Error(`Error al obtener los ejercicios eliminados paginados: ${error}`);
     }
   }
 
@@ -127,4 +137,4 @@ export class ExerciseService {
       throw new Error(`Error al contar ejercicios eliminados: ${error}`);
     }
   }
-} 
+}

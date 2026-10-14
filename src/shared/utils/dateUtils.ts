@@ -81,3 +81,20 @@ export const isToday = (date: Date): boolean => {
 export const getCurrentDateString = (): string => {
   return formatDateForDB(new Date());
 };
+
+/** Formats persisted SQLite/ISO timestamps for display in the user's local timezone. */
+export const formatDateTimeForDisplay = (dateString: string): string => {
+  const normalized = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/.test(dateString)
+    ? `${dateString.replace(' ', 'T')}Z`
+    : dateString;
+  const date = new Date(normalized);
+  if (!Number.isFinite(date.getTime())) return 'Fecha no disponible';
+
+  return new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};

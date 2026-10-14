@@ -98,9 +98,21 @@ fn restore_person(service: State<'_, PersonService>, id: i32) -> Result<(), Stri
 }
 
 #[tauri::command]
-fn get_deleted_people(service: State<'_, PersonService>) -> Result<Vec<Person>, String> {
+fn get_deleted_people(
+    service: State<'_, PersonService>,
+) -> Result<Vec<models::person::DeletedPerson>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_deleted_people()
+}
+
+#[tauri::command]
+fn get_deleted_people_paginated(
+    service: State<'_, PersonService>,
+    page: i32,
+    page_size: i32,
+) -> Result<models::person::PaginatedDeletedPersonResponse, String> {
+    let _operation = OperationGuard::begin()?;
+    service.list_deleted_people_paginated(page, page_size)
 }
 
 #[tauri::command]
@@ -151,9 +163,21 @@ fn restore_exercise(service: State<'_, ExerciseService>, id: i32) -> Result<(), 
 }
 
 #[tauri::command]
-fn get_deleted_exercises(service: State<'_, ExerciseService>) -> Result<Vec<Exercise>, String> {
+fn get_deleted_exercises(
+    service: State<'_, ExerciseService>,
+) -> Result<Vec<models::exercise::DeletedExercise>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_deleted_exercises()
+}
+
+#[tauri::command]
+fn get_deleted_exercises_paginated(
+    service: State<'_, ExerciseService>,
+    page: i32,
+    page_size: i32,
+) -> Result<models::exercise::PaginatedDeletedExerciseResponse, String> {
+    let _operation = OperationGuard::begin()?;
+    service.list_deleted_exercises_paginated(page, page_size)
 }
 
 #[tauri::command]
@@ -710,6 +734,7 @@ fn main() {
             delete_person,
             restore_person,
             get_deleted_people,
+            get_deleted_people_paginated,
             count_deleted_people,
             update_person,
             // Exercise commands
@@ -719,6 +744,7 @@ fn main() {
             delete_exercise,
             restore_exercise,
             get_deleted_exercises,
+            get_deleted_exercises_paginated,
             count_deleted_exercises,
             update_exercise,
             search_exercises_paginated,

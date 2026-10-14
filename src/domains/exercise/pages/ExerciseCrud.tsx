@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ExerciseService, Exercise } from "../../../services";
+import type { DeletedExercise } from "../../../shared/types/dashboard";
+import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
 import { Button, Input, Title, Card, Modal, Pagination } from "../../../shared/components/base";
 import "../../../styles/ExerciseCrud.css";
 import { useToast } from '../../../shared/contexts/ToastContext';
@@ -8,8 +10,9 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ExerciseCrud() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [deletedExercises, setDeletedExercises] = useState<Exercise[]>([]);
+  const [deletedExercises, setDeletedExercises] = useState<DeletedExercise[]>([]);
   const [deletedExercisesCount, setDeletedExercisesCount] = useState(0);
+  const [deletedPage, setDeletedPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", code: "" });
@@ -54,9 +57,9 @@ export default function ExerciseCrud() {
   // Load data when tab changes
   useEffect(() => {
     if (activeTab === 'active') {
-      loadExercises();
+      loadExercises(currentPage);
     } else {
-      loadDeletedExercises();
+      loadDeletedExercises(deletedPage);
     }
   }, [activeTab]);
 
@@ -92,12 +95,13 @@ export default function ExerciseCrud() {
     }
   };
 
-  const loadDeletedExercises = async () => {
+  const loadDeletedExercises = async (page = 1) => {
     setLoading(true);
     try {
-      const result = await ExerciseService.getDeletedExercises();
-      setDeletedExercises(result);
-      setDeletedExercisesCount(result.length);
+      const result = await ExerciseService.getDeletedExercisesPaginated(page, ITEMS_PER_PAGE);
+      setDeletedExercises(result.exercises);
+      setDeletedExercisesCount(result.total);
+      setDeletedPage(result.page);
     } catch (error) {
       console.error("Error loading deleted exercises:", error);
       addNotification('No se pudieron cargar los ejercicios eliminados.', 'error', 5000);
@@ -277,8 +281,9 @@ export default function ExerciseCrud() {
     try {
       setLoading(true);
       await ExerciseService.restoreExercise(restoreConfirm.exerciseId);
-      setDeletedExercises(prev => prev.filter(e => e.id !== restoreConfirm.exerciseId));
-      setDeletedExercisesCount(prev => prev - 1);
+      const remaining = Math.max(deletedExercisesCount - 1, 0);
+      const targetPage = Math.min(deletedPage, Math.max(Math.ceil(remaining / ITEMS_PER_PAGE), 1));
+      await loadDeletedExercises(targetPage);
       setTotalExercises(prev => prev + 1);
       setRestoreConfirm({ show: false, exerciseId: null, exerciseName: "" });
       addNotification(`Ejercicio "${restoreConfirm.exerciseName}" restaurado.`, 'success', 5000);
@@ -496,7 +501,7 @@ export default function ExerciseCrud() {
                             🏷️ {exercise.code}
                           </p>
                           <p className="exercise-deleted-status">
-                            🗑️ Eliminado
+                            Eliminado el {formatDateTimeForDisplay(exercise.deleted_at)}
                           </p>
                         </div>
                         
@@ -517,8 +522,10 @@ export default function ExerciseCrud() {
             </div>
 
             {/* Pagination Controls - Always visible at bottom */}
-            {activeTab === 'active' && (
+            {activeTab === 'active' ? (
               <Pagination className="exercise-pagination" total={totalExercises} page={currentPage} totalPages={Math.ceil(totalExercises / ITEMS_PER_PAGE)} singularLabel="ejercicio" pluralLabel="ejercicios" loading={loading} onPageChange={goToPage} />
+            ) : (
+              <Pagination className="exercise-pagination" total={deletedExercisesCount} page={deletedPage} totalPages={Math.ceil(deletedExercisesCount / ITEMS_PER_PAGE)} singularLabel="ejercicio eliminado" pluralLabel="ejercicios eliminados" loading={loading} onPageChange={loadDeletedExercises} />
             )}
           </div>
         </Card>

@@ -1,4 +1,4 @@
-use crate::models::exercise::Exercise;
+use crate::models::exercise::{DeletedExercise, Exercise};
 use crate::repository::exercise_repository::ExerciseRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
 
@@ -95,6 +95,27 @@ impl SqliteExerciseRepository {
         let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
         let rows = stmt
             .query_map(values, Self::map_exercise)
+            .map_err(|e| e.to_string())?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    fn query_deleted_list(
+        &self,
+        sql: &str,
+        values: &[&dyn rusqlite::ToSql],
+    ) -> Result<Vec<DeletedExercise>, String> {
+        let conn = self.connection()?;
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(values, |row| {
+                Ok(DeletedExercise {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    deleted_at: row.get(3)?,
+                })
+            })
             .map_err(|e| e.to_string())?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
@@ -208,10 +229,23 @@ impl ExerciseRepository for SqliteExerciseRepository {
             .map_err(|e| e.to_string())
     }
 
-    fn list_deleted(&self) -> Result<Vec<Exercise>, String> {
-        self.query_list(
-            "SELECT id, name, code FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0 ORDER BY deleted_at DESC",
+    fn list_deleted(&self) -> Result<Vec<DeletedExercise>, String> {
+        self.query_deleted_list(
+            "SELECT id, name, code, deleted_at FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0 ORDER BY name COLLATE NOCASE,id",
             &[],
+        )
+    }
+
+    fn list_deleted_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedExercise>, String> {
+        let limit = page_size.to_string();
+        let offset = ((page - 1) * page_size).to_string();
+        self.query_deleted_list(
+            "SELECT id,name,code,deleted_at FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0 ORDER BY name COLLATE NOCASE,id LIMIT ?1 OFFSET ?2",
+            &[&limit, &offset],
         )
     }
 

@@ -1,4 +1,6 @@
-use crate::models::person::{PaginatedPersonResponse, Person};
+use crate::models::person::{
+    DeletedPerson, PaginatedDeletedPersonResponse, PaginatedPersonResponse, Person,
+};
 use crate::repository::person_repository::PersonRepository;
 use std::sync::Arc;
 
@@ -133,11 +135,36 @@ impl PersonService {
         self.repository.restore(id)
     }
 
-    pub fn list_deleted_people(&self) -> Result<Vec<Person>, String> {
+    pub fn list_deleted_people(&self) -> Result<Vec<DeletedPerson>, String> {
         self.repository.list_deleted()
     }
 
     pub fn count_deleted_people(&self) -> Result<i32, String> {
         self.repository.count_deleted()
+    }
+
+    pub fn list_deleted_people_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedDeletedPersonResponse, String> {
+        Self::validate_pagination(page, page_size)?;
+        let total = self.repository.count_deleted()?;
+        let total_pages = (total + page_size - 1) / page_size;
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let persons = self
+            .repository
+            .list_deleted_paginated(effective_page, page_size)?;
+        Ok(PaginatedDeletedPersonResponse {
+            persons,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
     }
 }

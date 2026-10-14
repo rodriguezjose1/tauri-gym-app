@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PersonService, Person } from "../../../services";
+import type { DeletedPerson } from "../../../shared/types/dashboard";
+import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
 import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination } from "../../../shared/components/base";
 import "../../../styles/PersonCrud.css";
 import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
@@ -9,8 +11,9 @@ const ITEMS_PER_PAGE = 10;
 
 export default function PersonCrud() {
   const [persons, setPersons] = useState<Person[]>([]);
-  const [deletedPersons, setDeletedPersons] = useState<Person[]>([]);
+  const [deletedPersons, setDeletedPersons] = useState<DeletedPerson[]>([]);
   const [deletedPersonsCount, setDeletedPersonsCount] = useState(0);
+  const [deletedPage, setDeletedPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
@@ -58,9 +61,9 @@ export default function PersonCrud() {
   // Load data when tab changes
   useEffect(() => {
     if (activeTab === 'active') {
-      loadPersons();
+      loadPersons(currentPage);
     } else {
-      loadDeletedPersons();
+      loadDeletedPersons(deletedPage);
     }
   }, [activeTab]);
 
@@ -80,13 +83,14 @@ export default function PersonCrud() {
     setIsSearchActive(false);
   };
 
-  const loadDeletedPersons = async () => {
+  const loadDeletedPersons = async (page = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await PersonService.getDeletedPeople();
-      setDeletedPersons(result);
-      setDeletedPersonsCount(result.length);
+      const result = await PersonService.getDeletedPeoplePaginated(page, ITEMS_PER_PAGE);
+      setDeletedPersons(result.persons);
+      setDeletedPersonsCount(result.total);
+      setDeletedPage(result.page);
     } catch (error) {
       console.error("Error loading deleted persons:", error);
       setError("No se pudieron cargar las personas eliminadas.");
@@ -279,8 +283,9 @@ export default function PersonCrud() {
       setLoading(true);
       setError(null);
       await PersonService.restorePerson(restoreConfirm.personId);
-      setDeletedPersons(prev => prev.filter(p => p.id !== restoreConfirm.personId));
-      setDeletedPersonsCount(prev => prev - 1);
+      const remaining = Math.max(deletedPersonsCount - 1, 0);
+      const targetPage = Math.min(deletedPage, Math.max(Math.ceil(remaining / ITEMS_PER_PAGE), 1));
+      await loadDeletedPersons(targetPage);
       setTotalPersons(prev => prev + 1);
       setRestoreConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
@@ -507,7 +512,7 @@ export default function PersonCrud() {
                             <p className="person-phone">Tel: {person.phone}</p>
                           )}
                           <p className="person-deleted-status">
-                            Inactivo
+                            Eliminada el {formatDateTimeForDisplay(person.deleted_at)}
                           </p>
                         </div>
                         
@@ -528,8 +533,10 @@ export default function PersonCrud() {
             </div>
 
             {/* Pagination Controls - Always visible at bottom */}
-            {activeTab === 'active' && (
+            {activeTab === 'active' ? (
               <Pagination className="person-pagination" total={totalPersons} page={currentPage} totalPages={Math.ceil(totalPersons / ITEMS_PER_PAGE)} singularLabel="persona" pluralLabel="personas" loading={loading} onPageChange={goToPage} />
+            ) : (
+              <Pagination className="person-pagination" total={deletedPersonsCount} page={deletedPage} totalPages={Math.ceil(deletedPersonsCount / ITEMS_PER_PAGE)} singularLabel="persona eliminada" pluralLabel="personas eliminadas" loading={loading} onPageChange={loadDeletedPersons} />
             )}
           </div>
         </Card>

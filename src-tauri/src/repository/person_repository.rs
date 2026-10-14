@@ -1,4 +1,4 @@
-use crate::models::person::Person;
+use crate::models::person::{DeletedPerson, Person};
 
 pub trait PersonRepository: Send + Sync {
     fn create(&self, person: Person) -> Result<(), String>;
@@ -17,6 +17,11 @@ pub trait PersonRepository: Send + Sync {
     ) -> Result<Vec<Person>, String>;
     fn count_all(&self) -> Result<i32, String>;
     fn search_count(&self, query: &str) -> Result<i32, String>;
-    fn list_deleted(&self) -> Result<Vec<Person>, String>;
+    fn list_deleted(&self) -> Result<Vec<DeletedPerson>, String>;
+    fn list_deleted_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String>;
     fn count_deleted(&self) -> Result<i32, String>;
 }

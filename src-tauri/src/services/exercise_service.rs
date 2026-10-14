@@ -1,4 +1,6 @@
-use crate::models::exercise::{Exercise, PaginatedExerciseResponse};
+use crate::models::exercise::{
+    DeletedExercise, Exercise, PaginatedDeletedExerciseResponse, PaginatedExerciseResponse,
+};
 use crate::repository::exercise_repository::ExerciseRepository;
 use std::sync::Arc;
 
@@ -84,11 +86,36 @@ impl ExerciseService {
         self.repository.update(exercise)
     }
 
-    pub fn list_deleted_exercises(&self) -> Result<Vec<Exercise>, String> {
+    pub fn list_deleted_exercises(&self) -> Result<Vec<DeletedExercise>, String> {
         self.repository.list_deleted()
     }
     pub fn count_deleted_exercises(&self) -> Result<i32, String> {
         self.repository.count_deleted()
+    }
+
+    pub fn list_deleted_exercises_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<PaginatedDeletedExerciseResponse, String> {
+        Self::validate_pagination(page, page_size)?;
+        let total = self.repository.count_deleted()?;
+        let total_pages = (total + page_size - 1) / page_size;
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let exercises = self
+            .repository
+            .list_deleted_paginated(effective_page, page_size)?;
+        Ok(PaginatedDeletedExerciseResponse {
+            exercises,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
     }
 
     pub fn search_exercises_paginated(

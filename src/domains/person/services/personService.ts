@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
+import { DeletedPerson, PaginatedDeletedPersonResponse, Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createPerson: "create_person",
@@ -13,6 +13,7 @@ const requestNames = {
   deletePerson: "delete_person",
   restorePerson: "restore_person",
   getDeletedPeople: "get_deleted_people",
+  getDeletedPeoplePaginated: "get_deleted_people_paginated",
   countDeletedPeople: "count_deleted_people"
 };
 
@@ -140,12 +141,21 @@ export class PersonService {
   /**
    * Obtiene todas las personas eliminadas lógicamente
    */
-  static async getDeletedPeople(): Promise<Person[]> {
+  static async getDeletedPeople(): Promise<DeletedPerson[]> {
     try {
       return await invoke(requestNames.getDeletedPeople);
     } catch (error) {
       console.error("Error getting deleted people:", error);
       throw new Error(`Error al obtener personas eliminadas: ${error}`);
+    }
+  }
+
+  static async getDeletedPeoplePaginated(page: number, pageSize: number): Promise<PaginatedDeletedPersonResponse> {
+    try {
+      return await invoke(requestNames.getDeletedPeoplePaginated, { page, pageSize }) as PaginatedDeletedPersonResponse;
+    } catch (error) {
+      console.error("Error getting paginated deleted people:", error);
+      throw new Error(`Error al obtener las personas eliminadas paginadas: ${error}`);
     }
   }
 
@@ -160,4 +170,4 @@ export class PersonService {
       throw new Error(`Error al contar personas eliminadas: ${error}`);
     }
   }
-} 
+}
