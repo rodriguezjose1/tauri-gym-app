@@ -9,13 +9,19 @@ interface PersonSearchProps {
   onPersonSelect: (person: Person) => void;
   onClearSelection: () => void;
   placeholder?: string;
+  autoFocus?: boolean;
+  focusRequest?: number;
+  changeShortcutLabel?: string;
 }
 
 export const PersonSearch: React.FC<PersonSearchProps> = ({
   selectedPerson,
   onPersonSelect,
   onClearSelection,
-  placeholder = "🔍 Buscar persona..."
+  placeholder = "🔍 Buscar persona...",
+  autoFocus = false,
+  focusRequest = 0,
+  changeShortcutLabel,
 }) => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,6 +35,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   const requestId = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -192,6 +199,15 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (focusRequest <= 0) return;
+    setShowSearchInput(true);
+  }, [focusRequest]);
+
+  useEffect(() => {
+    if (focusRequest > 0 && (!selectedPerson || showSearchInput)) searchInputRef.current?.focus();
+  }, [focusRequest, selectedPerson, showSearchInput]);
+
   // Show search input when no person is selected OR when user clicked "Cambiar"
   if (!selectedPerson || showSearchInput) {
     return (
@@ -199,6 +215,8 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
         <div ref={dropdownRef} className="person-search-input-container">
           <div className="person-search-input-wrapper">
             <Input
+              inputRef={searchInputRef}
+              autoFocus={autoFocus}
               label=""
               placeholder={placeholder}
               value={searchTerm}
@@ -292,6 +310,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
         </div>
         <Button
           onClick={handleChangeUser}
+          title={changeShortcutLabel ? `Atajo: ${changeShortcutLabel}` : undefined}
           variant="secondary"
           size="sm"
         >

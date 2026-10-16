@@ -78,6 +78,7 @@ interface WeeklyCalendarProps {
   onSelectedDateChange?: (date: string) => void;
   handlePersonSelect: (person: any) => void;
   handleClearSelection: () => void;
+  personSearchFocusRequest?: number;
 }
 
 export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
@@ -91,7 +92,8 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   onDayRightClick,
   onSelectedDateChange,
   handlePersonSelect,
-  handleClearSelection
+  handleClearSelection,
+  personSearchFocusRequest = 0,
 }) => {
   const [emptyGroups, setEmptyGroups] = useState<{ [key: string]: number[] }>({});
   const currentWorkoutData = workoutData || [];
@@ -140,6 +142,8 @@ export const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                 selectedPerson={selectedPerson}
                 onPersonSelect={handlePersonSelect}
                 onClearSelection={handleClearSelection}
+                focusRequest={personSearchFocusRequest}
+                changeShortcutLabel="Ctrl+B"
               />
             </div>
             

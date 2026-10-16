@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../../shared/components/base';
 import { ManagementPageHeader } from '../../../shared/components/management';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
@@ -18,6 +18,20 @@ export default function DashboardRefactored() {
     operations,
     handlers
   } = useDashboardController();
+  const [personSearchFocusRequest, setPersonSearchFocusRequest] = useState(0);
+
+  useEffect(() => {
+    const focusPersonSearch = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'b') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable)) return;
+      if (document.querySelector('.ui-modal-overlay')) return;
+      event.preventDefault();
+      setPersonSearchFocusRequest((request) => request + 1);
+    };
+    document.addEventListener('keydown', focusPersonSearch);
+    return () => document.removeEventListener('keydown', focusPersonSearch);
+  }, []);
 
   // Removed unnecessary exercise loading - ExerciseSearch handles its own paginated loading
 
@@ -53,6 +67,7 @@ export default function DashboardRefactored() {
             onSelectedDateChange={data.setSelectedDate}
             handlePersonSelect={data.handlePersonSelect}
             handleClearSelection={handlers.clearSelection}
+            personSearchFocusRequest={personSearchFocusRequest}
           />
         </Card>
       </div>

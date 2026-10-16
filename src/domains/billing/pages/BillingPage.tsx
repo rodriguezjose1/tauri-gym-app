@@ -53,6 +53,18 @@ export default function BillingPage() {
   }, [month, personQuery]);
 
   useEffect(() => { setPage(1); void load(1); }, [month, personQuery, load]);
+  useEffect(() => {
+    const openPaymentDialog = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'p') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable)) return;
+      if (showPayment || reversing || document.querySelector('.ui-modal-overlay')) return;
+      event.preventDefault();
+      setShowPayment(true);
+    };
+    document.addEventListener('keydown', openPaymentDialog);
+    return () => document.removeEventListener('keydown', openPaymentDialog);
+  }, [showPayment, reversing]);
   const changeMonth = (value: string | number) => {
     setMonth(String(value));
     if (historyScrollRef.current) historyScrollRef.current.scrollTop = 0;
@@ -86,7 +98,7 @@ export default function BillingPage() {
       <div className="billing-page-content">
         <Card variant="elevated" padding="md" className={`billing-main-card management-page-card${compactHeader ? ' is-compact' : ''}`}>
           <div className="billing-toolbar management-page-controls">
-            <div className="billing-heading"><ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-register-action"><Button onClick={() => setShowPayment(true)}>{billingTexts.page.register}</Button></div>} /></div>
+            <div className="billing-heading"><ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-register-action"><Button onClick={() => setShowPayment(true)} title="Atajo: Ctrl+P">{billingTexts.page.register}</Button></div>} /></div>
             <div className="billing-summary">
             <Select label="Período" value={month} options={periodOptions()} onChange={changeMonth} fullWidth />
             <div className="billing-metric"><span>Recaudado en el mes</span><strong>{loading ? '—' : money.format((data?.collected_cents || 0) / 100)}</strong></div>

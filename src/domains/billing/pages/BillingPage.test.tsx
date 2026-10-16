@@ -195,3 +195,26 @@ test('busca por persona, conserva el filtro al paginar y permite limpiarlo', asy
     }),
   );
 });
+
+test('abre Registrar pago con Ctrl+P y no intercepta el atajo mientras se escribe', async () => {
+  const user = userEvent.setup();
+  render(
+    <ToastProvider>
+      <BillingPage />
+    </ToastProvider>,
+  );
+
+  await screen.findByText('Ana Test');
+  const search = screen.getByRole('textbox', { name: 'Buscar pagos por persona' });
+  search.focus();
+  await user.keyboard('{Control>}p{/Control}');
+  expect(screen.queryByRole('heading', { name: 'Registrar pago' })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('heading', { name: 'Pagos' }));
+  await user.keyboard('{Control>}p{/Control}');
+  expect(screen.getByRole('heading', { name: 'Registrar pago' })).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('🔍 Buscar persona...')).toHaveFocus();
+
+  await user.keyboard('{Control>}p{/Control}');
+  expect(screen.getAllByRole('heading', { name: 'Registrar pago' })).toHaveLength(1);
+});

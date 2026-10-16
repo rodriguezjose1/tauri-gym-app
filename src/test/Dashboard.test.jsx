@@ -46,6 +46,19 @@ describe('Dashboard: selección y calendario', () => {
     expect(screen.getByText('Flexiones')).toBeInTheDocument()
   })
 
+  it('Ctrl+B abre o enfoca la búsqueda de persona sin usar el mouse', async () => {
+    sessionStorage.setItem(storageKey, JSON.stringify(person))
+    const user = userEvent.setup()
+    await renderDashboard()
+
+    expect(screen.getByRole('button', { name: 'Cambiar' })).toHaveAttribute('title', 'Atajo: Ctrl+B')
+    await user.keyboard('{Control>}b{/Control}')
+    expect(screen.getByPlaceholderText(/buscar persona/i)).toHaveFocus()
+
+    await user.keyboard('Ana')
+    expect(screen.getByPlaceholderText(/buscar persona/i)).toHaveValue('Ana')
+  })
+
   it('cambiar persona reemplaza entrenamientos y selección guardada', async () => {
     sessionStorage.setItem(storageKey, JSON.stringify(person))
     backend.entries.push({ ...backend.entries[0], id: 20, person_id: 2, exercise_name: 'Sentadillas' })

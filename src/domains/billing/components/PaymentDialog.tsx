@@ -156,6 +156,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
           selectedPerson={person}
           onPersonSelect={choosePerson}
           onClearSelection={() => choosePerson(null)}
+          autoFocus
         />
         <Select
           label="Modalidad"

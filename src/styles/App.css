@@ -103,6 +103,10 @@
   background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
 }
 
+.nav-link.active.payments {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+}
+
 .nav-link.active.persons {
   background: linear-gradient(135deg, var(--info-color) 0%, var(--accent-secondary) 100%);
 }

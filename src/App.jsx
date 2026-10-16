@@ -27,7 +27,7 @@ function Navigation() {
 
         <ul className="nav-links">
           <li>
-            <Link to="/pagos" className={`nav-link ${location.pathname === '/pagos' ? 'active' : ''}`}>
+            <Link to="/pagos" className={`nav-link ${location.pathname === '/pagos' ? 'active payments' : ''}`}>
               <span className="nav-link-icon">💳</span>
               Pagos
             </Link>
