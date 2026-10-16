@@ -74,7 +74,7 @@
 
 @media (max-width: 900px) {
   .management-toolbar { align-items: stretch; flex-wrap: wrap; }
-  .management-toolbar__controls { flex-basis: 100%; justify-content: stretch; }
+  .management-toolbar__controls { flex-basis: 100%; flex-wrap: wrap; justify-content: stretch; }
   .management-toolbar__search { width: 100%; max-width: none; }
 }
 

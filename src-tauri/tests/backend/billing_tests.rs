@@ -87,6 +87,44 @@ fn plans_are_paginated_in_the_backend_and_out_of_range_pages_are_clamped() {
 }
 
 #[test]
+fn active_people_payment_filters_counts_search_and_paginate_consistently() {
+    let (_d, path, service) = fixture();
+    let connection = Connection::open(&path).unwrap();
+    for name in ["Actual", "Pendiente", "Vencido", "Inactivo", "Vencido Dos"] {
+        connection.execute("INSERT INTO people(name,last_name,phone) VALUES(?1,'Test','1')", [name]).unwrap();
+    }
+    connection.execute("UPDATE people SET is_active=0,deleted_at=datetime('now') WHERE name='Inactivo'", []).unwrap();
+    drop(connection);
+
+    let monthly = plan(&service, "Mensual filtros", "monthly", 40000);
+    let current = local_period(&path);
+    let previous = adjacent_period(&current, -1);
+    let future = adjacent_period(&current, 1);
+    for person_id in [2, 3, 4, 6] {
+        service.record_payment(PaymentRequest { person_id, modality: "monthly".into(), period: Some(current.clone()), plan_id: monthly, amount_cents: 40000 }).unwrap();
+    }
+    let connection = Connection::open(&path).unwrap();
+    connection.execute("INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(3,?1,?2,40000)", rusqlite::params![future, monthly]).unwrap();
+    for person_id in [4, 6] {
+        connection.execute("INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(?1,?2,?3,40000)", rusqlite::params![person_id, previous, monthly]).unwrap();
+        connection.execute("INSERT INTO obligations(person_id,period,plan_id,amount_cents) VALUES(?1,?2,?3,40000)", rusqlite::params![person_id, future, monthly]).unwrap();
+    }
+    drop(connection);
+
+    let counts = service.payment_status_counts().unwrap();
+    assert_eq!((counts.all, counts.overdue, counts.pending, counts.current, counts.no_plan), (5, 2, 1, 1, 1));
+    for (status, expected) in [("overdue", 2), ("pending", 1), ("current", 1), ("no_plan", 1)] {
+        let page = service.persons_payment_page("", status, 1, 10).unwrap();
+        assert_eq!(page.total, expected);
+        assert!(page.persons.iter().all(|person| person.payment_status == status));
+    }
+    let searched = service.persons_payment_page("dos", "overdue", 1, 10).unwrap();
+    assert_eq!((searched.total, searched.persons[0].person.name.as_str()), (1, "Vencido Dos"));
+    let second = service.persons_payment_page("", "overdue", 2, 1).unwrap();
+    assert_eq!((second.total, second.total_pages, second.page, second.persons.len()), (2, 2, 2, 1));
+}
+
+#[test]
 fn reconciliation_recovers_missing_months_and_is_idempotent() {
     let (_d, path, service) = fixture();
     activity(&path, "2026-10", None);

@@ -715,6 +715,26 @@ fn get_person_payment_statuses(
     let _operation = OperationGuard::begin()?;
     service.payment_statuses(&person_ids)
 }
+
+#[tauri::command]
+fn get_persons_payment_page(
+    service: State<'_, BillingService>,
+    query: String,
+    payment_status: String,
+    page: i64,
+    page_size: i64,
+) -> Result<models::billing::PersonPaymentPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.persons_payment_page(&query, &payment_status, page, page_size)
+}
+
+#[tauri::command]
+fn get_payment_status_counts(
+    service: State<'_, BillingService>,
+) -> Result<models::billing::PaymentStatusCounts, String> {
+    let _operation = OperationGuard::begin()?;
+    service.payment_status_counts()
+}
 #[tauri::command]
 fn get_person_payment_history(
     service: State<'_, BillingService>,
@@ -849,6 +869,8 @@ fn main() {
             dev_apply_payment_periods,
             dev_rollback_payment_periods,
             get_person_payment_statuses,
+            get_persons_payment_page,
+            get_payment_status_counts,
             get_person_payment_history,
             set_payment_period_excluded
         ])

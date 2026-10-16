@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PersonService, Person } from "../../../services";
 import type { DeletedPerson } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
-import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput } from "../../../shared/components/base";
+import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput, Select } from "../../../shared/components/base";
 import { ManagementPageHeader, ManagementToolbar } from "../../../shared/components/management";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/PersonCrud.css";
-import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
+import { BillingService, type PaymentStatus, type PaymentStatusCounts } from '../../billing/services/billingService';
 import { PersonPaymentProfile } from '../../billing/components/PersonPaymentProfile';
 
 const ITEMS_PER_PAGE = 10;
+type PaymentStatusFilter = PaymentStatus | 'all';
+const PAYMENT_STATUS_LABELS: Record<PaymentStatusFilter, string> = { all: 'Todas', overdue: 'Vencidos', pending: 'Pendientes', current: 'Al día', no_plan: 'Sin plan determinado' };
+const isPaymentStatusFilter = (value: string | null): value is PaymentStatusFilter => Boolean(value && Object.prototype.hasOwnProperty.call(PAYMENT_STATUS_LABELS, value));
 
 export default function PersonCrud() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [persons, setPersons] = useState<Person[]>([]);
   const [deletedPersons, setDeletedPersons] = useState<DeletedPerson[]>([]);
   const [deletedPersonsCount, setDeletedPersonsCount] = useState(0);
@@ -20,6 +25,7 @@ export default function PersonCrud() {
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
   const searchQuery = searchTerm.trim() ? debouncedSearch : '';
   const requestId = useRef(0);
+  const countsRequestId = useRef(0);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,16 +46,27 @@ export default function PersonCrud() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
   const [paymentStatuses, setPaymentStatuses] = useState<Record<number, PaymentStatus>>({});
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>(() => {
+    const value = new URLSearchParams(window.location.search).get('paymentStatus');
+    return isPaymentStatusFilter(value) ? value : 'all';
+  });
+  const [statusCounts, setStatusCounts] = useState<PaymentStatusCounts | null>(null);
+  const [countsLoading, setCountsLoading] = useState(false);
+  const [countsError, setCountsError] = useState(false);
   const [profilePerson, setProfilePerson] = useState<Person | null>(null);
 
-  const loadPaymentStatuses = async (items: Person[]) => {
-    const ids = items.flatMap((person) => person.id ? [person.id] : []);
-    if (ids.length === 0) { setPaymentStatuses({}); return; }
+  const loadStatusCounts = async () => {
+    const id = ++countsRequestId.current;
+    setCountsLoading(true);
+    setCountsError(false);
     try {
-      const statuses = await BillingService.personStatuses(ids);
-      setPaymentStatuses(Object.fromEntries(statuses.map((item) => [item.person_id, item.status])));
-    } catch (statusError) {
-      console.error('Error loading payment statuses:', statusError);
+      const counts = await BillingService.paymentStatusCounts();
+      if (id === countsRequestId.current) setStatusCounts(counts);
+    } catch (countError) {
+      console.error('Error loading payment status counts:', countError);
+      if (id === countsRequestId.current) { setStatusCounts(null); setCountsError(true); }
+    } finally {
+      if (id === countsRequestId.current) setCountsLoading(false);
     }
   };
 
@@ -57,6 +74,7 @@ export default function PersonCrud() {
   useEffect(() => {
     if (!isInitialized) {
       loadDeletedPersonsCount();
+      void loadStatusCounts();
       setIsInitialized(true);
     }
   }, [isInitialized]);
@@ -68,7 +86,15 @@ export default function PersonCrud() {
     } else {
       void loadDeletedPersons(1, searchQuery);
     }
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, paymentStatusFilter]);
+
+  useEffect(() => {
+    const requested = searchParams.get('paymentStatus');
+    const nextFilter = isPaymentStatusFilter(requested) ? requested : 'all';
+    setPaymentStatusFilter(nextFilter);
+    if (requested) setActiveTab('active');
+    setCurrentPage(1);
+  }, [searchParams]);
 
   const loadDeletedPersonsCount = async () => {
     try {
@@ -83,6 +109,16 @@ export default function PersonCrud() {
   const handleTabChange = (tab: 'active' | 'deleted') => {
     setActiveTab(tab);
     setSearchTerm("");
+  };
+
+  const handlePaymentStatusChange = (value: string | number) => {
+    const nextFilter = isPaymentStatusFilter(String(value)) ? String(value) as PaymentStatusFilter : 'all';
+    setPaymentStatusFilter(nextFilter);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextFilter === 'all') nextParams.delete('paymentStatus');
+    else nextParams.set('paymentStatus', nextFilter);
+    setSearchParams(nextParams, { replace: true });
   };
 
   const loadDeletedPersons = async (page = 1, query = searchQuery) => {
@@ -112,13 +148,11 @@ export default function PersonCrud() {
     try {
       setLoading(true);
       setError(null);
-      const response = query
-        ? await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE)
-        : await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
+      const response = await BillingService.personsPaymentPage(query, paymentStatusFilter, page, ITEMS_PER_PAGE);
       if (id !== requestId.current) return;
       
       setPersons(response.persons);
-      await loadPaymentStatuses(response.persons);
+      setPaymentStatuses(Object.fromEntries(response.persons.flatMap((person) => person.id ? [[person.id, person.payment_status] as const] : [])));
       
       setTotalPersons(response.total);
       setCurrentPage(response.page);
@@ -154,12 +188,6 @@ export default function PersonCrud() {
         };
         
         await PersonService.updatePerson(updatedPerson);
-        
-        // Actualizar la lista local directamente
-        setPersons(prev => prev.map(p => 
-          p.id === editingPerson.id ? updatedPerson : p
-        ));
-        
         setEditingPerson(null);
       } else {
         // Crear nueva persona
@@ -170,24 +198,13 @@ export default function PersonCrud() {
         };
         
         await PersonService.createPerson(newPerson);
-        
-        // Solo recargar si estamos en modo búsqueda
-        if (searchQuery) {
-          await loadPersons(1, searchQuery);
-        } else {
-          // Para la primera página, solo incrementar el total sin recargar
-          setTotalPersons(prev => prev + 1);
-          // Si estamos en la primera página y hay espacio, agregar al inicio
-          if (currentPage === 1 && persons.length < ITEMS_PER_PAGE) {
-            // Simular que la nueva persona se agregó al inicio
-            setPersons(prev => [newPerson, ...prev]);
-          }
-        }
       }
+      await loadPersons(editingPerson ? currentPage : 1, searchQuery);
       
       // Limpiar formulario y cerrar modal
       setForm({ name: "", last_name: "", phone: "" });
       setShowFormModal(false);
+      await loadStatusCounts();
       
     } catch (error) {
       console.error("Error saving person:", error);
@@ -239,6 +256,7 @@ export default function PersonCrud() {
       setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
       setTotalPersons(prev => prev - 1);
       setDeletedPersonsCount(prev => prev + 1);
+      await loadStatusCounts();
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
@@ -267,6 +285,7 @@ export default function PersonCrud() {
       const targetPage = Math.min(deletedPage, Math.max(Math.ceil(remaining / ITEMS_PER_PAGE), 1));
       await loadDeletedPersons(targetPage);
       setTotalPersons(prev => prev + 1);
+      await loadStatusCounts();
       setRestoreConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error restoring person:", error);
@@ -302,7 +321,7 @@ export default function PersonCrud() {
                     aria-pressed={activeTab === 'active'}
                     onClick={() => handleTabChange('active')}
                   >
-                    Personas Activas ({totalPersons})
+                    Personas Activas ({statusCounts?.all ?? totalPersons})
                   </button>
                   <button
                     className={`management-tab ${activeTab === 'deleted' ? 'active' : ''}`}
@@ -312,6 +331,20 @@ export default function PersonCrud() {
                     Personas Eliminadas ({deletedPersonsCount})
                   </button>
                   </div>}
+                  filter={activeTab === 'active' ? <div className={`person-payment-filter ${paymentStatusFilter !== 'all' ? 'active' : ''}`}>
+                    <Select
+                      options={(Object.keys(PAYMENT_STATUS_LABELS) as PaymentStatusFilter[]).map((status) => ({
+                        value: status,
+                        label: `${PAYMENT_STATUS_LABELS[status]}${statusCounts ? ` (${statusCounts[status]})` : countsLoading ? ' (…)' : ''}`,
+                      }))}
+                      value={paymentStatusFilter}
+                      onChange={handlePaymentStatusChange}
+                      placeholder="Estado de pago"
+                      size="sm"
+                      disabled={countsLoading}
+                    />
+                    {countsError && <span className="person-payment-filter-error" title="No se pudieron cargar los conteos">!</span>}
+                  </div> : undefined}
                   search={<SearchInput
                       ariaLabel="Buscar personas"
                       placeholder="Buscar personas..."
@@ -340,18 +373,18 @@ export default function PersonCrud() {
                 persons.length === 0 ? (
                   <div className="person-empty-state">
                     <div className="person-empty-icon">
-                      {searchQuery ? '🔍' : '👥'}
+                      {searchQuery || paymentStatusFilter !== 'all' ? '🔍' : '👥'}
                     </div>
                     <Title level={3} variant="secondary" align="center">
-                      {searchQuery ? 'No se encontraron personas' : 'No hay personas registradas'}
+                      {searchQuery || paymentStatusFilter !== 'all' ? 'No se encontraron personas' : 'No hay personas registradas'}
                     </Title>
                     <p className="person-empty-description">
-                      {searchQuery
-                        ? `No hay personas que coincidan con "${searchQuery}"`
+                      {searchQuery || paymentStatusFilter !== 'all'
+                        ? `No hay personas que coincidan con los filtros seleccionados${searchQuery ? ` y "${searchQuery}"` : ''}`
                         : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
                       }
                     </p>
-                    {!searchQuery && (
+                    {!searchQuery && paymentStatusFilter === 'all' && (
                       <Button
                         onClick={handleOpenCreateModal}
                         variant="primary"
@@ -475,7 +508,7 @@ export default function PersonCrud() {
         <PersonPaymentProfile
           person={profilePerson}
           onClose={() => setProfilePerson(null)}
-          onChanged={() => { if (profilePerson) void loadPaymentStatuses([profilePerson]); }}
+          onChanged={() => { void loadPersons(currentPage, searchQuery); void loadStatusCounts(); }}
         />
       )}
 

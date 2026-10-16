@@ -73,6 +73,12 @@
   font-style: italic;
 }
 
+.person-payment-filter { position: relative; display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.person-payment-filter .ui-select-container { width: 100%; }
+.person-payment-filter .ui-select-wrapper { width: 250px; }
+.person-payment-filter.active .ui-select-native { border-color: var(--accent-primary); background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-secondary)); }
+.person-payment-filter-error { color: var(--error-color, #f44336); font-weight: 700; }
+
 /* Person List - Vertical Layout */
 .person-list-grid {
   display: grid;
@@ -230,6 +236,9 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .person-payment-filter { flex-basis: 100%; }
+  .person-payment-filter .ui-select-container,
+  .person-payment-filter .ui-select-wrapper { width: 100%; }
   .person-crud-wrapper .card {
     min-height: 60vh;
   }

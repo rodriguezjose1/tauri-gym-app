@@ -6,6 +6,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ToastProvider } from '../../contexts/ToastContext';
 import PersonCrud from '../../../domains/person/pages/PersonCrud';
 import ExerciseCrud from '../../../domains/exercise/pages/ExerciseCrud';
+import { MemoryRouter } from 'react-router-dom';
 
 const person = { id: 1, name: 'Ana', last_name: 'Test', phone: '1' };
 const exercise = { id: 1, name: 'Sentadilla', code: 'SENTADILLA' };
@@ -19,23 +20,20 @@ describe('paginación compartida en catálogos', () => {
     const user = userEvent.setup();
     vi.mocked(invoke).mockImplementation(async (command, args) => {
       if (command === 'count_deleted_people') return 0;
-      if (command === 'get_person_payment_statuses') return [];
-      if (command === 'get_persons_paginated_response') {
-        return { persons: [person], total: 77, page: args?.page, page_size: 10, total_pages: 8 };
-      }
-      if (command === 'search_persons_paginated_response') {
-        return { persons: [person], total: 1, page: args?.page, page_size: 10, total_pages: 1 };
+      if (command === 'get_payment_status_counts') return { all: 77, overdue: 8, pending: 12, current: 42, no_plan: 15 };
+      if (command === 'get_persons_payment_page') {
+        return { persons: [{ ...person, payment_status: 'current' }], total: args?.query ? 1 : 77, page: args?.page, page_size: 10, total_pages: args?.query ? 1 : 8 };
       }
       throw new Error(`Comando no previsto: ${command}`);
     });
 
-    render(<PersonCrud />);
+    render(<MemoryRouter><PersonCrud /></MemoryRouter>);
     expect(await screen.findByText('77 personas · Página 1 de 8')).toBeInTheDocument();
     expect(screen.queryByText('77 personas total')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith('get_persons_paginated_response', { page: 2, pageSize: 10 }),
+      expect(invoke).toHaveBeenCalledWith('get_persons_payment_page', { query: '', paymentStatus: 'all', page: 2, pageSize: 10 }),
     );
 
     await user.type(screen.getByPlaceholderText('Buscar personas...'), 'Ana');
@@ -72,9 +70,9 @@ describe('paginación compartida en catálogos', () => {
     let restored = false;
     vi.mocked(invoke).mockImplementation(async (command, args) => {
       if (command === 'count_deleted_people') return restored ? 10 : 11;
-      if (command === 'get_person_payment_statuses') return [];
-      if (command === 'get_persons_paginated_response') {
-        return { persons: [person], total: 20, page: args?.page, page_size: 10, total_pages: 2 };
+      if (command === 'get_payment_status_counts') return { all: 20, overdue: 0, pending: 0, current: 20, no_plan: 0 };
+      if (command === 'get_persons_payment_page') {
+        return { persons: [{ ...person, payment_status: 'current' }], total: 20, page: args?.page, page_size: 10, total_pages: 2 };
       }
       if (command === 'get_deleted_people_paginated') {
         const page = restored ? 1 : args?.page;
@@ -87,7 +85,7 @@ describe('paginación compartida en catálogos', () => {
       throw new Error(`Comando no previsto: ${command}`);
     });
 
-    render(<PersonCrud />);
+    render(<MemoryRouter><PersonCrud /></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: /Personas Eliminadas/ }));
     expect(await screen.findByText('11 personas eliminadas · Página 1 de 2')).toBeInTheDocument();
     expect(screen.getByText(/Eliminada el/)).toBeInTheDocument();

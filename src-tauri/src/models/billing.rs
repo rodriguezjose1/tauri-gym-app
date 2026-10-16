@@ -1,3 +1,4 @@
+use crate::models::person::Person;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,6 +34,31 @@ pub struct Obligation {
 pub struct PersonPaymentStatus {
     pub person_id: i64,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonWithPaymentStatus {
+    #[serde(flatten)]
+    pub person: Person,
+    pub payment_status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonPaymentPage {
+    pub persons: Vec<PersonWithPaymentStatus>,
+    pub total: i64,
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaymentStatusCounts {
+    pub all: i64,
+    pub overdue: i64,
+    pub pending: i64,
+    pub current: i64,
+    pub no_plan: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,8 +1,9 @@
 use crate::models::billing::{
     DevGeneratedObligation, DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote,
-    PaymentRequest, PersonPaymentHistoryItem, PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
-    PlanPage,
+    PaymentRequest, PaymentStatusCounts, PersonPaymentHistoryItem, PersonPaymentHistoryPage,
+    PersonPaymentPage, PersonPaymentStatus, PersonWithPaymentStatus, Plan, PlanPage,
 };
+use crate::models::person::Person;
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Transaction};
 
 pub struct BillingService {
@@ -548,11 +549,7 @@ impl BillingService {
             .map(|index| format!("?{index}"))
             .collect::<Vec<_>>()
             .join(",");
-        let sql = format!("SELECT pe.id,CASE
-            WHEN NOT EXISTS(SELECT 1 FROM payments p WHERE p.person_id=pe.id AND p.modality='monthly' AND p.reversed_at IS NULL) THEN 'no_plan'
-            WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL) AND date('now','localtime') > date(o.period||'-10',CASE strftime('%w',o.period||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END)) THEN 'overdue'
-            WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL)) THEN 'pending'
-            ELSE 'current' END FROM people pe WHERE pe.id IN ({placeholders})");
+        let sql = format!("SELECT pe.id,{PERSON_PAYMENT_STATUS_SQL} FROM people pe WHERE pe.id IN ({placeholders})");
         let mut statement = connection.prepare(&sql).map_err(|e| e.to_string())?;
         let result = statement
             .query_map(params_from_iter(person_ids.iter()), |row| {
@@ -565,6 +562,96 @@ impl BillingService {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string());
         result
+    }
+
+    pub fn persons_payment_page(
+        &self,
+        query: &str,
+        payment_status: &str,
+        page: i64,
+        page_size: i64,
+    ) -> Result<PersonPaymentPage, String> {
+        if page < 1
+            || !(1..=100).contains(&page_size)
+            || !valid_payment_status_filter(payment_status)
+        {
+            return Err("Parámetros de consulta de personas inválidos".into());
+        }
+        let connection = self.connection()?;
+        let normalized_query = query.trim().to_lowercase();
+        let escaped_query = normalized_query
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let search_pattern = format!("%{escaped_query}%");
+        let classified = format!("SELECT pe.id,pe.name,pe.last_name,pe.phone,{PERSON_PAYMENT_STATUS_SQL} AS payment_status FROM people pe WHERE (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL)");
+        let total_sql = format!("WITH classified AS ({classified}) SELECT COUNT(*) FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\')");
+        let total: i64 = connection
+            .query_row(
+                &total_sql,
+                params![payment_status, normalized_query, search_pattern],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        let total_pages = if total == 0 {
+            0
+        } else {
+            (total + page_size - 1) / page_size
+        };
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let page_sql = format!("WITH classified AS ({classified}) SELECT id,name,last_name,phone,payment_status FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\') ORDER BY name,last_name LIMIT ?4 OFFSET ?5");
+        let mut statement = connection.prepare(&page_sql).map_err(|e| e.to_string())?;
+        let persons = statement
+            .query_map(
+                params![
+                    payment_status,
+                    normalized_query,
+                    search_pattern,
+                    page_size,
+                    (effective_page - 1) * page_size
+                ],
+                |row| {
+                    Ok(PersonWithPaymentStatus {
+                        person: Person {
+                            id: Some(row.get(0)?),
+                            name: row.get(1)?,
+                            last_name: row.get(2)?,
+                            phone: row.get(3)?,
+                        },
+                        payment_status: row.get(4)?,
+                    })
+                },
+            )
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(PersonPaymentPage {
+            persons,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
+    }
+
+    pub fn payment_status_counts(&self) -> Result<PaymentStatusCounts, String> {
+        let connection = self.connection()?;
+        let sql = format!("WITH classified AS (SELECT {PERSON_PAYMENT_STATUS_SQL} AS payment_status FROM people pe WHERE (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL)) SELECT COUNT(*),COALESCE(SUM(payment_status='overdue'),0),COALESCE(SUM(payment_status='pending'),0),COALESCE(SUM(payment_status='current'),0),COALESCE(SUM(payment_status='no_plan'),0) FROM classified");
+        connection
+            .query_row(&sql, [], |row| {
+                Ok(PaymentStatusCounts {
+                    all: row.get(0)?,
+                    overdue: row.get(1)?,
+                    pending: row.get(2)?,
+                    current: row.get(3)?,
+                    no_plan: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())
     }
 
     pub fn person_history(
@@ -775,6 +862,16 @@ impl BillingService {
             payment_count: count,
         })
     }
+}
+
+const PERSON_PAYMENT_STATUS_SQL: &str = "CASE
+    WHEN NOT EXISTS(SELECT 1 FROM payments p WHERE p.person_id=pe.id AND p.modality='monthly' AND p.reversed_at IS NULL) THEN 'no_plan'
+    WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL) AND date('now','localtime') > date(o.period||'-10',CASE strftime('%w',o.period||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END)) THEN 'overdue'
+    WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL)) THEN 'pending'
+    ELSE 'current' END";
+
+fn valid_payment_status_filter(value: &str) -> bool {
+    matches!(value, "all" | "overdue" | "pending" | "current" | "no_plan")
 }
 
 const PAYMENT_SELECT_BY_ID: &str = "SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE p.id=?1";

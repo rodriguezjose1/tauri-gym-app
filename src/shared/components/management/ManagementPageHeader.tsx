@@ -18,17 +18,19 @@ export function ManagementPageHeader({ title, action }: ManagementPageHeaderProp
 
 interface ManagementToolbarProps {
   tabs?: ReactNode;
+  filter?: ReactNode;
   search?: ReactNode;
   children?: ReactNode;
 }
 
-export function ManagementToolbar({ tabs, search, children }: ManagementToolbarProps) {
-  if (!tabs && !search && !children) return null;
+export function ManagementToolbar({ tabs, filter, search, children }: ManagementToolbarProps) {
+  if (!tabs && !filter && !search && !children) return null;
 
   return (
     <div className="management-toolbar">
       {tabs && <div className="management-toolbar__tabs">{tabs}</div>}
       <div className="management-toolbar__controls">
+        {filter}
         {search && <div className="management-toolbar__search">{search}</div>}
         {children}
       </div>

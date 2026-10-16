@@ -66,6 +66,30 @@ export interface PersonPaymentStatus {
   status: PaymentStatus;
 }
 
+export interface PersonWithPaymentStatus {
+  id?: number;
+  name: string;
+  last_name: string;
+  phone: string;
+  payment_status: PaymentStatus;
+}
+
+export interface PersonPaymentPage {
+  persons: PersonWithPaymentStatus[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PaymentStatusCounts {
+  all: number;
+  overdue: number;
+  pending: number;
+  current: number;
+  no_plan: number;
+}
+
 export interface PersonPaymentHistoryItem {
   item_type: 'monthly' | 'particular';
   obligation_id?: number;
@@ -101,6 +125,9 @@ export const BillingService = {
   reverse: (id: number, reason: string) => invoke<void>('reverse_payment', { id, reason }),
   reconcile: () => invoke<number>('reconcile_payment_periods'),
   personStatuses: (personIds: number[]) => invoke<PersonPaymentStatus[]>('get_person_payment_statuses', { personIds }),
+  personsPaymentPage: (query: string, paymentStatus: PaymentStatus | 'all', page: number, pageSize = 10) =>
+    invoke<PersonPaymentPage>('get_persons_payment_page', { query, paymentStatus, page, pageSize }),
+  paymentStatusCounts: () => invoke<PaymentStatusCounts>('get_payment_status_counts'),
   personHistory: (personId: number, page: number, pageSize = 20) => invoke<PersonPaymentHistoryPage>('get_person_payment_history', { personId, page, pageSize }),
   setPeriodExcluded: (obligationId: number, excluded: boolean) => invoke<void>('set_payment_period_excluded', { obligationId, excluded }),
 };
