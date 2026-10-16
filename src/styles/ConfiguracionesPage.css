@@ -1,22 +1,33 @@
 /* Configuraciones Page Styles */
 
 .configuraciones-container {
+  height: calc(100vh - var(--layout-nav-height));
+  min-height: 0;
+  overflow: hidden;
   background: #1a1a1a;
 }
 
 .configuraciones-wrapper {
   width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .configuraciones-card {
-  min-height: 70vh;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.configuraciones-tab-panel { display: grid; gap: 20px; }
-.configuraciones-section-heading p, .plans-header p { margin: 8px 0 0; color: var(--text-secondary); }
-.plans-manager { display: grid; gap: 20px; }
-.plans-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.plan-list { display: grid; gap: 10px; }
+.plans-manager { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.plans-header { flex: 0 0 auto; }
+.plans-content { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.plan-list { display: grid; gap: 10px; padding-right: 4px; }
+.plans-pagination { flex: 0 0 auto; margin: 12px -12px -12px; padding-right: 12px; padding-left: 12px; }
+.configuraciones-development { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.configuraciones-development-content { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .plan-row { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; align-items: center; gap: 20px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 10px; }
 .plan-details { display: grid; gap: 5px; }
 .plan-details span { color: var(--text-secondary); font-size: 14px; }
@@ -48,8 +59,6 @@
 .billing-dev-rollback p { margin: 6px 0 0; color: var(--text-secondary); }
 
 @media (max-width: 700px) {
-  .plans-header { flex-direction: column; }
-  .plans-header > button { width: 100%; }
   .plan-row { grid-template-columns: 1fr; gap: 12px; }
   .plan-actions { width: 100%; }
   .plan-actions > button { flex: 1; }

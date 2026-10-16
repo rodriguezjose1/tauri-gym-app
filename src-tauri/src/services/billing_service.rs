@@ -1,6 +1,7 @@
 use crate::models::billing::{
     DevGeneratedObligation, DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote,
     PaymentRequest, PersonPaymentHistoryItem, PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
+    PlanPage,
 };
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Transaction};
 
@@ -60,6 +61,52 @@ impl BillingService {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string());
         result
+    }
+
+    pub fn plans_page(&self, page: i64, page_size: i64) -> Result<PlanPage, String> {
+        if page < 1 || !(1..=100).contains(&page_size) {
+            return Err("Parámetros de paginación inválidos".into());
+        }
+        let connection = self.connection()?;
+        let total: i64 = connection
+            .query_row("SELECT COUNT(*) FROM plans", [], |row| row.get(0))
+            .map_err(|e| e.to_string())?;
+        let total_pages = if total == 0 {
+            0
+        } else {
+            (total + page_size - 1) / page_size
+        };
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let mut statement = connection
+            .prepare("SELECT id,name,modality,price_cents,is_active FROM plans ORDER BY name LIMIT ?1 OFFSET ?2")
+            .map_err(|e| e.to_string())?;
+        let plans = statement
+            .query_map(
+                params![page_size, (effective_page - 1) * page_size],
+                |row| {
+                    Ok(Plan {
+                        id: Some(row.get(0)?),
+                        name: row.get(1)?,
+                        modality: row.get(2)?,
+                        price_cents: row.get(3)?,
+                        is_active: row.get::<_, i64>(4)? != 0,
+                    })
+                },
+            )
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(PlanPage {
+            plans,
+            total,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
     }
 
     pub fn save_plan(&self, plan: Plan, effective_period: Option<&str>) -> Result<Plan, String> {

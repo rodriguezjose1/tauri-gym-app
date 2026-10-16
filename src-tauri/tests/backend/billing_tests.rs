@@ -71,6 +71,22 @@ fn monthly_due_date_moves_weekends_to_monday() {
 }
 
 #[test]
+fn plans_are_paginated_in_the_backend_and_out_of_range_pages_are_clamped() {
+    let (_d, _path, service) = fixture();
+    for index in 1..=10 {
+        plan(&service, &format!("Plan {index:02}"), "monthly", 1000 + index);
+    }
+
+    let first = service.plans_page(1, 8).unwrap();
+    let second = service.plans_page(2, 8).unwrap();
+    let clamped = service.plans_page(99, 8).unwrap();
+
+    assert_eq!((first.total, first.total_pages, first.page, first.plans.len()), (10, 2, 1, 8));
+    assert_eq!((second.page, second.plans.len()), (2, 2));
+    assert_eq!((clamped.page, clamped.plans.len()), (2, 2));
+}
+
+#[test]
 fn reconciliation_recovers_missing_months_and_is_idempotent() {
     let (_d, path, service) = fixture();
     activity(&path, "2026-10", None);

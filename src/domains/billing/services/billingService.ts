@@ -11,6 +11,14 @@ export interface Plan {
   is_active: boolean;
 }
 
+export interface PlanPage {
+  plans: Plan[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface Obligation {
   id: number;
   person_id: number;
@@ -80,6 +88,7 @@ export interface PersonPaymentHistoryPage {
 
 export const BillingService = {
   plans: (activeOnly = false) => invoke<Plan[]>('list_plans', { activeOnly }),
+  plansPage: (page: number, pageSize = 8) => invoke<PlanPage>('get_plans_page', { page, pageSize }),
   savePlan: (plan: Plan, effectivePeriod?: string) =>
     invoke<Plan>('save_plan', { plan, effectivePeriod: effectivePeriod ?? null }),
   obligation: (personId: number, period: string) => invoke<Obligation>('ensure_obligation', { personId, period }),

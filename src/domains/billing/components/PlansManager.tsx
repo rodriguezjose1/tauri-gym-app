@@ -1,30 +1,43 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, ErrorMessage, Title } from '../../../shared/components/base';
+import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { Button, ErrorMessage, Pagination } from '../../../shared/components/base';
+import { ManagementPageHeader, ManagementToolbar } from '../../../shared/components/management';
 import { billingTexts } from '../constants/billingTexts';
 import { BillingService, type Plan } from '../services/billingService';
 import { PlanDialog } from './PlanDialog';
 
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+const PAGE_SIZE = 8;
 
-export function PlansManager() {
+interface PlansManagerProps {
+  toolbar?: ReactNode;
+}
+
+export function PlansManager({ toolbar }: PlansManagerProps = {}) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editing, setEditing] = useState<Plan | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [changingId, setChangingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setPlans(await BillingService.plans());
+      const result = await BillingService.plansPage(page, PAGE_SIZE);
+      setPlans(result.plans);
+      setTotal(result.total);
+      setTotalPages(result.total_pages);
+      if (result.page !== page) setPage(result.page);
     } catch (loadError) {
       setError(String(loadError));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -54,23 +67,24 @@ export function PlansManager() {
 
   return (
     <div className="plans-manager">
-      <div className="plans-header">
-        <div>
-          <Title level={2}>{billingTexts.plans.title}</Title>
-          <p>{billingTexts.plans.description}</p>
-        </div>
-        <Button onClick={openNewPlan}>{billingTexts.plans.new}</Button>
+      <div className="management-page-controls plans-header">
+        <ManagementPageHeader
+          title={billingTexts.plans.title}
+          action={<Button onClick={openNewPlan}>{billingTexts.plans.new}</Button>}
+        />
+        {toolbar && <ManagementToolbar tabs={toolbar} />}
       </div>
 
-      {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
-      {loading ? (
-        <div className="plans-state">{billingTexts.plans.loading}</div>
-      ) : plans.length === 0 ? (
-        <div className="plans-state">{billingTexts.plans.empty}</div>
-      ) : (
-        <div className="plan-list">
-          {plans.map((plan) => (
-            <div className="plan-row" key={plan.id}>
+      <div className="plans-content">
+        {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
+        {loading ? (
+          <div className="plans-state">{billingTexts.plans.loading}</div>
+        ) : plans.length === 0 ? (
+          <div className="plans-state">{billingTexts.plans.empty}</div>
+        ) : (
+          <div className="plan-list">
+            {plans.map((plan) => (
+              <div className="plan-row" key={plan.id}>
               <div className="plan-details">
                 <strong>{plan.name}</strong>
                 <span>
@@ -93,10 +107,22 @@ export function PlansManager() {
                   {plan.is_active ? 'Desactivar' : 'Activar'}
                 </Button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Pagination
+        className="plans-pagination"
+        total={total}
+        page={page}
+        totalPages={totalPages}
+        singularLabel="plan"
+        pluralLabel="planes"
+        loading={loading}
+        onPageChange={setPage}
+      />
 
       <PlanDialog
         isOpen={dialogOpen}

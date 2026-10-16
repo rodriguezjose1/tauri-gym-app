@@ -10,6 +10,15 @@ pub struct Plan {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanPage {
+    pub plans: Vec<Plan>,
+    pub total: i64,
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Obligation {
     pub id: i64,
     pub person_id: i64,

@@ -609,6 +609,15 @@ fn list_plans(service: State<'_, BillingService>, active_only: bool) -> Result<V
     service.list_plans(active_only)
 }
 #[tauri::command]
+fn get_plans_page(
+    service: State<'_, BillingService>,
+    page: i64,
+    page_size: i64,
+) -> Result<models::billing::PlanPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.plans_page(page, page_size)
+}
+#[tauri::command]
 fn save_plan(
     service: State<'_, BillingService>,
     plan: Plan,
@@ -827,6 +836,7 @@ fn main() {
             cancel_update,
             log_update_error,
             list_plans,
+            get_plans_page,
             save_plan,
             ensure_obligation,
             record_payment,
