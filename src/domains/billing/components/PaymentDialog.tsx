@@ -4,7 +4,8 @@ import type { Person } from '../../../shared/types/dashboard';
 import { PersonSearch } from '../../person/components/PersonSearch';
 import { billingTexts } from '../constants/billingTexts';
 import { BillingService, type Modality, type Plan } from '../services/billingService';
-import { currentPeriod, periodOptions } from '../utils/periodOptions';
+import { currentPeriod } from '../utils/periodOptions';
+import { PeriodSelect } from './PeriodSelect';
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -166,7 +167,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
           fullWidth
         />
         {modality === 'monthly' && (
-          <Select label="Período" value={period} options={periodOptions()} onChange={choosePeriod} fullWidth />
+          <PeriodSelect value={period} onChange={choosePeriod} fullWidth />
         )}
         <Select
           label="Plan"

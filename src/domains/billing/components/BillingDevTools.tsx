@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Button, ErrorMessage, Select, Title } from '../../../shared/components/base';
+import { Button, ErrorMessage, Title } from '../../../shared/components/base';
 import { useToast } from '../../../shared/contexts/ToastContext';
-import { nextPeriod, periodOptions } from '../utils/periodOptions';
+import { nextPeriod } from '../utils/periodOptions';
+import { PeriodSelect } from './PeriodSelect';
 import {
   BillingDevService,
   type DevGenerationResult,
@@ -90,12 +91,15 @@ export function BillingDevTools() {
       </div>
 
       <div className="billing-dev-controls">
-        <Select
+        <PeriodSelect
           label="Generar hasta el período"
           value={through}
-          options={periodOptions(0, 12)}
+          compactBack={0}
+          compactAhead={3}
+          expandedBack={0}
+          expandedAhead={12}
           onChange={(value) => {
-            setThrough(String(value));
+            setThrough(value);
             setPreview(null);
           }}
           disabled={Boolean(loading)}

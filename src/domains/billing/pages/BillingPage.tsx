@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Card, ErrorMessage, Input, Modal, Pagination, SearchInput, Select, Title } from '../../../shared/components/base';
+import { Button, Card, ErrorMessage, Input, Modal, Pagination, SearchInput, Title } from '../../../shared/components/base';
 import { ManagementPageHeader } from '../../../shared/components/management';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { PaymentDialog } from '../components/PaymentDialog';
 import { BillingService, type Payment, type PaymentPage } from '../services/billingService';
-import { currentPeriod, periodOptions } from '../utils/periodOptions';
+import { currentPeriod } from '../utils/periodOptions';
+import { PeriodSelect } from '../components/PeriodSelect';
 import { billingTexts } from '../constants/billingTexts';
 import '../../../styles/Billing.css';
 
@@ -100,7 +101,7 @@ export default function BillingPage() {
           <div className="billing-toolbar management-page-controls">
             <div className="billing-heading"><ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-register-action"><Button onClick={() => setShowPayment(true)} title="Atajo: Ctrl+P">{billingTexts.page.register}</Button></div>} /></div>
             <div className="billing-summary">
-            <Select label="Período" value={month} options={periodOptions()} onChange={changeMonth} fullWidth />
+            <PeriodSelect value={month} onChange={changeMonth} fullWidth />
             <div className="billing-metric"><span>Recaudado en el mes</span><strong>{loading ? '—' : money.format((data?.collected_cents || 0) / 100)}</strong></div>
             <div className="billing-metric"><span>Pagado del período</span><strong>{loading ? '—' : money.format((data?.period_paid_cents || 0) / 100)}</strong></div>
             <div className="billing-metric"><span>Pagos registrados en el mes</span><strong>{loading ? '—' : data?.payment_count || 0}</strong></div>
