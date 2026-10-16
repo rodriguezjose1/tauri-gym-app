@@ -2,10 +2,12 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import Dashboard from './domains/dashboard/pages/Dashboard';
+import AnalyticsDashboard from './domains/dashboard/pages/AnalyticsDashboard';
 import PersonCrud from './domains/person/pages/PersonCrud';
 import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
-import { RoutineManager } from './domains/routine/components/RoutineManager';
+import { RoutineManager } from './domains/routine';
 import ConfiguracionesPage from './domains/settings/pages/ConfiguracionesPage';
+import BillingPage from './domains/billing/pages/BillingPage';
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
 import Updater from './components/Updater';
@@ -25,6 +27,18 @@ function Navigation() {
         </Link>
 
         <ul className="nav-links">
+          <li>
+            <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active calendar' : ''}`}>
+              <span className="nav-link-icon">📊</span>
+              Dashboard
+            </Link>
+          </li>
+          <li>
+            <Link to="/pagos" className={`nav-link ${location.pathname === '/pagos' ? 'active payments' : ''}`}>
+              <span className="nav-link-icon">💳</span>
+              Pagos
+            </Link>
+          </li>
           <li>
             <Link
               to="/"
@@ -61,7 +75,7 @@ function Navigation() {
               Rutinas
             </Link>
           </li>
-          {/* <li>
+          <li>
             <Link 
               to="/configuraciones" 
               className={`nav-link ${location.pathname === '/configuraciones' ? 'active settings' : ''}`}
@@ -69,7 +83,7 @@ function Navigation() {
               <span className="nav-link-icon">⚙️</span>
               Configuraciones
             </Link>
-          </li> */}
+          </li>
         </ul>
       </div>
     </nav>
@@ -91,25 +105,43 @@ function App() {
     backup();
   }, []);
 
+  useEffect(() => {
+    let timer;
+    const reconcile = async () => {
+      try {
+        await invoke('reconcile_payment_periods');
+      } catch (error) {
+        console.error('Error reconciling payment periods:', error);
+      }
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 1);
+      timer = window.setTimeout(reconcile, nextMonth.getTime() - now.getTime());
+    };
+    void reconcile();
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <ChakraProvider value={defaultSystem}>
-      <BrowserRouter>
+      <ConfigProvider><BrowserRouter>
         <ToastProvider>
           <div className="app-container">
             <Navigation />
             <main className="app-content">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<AnalyticsDashboard />} />
                 <Route path="/personas" element={<PersonCrud />} />
                 <Route path="/exercises" element={<ExerciseCrud />} />
                 <Route path="/routines" element={<RoutineManager />} />
+                <Route path="/pagos" element={<BillingPage />} />
                 <Route path="/configuraciones" element={<ConfiguracionesPage />} />
               </Routes>
             </main>
             <Updater />
           </div>
         </ToastProvider>
-      </BrowserRouter>
+      </BrowserRouter></ConfigProvider>
     </ChakraProvider>
   );
 }

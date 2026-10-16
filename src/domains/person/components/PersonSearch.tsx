@@ -2,19 +2,26 @@ import { PersonService, Person } from "../../../services";
 import React, { useState, useEffect, useRef } from "react";
 import { Input, Button } from "../../../shared/components/base";
 import '../../../styles/PersonSearch.css';
+import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 
 interface PersonSearchProps {
   selectedPerson: Person | null;
   onPersonSelect: (person: Person) => void;
   onClearSelection: () => void;
   placeholder?: string;
+  autoFocus?: boolean;
+  focusRequest?: number;
+  changeShortcutLabel?: string;
 }
 
 export const PersonSearch: React.FC<PersonSearchProps> = ({
   selectedPerson,
   onPersonSelect,
   onClearSelection,
-  placeholder = "🔍 Buscar persona..."
+  placeholder = "🔍 Buscar persona...",
+  autoFocus = false,
+  focusRequest = 0,
+  changeShortcutLabel,
 }) => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,8 +31,11 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const debouncedSearchTerm = useDebouncedValue(searchTerm.trim(), 300);
+  const requestId = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -53,9 +63,11 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       return;
     }
 
+    const id = ++requestId.current;
     setLoading(true);
     try {
       const data = await PersonService.searchPersonsPaginated(query, page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       if (reset) {
         setPersons(data);
@@ -72,7 +84,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       setPersons([]);
       setHasMore(false);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
@@ -107,14 +119,22 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     setSelectedIndex(-1);
   };
 
-  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (debouncedSearchTerm.length >= 2) {
+      setShowDropdown(true);
+      void searchPersons(debouncedSearchTerm);
+    } else {
+      requestId.current += 1;
+      setPersons([]);
+      setHasMore(false);
+    }
+  }, [debouncedSearchTerm]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
     
-    if (value.length >= 2) {
-      setShowDropdown(true);
-      await searchPersons(value);
-    } else {
+    if (value.length < 2) {
       setShowDropdown(false);
       setPersons([]);
       setHasMore(true);
@@ -179,6 +199,15 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (focusRequest <= 0) return;
+    setShowSearchInput(true);
+  }, [focusRequest]);
+
+  useEffect(() => {
+    if (focusRequest > 0 && (!selectedPerson || showSearchInput)) searchInputRef.current?.focus();
+  }, [focusRequest, selectedPerson, showSearchInput]);
+
   // Show search input when no person is selected OR when user clicked "Cambiar"
   if (!selectedPerson || showSearchInput) {
     return (
@@ -186,6 +215,8 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
         <div ref={dropdownRef} className="person-search-input-container">
           <div className="person-search-input-wrapper">
             <Input
+              inputRef={searchInputRef}
+              autoFocus={autoFocus}
               label=""
               placeholder={placeholder}
               value={searchTerm}
@@ -279,6 +310,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
         </div>
         <Button
           onClick={handleChangeUser}
+          title={changeShortcutLabel ? `Atajo: ${changeShortcutLabel}` : undefined}
           variant="secondary"
           size="sm"
         >
@@ -287,4 +319,4 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
       </div>
     </div>
   );
-}; 
+};

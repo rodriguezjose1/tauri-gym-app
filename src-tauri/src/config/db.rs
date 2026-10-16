@@ -1,17 +1,29 @@
-use std::sync::Arc;
+use crate::config::database_migrations::migrate_database;
+use crate::repository::sqlite_exercise_repository::SqliteExerciseRepository;
+use crate::repository::sqlite_person_repository::SqlitePersonRepository;
+use crate::repository::sqlite_routine_repository::SqliteRoutineRepository;
+use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
+use crate::services::billing_service::BillingService;
+use crate::services::dashboard_service::DashboardService;
+use crate::services::exercise_service::ExerciseService;
+use crate::services::person_service::PersonService;
+use crate::services::routine_service::RoutineService;
+use crate::services::workout_entry_service::WorkoutEntryService;
 use std::env;
 use std::path::PathBuf;
-use crate::config::database_migrations::migrate_database;
-use crate::repository::sqlite_person_repository::SqlitePersonRepository;
-use crate::repository::sqlite_exercise_repository::SqliteExerciseRepository;
-use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
-use crate::repository::sqlite_routine_repository::SqliteRoutineRepository;
-use crate::services::person_service::PersonService;
-use crate::services::exercise_service::ExerciseService;
-use crate::services::workout_entry_service::WorkoutEntryService;
-use crate::services::routine_service::RoutineService;
+use std::sync::Arc;
 
-pub fn setup_services() -> Result<(PersonService, ExerciseService, WorkoutEntryService, RoutineService), String> {
+pub fn setup_services() -> Result<
+    (
+        PersonService,
+        ExerciseService,
+        WorkoutEntryService,
+        RoutineService,
+        BillingService,
+        DashboardService,
+    ),
+    String,
+> {
     let db_path = get_database_path();
     let db_path_str = db_path
         .to_str()
@@ -19,7 +31,10 @@ pub fn setup_services() -> Result<(PersonService, ExerciseService, WorkoutEntryS
 
     let outcome = migrate_database(&db_path)?;
     if let Some(path) = outcome.backup_path {
-        println!("Respaldo previo a la migración creado en {}", path.display());
+        println!(
+            "Respaldo previo a la migración creado en {}",
+            path.display()
+        );
     }
 
     let person_repository = Arc::new(SqlitePersonRepository::new_safe(db_path_str)?);
@@ -32,8 +47,17 @@ pub fn setup_services() -> Result<(PersonService, ExerciseService, WorkoutEntryS
     let exercise_service = ExerciseService::new(exercise_repository);
     let workout_entry_service = WorkoutEntryService::new(workout_entry_repository);
     let routine_service = RoutineService::new(routine_repository);
+    let billing_service = BillingService::new(db_path_str);
+    let dashboard_service = DashboardService::new(db_path_str);
 
-    Ok((person_service, exercise_service, workout_entry_service, routine_service))
+    Ok((
+        person_service,
+        exercise_service,
+        workout_entry_service,
+        routine_service,
+        billing_service,
+        dashboard_service,
+    ))
 }
 
 pub fn get_database_path() -> PathBuf {
@@ -45,8 +69,12 @@ pub fn get_database_path() -> PathBuf {
             return PathBuf::from("data/gym_app.db");
         }
     };
-    
-    if current_dir.file_name().map(|name| name == "src-tauri").unwrap_or(false) {
+
+    if current_dir
+        .file_name()
+        .map(|name| name == "src-tauri")
+        .unwrap_or(false)
+    {
         // Development mode: use project data directory
         let data_dir = current_dir.parent().unwrap_or(&current_dir).join("data");
         if let Err(e) = std::fs::create_dir_all(&data_dir) {
@@ -76,7 +104,7 @@ fn get_app_data_directory() -> PathBuf {
         };
         PathBuf::from(appdata).join("QualityGym")
     }
-    
+
     #[cfg(target_os = "macos")]
     {
         let home = match env::var("HOME") {
@@ -86,9 +114,12 @@ fn get_app_data_directory() -> PathBuf {
                 return PathBuf::from("data");
             }
         };
-        PathBuf::from(home).join("Library").join("Application Support").join("QualityGym")
+        PathBuf::from(home)
+            .join("Library")
+            .join("Application Support")
+            .join("QualityGym")
     }
-    
+
     #[cfg(target_os = "linux")]
     {
         let home = match env::var("HOME") {
@@ -100,7 +131,7 @@ fn get_app_data_directory() -> PathBuf {
         };
         PathBuf::from(home).join(".config").join("quality-gym")
     }
-    
+
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
         // Fallback for other platforms

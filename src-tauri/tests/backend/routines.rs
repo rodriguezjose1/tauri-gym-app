@@ -217,6 +217,8 @@ mod contracts {
         assert!(f.service.list_routines().unwrap().is_empty());
         assert_eq!(f.service.list_deleted_routines().unwrap()[0].id, Some(routine));
         assert_eq!(f.service.count_deleted_routines().unwrap(), 1);
+        let deleted_page = f.service.routines_page("F1", true, 1, 10).unwrap();
+        assert_eq!((deleted_page.total, deleted_page.routines[0].id), (1, Some(routine)));
         f.service.restore_routine(routine).unwrap();
         assert_eq!(
             f.service

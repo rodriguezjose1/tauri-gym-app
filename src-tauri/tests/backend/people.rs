@@ -1,5 +1,5 @@
 use crate::{
-    person::Person, person_repository::PersonRepository, person_service::PersonService,
+    person::{DeletedPerson, Person}, person_repository::PersonRepository, person_service::PersonService,
     sqlite_person_repository::SqlitePersonRepository,
 };
 use rusqlite::Connection;
@@ -77,6 +77,14 @@ fn assert_person(actual: &Person, expected: &Person) {
     assert_eq!(actual.name, expected.name);
     assert_eq!(actual.last_name, expected.last_name);
     assert_eq!(actual.phone, expected.phone);
+}
+
+fn assert_deleted_person(actual: &DeletedPerson, expected: &Person) {
+    assert_eq!(actual.id, expected.id);
+    assert_eq!(actual.name, expected.name);
+    assert_eq!(actual.last_name, expected.last_name);
+    assert_eq!(actual.phone, expected.phone);
+    assert!(!actual.deleted_at.is_empty());
 }
 
 mod contracts {
@@ -251,7 +259,7 @@ mod contracts {
             1
         );
         assert_eq!(f.service.count_deleted_people().unwrap(), 1);
-        assert_person(&f.service.list_deleted_people().unwrap()[0], &ana);
+        assert_deleted_person(&f.service.list_deleted_people().unwrap()[0], &ana);
         let flags: (i32, Option<String>) = f
             .connection()
             .query_row(
@@ -277,6 +285,26 @@ mod contracts {
     }
 
     #[test]
+    fn deleted_people_are_paginated_and_out_of_range_pages_are_clamped() {
+        let f = Fixture::new();
+        for index in 0..5 {
+            let item = f.create(&format!("Persona {index}"), "Eliminada");
+            f.service.delete_person(item.id.unwrap()).unwrap();
+        }
+
+        let first = f.service.list_deleted_people_paginated(1, 2).unwrap();
+        let second = f.service.list_deleted_people_paginated(2, 2).unwrap();
+        let clamped = f.service.list_deleted_people_paginated(99, 2).unwrap();
+        assert_eq!((first.total, first.total_pages, first.persons.len()), (5, 3, 2));
+        assert_eq!((second.page, second.persons.len()), (2, 2));
+        assert_eq!((clamped.page, clamped.persons.len()), (3, 1));
+        assert_eq!(first.persons[0].name, "Persona 0");
+        assert!(first.persons.iter().all(|person| !person.deleted_at.is_empty()));
+        let searched = f.service.search_deleted_people_paginated("Persona 3", 1, 10).unwrap();
+        assert_eq!((searched.total, searched.persons[0].name.as_str()), (1, "Persona 3"));
+    }
+
+    #[test]
     fn persists_across_repository_and_connection_reopen() {
         let f = Fixture::new();
         let ana = f.create("Ana", "Perez");
@@ -291,7 +319,7 @@ mod contracts {
         drop(repository);
         let reopened = Arc::new(SqlitePersonRepository::new_safe(path.to_str().unwrap()).unwrap());
         let service = PersonService::new(reopened.clone());
-        assert_person(&service.list_deleted_people().unwrap()[0], &ana);
+        assert_deleted_person(&service.list_deleted_people().unwrap()[0], &ana);
         service.restore_person(ana.id.unwrap()).unwrap();
         assert_person(&service.list_people().unwrap()[0], &ana);
         drop(service);
@@ -366,7 +394,7 @@ mod contracts {
             .unwrap_err()
             .contains("test update blocked"));
         assert!(f.service.list_people().unwrap().is_empty());
-        assert_person(&f.service.list_deleted_people().unwrap()[0], &ana);
+        assert_deleted_person(&f.service.list_deleted_people().unwrap()[0], &ana);
     }
 }
 

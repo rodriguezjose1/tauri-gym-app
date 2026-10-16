@@ -43,11 +43,8 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
   ) => {
     if (!routineId) return;
 
-    console.log('DEBUG: addExercise called with:', { exerciseId, orderIndex, groupNumber });
-
     try {
       setLoading(true);
-      console.log('DEBUG: About to call RoutineService.addExerciseToRoutine');
       await RoutineService.addExerciseToRoutine(
         routineId,
         exerciseId,
@@ -59,14 +56,12 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         groupNumber
       );
       
-      console.log('DEBUG: RoutineService.addExerciseToRoutine completed successfully');
-      
       // Solo recargar ejercicios si la operación fue exitosa
       await loadExercises();
       
       addNotification(ROUTINE_UI_LABELS.EXERCISE_ADDED_SUCCESS, 'success');
     } catch (error) {
-      console.error('DEBUG: Error in addExercise:', error);
+      console.error('Error adding exercise to routine:', error);
       
       // Check for specific duplicate exercise error
       const errorMessage = String(error);
@@ -116,11 +111,11 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         routineId,
         currentExercise.exercise_id,
         orderIndex,
-        sets || currentExercise.sets,
-        reps || currentExercise.reps,
-        weight || currentExercise.weight,
-        notes || currentExercise.notes,
-        groupNumber || currentExercise.group_number
+        sets ?? currentExercise.sets,
+        reps ?? currentExercise.reps,
+        weight ?? currentExercise.weight,
+        notes ?? currentExercise.notes,
+        groupNumber ?? currentExercise.group_number
       );
       
       // Renumerar grupos automáticamente después de actualizar
@@ -161,16 +156,6 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
         throw new Error('Exercise not found');
       }
       
-      console.log('Removing exercise:', {
-        routineId,
-        exerciseId,
-        currentExercise: {
-          id: currentExercise.id,
-          exercise_id: currentExercise.exercise_id,
-          name: currentExercise.exercise_name
-        }
-      });
-      
       // Sincronizar con el servidor primero
       await RoutineService.removeExerciseFromRoutine(routineId, currentExercise.exercise_id);
       
@@ -204,4 +189,4 @@ export const useRoutineExercises = ({ routineId }: UseRoutineExercisesProps) => 
     removeExercise,
     clearExercises
   };
-}; 
+};

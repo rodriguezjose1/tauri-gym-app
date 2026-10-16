@@ -1,5 +1,15 @@
 // Import production files directly. These aliases reproduce their crate paths,
 // without importing main.rs, Tauri, config::db, backups or API keys.
+#[path = "../../src/models/billing.rs"]
+pub mod billing;
+#[path = "../../src/services/billing_service.rs"]
+pub mod billing_service;
+#[path = "../../src/models/dashboard.rs"]
+pub mod dashboard;
+#[path = "../../src/services/dashboard_service.rs"]
+pub mod dashboard_service;
+#[path = "../../src/config/database_migrations.rs"]
+pub mod database_migrations;
 #[path = "../../src/models/exercise.rs"]
 pub mod exercise;
 #[path = "../../src/repository/exercise_repository.rs"]
@@ -28,8 +38,6 @@ pub mod sqlite_person_repository;
 pub mod sqlite_routine_repository;
 #[path = "../../src/repository/sqlite_workout_entry_repository.rs"]
 pub mod sqlite_workout_entry_repository;
-#[path = "../../src/config/database_migrations.rs"]
-pub mod database_migrations;
 #[path = "../../src/models/workout_entry.rs"]
 pub mod workout_entry;
 #[path = "../../src/repository/workout_entry_repository.rs"]
@@ -38,6 +46,8 @@ pub mod workout_entry_repository;
 pub mod workout_entry_service;
 
 pub mod models {
+    pub use crate::billing;
+    pub use crate::dashboard;
     pub use crate::exercise;
     pub use crate::person;
     pub use crate::routine;
@@ -50,12 +60,19 @@ pub mod repository {
     pub use crate::routine_repository;
     pub use crate::workout_entry_repository;
 }
+pub mod services {
+    pub use crate::billing_service;
+}
 
+#[cfg(test)]
+mod billing_tests;
+#[cfg(test)]
+mod dashboard_tests;
+#[cfg(test)]
+mod database_compatibility;
 #[cfg(test)]
 mod exercises_workouts;
 #[cfg(test)]
 mod people;
 #[cfg(test)]
 mod routines;
-#[cfg(test)]
-mod database_compatibility;

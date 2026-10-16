@@ -2,21 +2,31 @@
 use std::sync::Mutex;
 
 #[derive(Default)]
-struct Lifecycle { active: usize, installing: bool }
-static LIFECYCLE: Mutex<Lifecycle> = Mutex::new(Lifecycle { active: 0, installing: false });
+struct Lifecycle {
+    active: usize,
+    installing: bool,
+}
+static LIFECYCLE: Mutex<Lifecycle> = Mutex::new(Lifecycle {
+    active: 0,
+    installing: false,
+});
 
 pub struct OperationGuard;
 impl OperationGuard {
     pub fn begin() -> Result<Self, String> {
         let mut state = LIFECYCLE.lock().map_err(|e| e.to_string())?;
-        if state.installing { return Err("La aplicación se está actualizando".into()); }
+        if state.installing {
+            return Err("La aplicación se está actualizando".into());
+        }
         state.active += 1;
         Ok(Self)
     }
 }
 impl Drop for OperationGuard {
     fn drop(&mut self) {
-        if let Ok(mut state) = LIFECYCLE.lock() { state.active -= 1; }
+        if let Ok(mut state) = LIFECYCLE.lock() {
+            state.active -= 1;
+        }
     }
 }
 pub fn prepare() -> Result<(), String> {
@@ -28,7 +38,9 @@ pub fn prepare() -> Result<(), String> {
     Ok(())
 }
 pub fn cancel() {
-    if let Ok(mut state) = LIFECYCLE.lock() { state.installing = false; }
+    if let Ok(mut state) = LIFECYCLE.lock() {
+        state.installing = false;
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,87 @@
+.management-page-frame {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: calc(100vh - var(--layout-nav-height, 80px));
+  padding: 8px;
+  background: var(--bg-primary);
+}
+
+.management-page-card.ui-card { width: 100%; padding: 12px; }
+
+.management-page-controls {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 0 0 8px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.management-page-controls--sticky {
+  position: sticky;
+  top: var(--layout-nav-height, 80px);
+  z-index: 10;
+}
+
+.management-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  min-width: 0;
+}
+
+.management-page-header .ui-title { min-width: 0; }
+.management-page-header__action { flex: 0 0 auto; }
+.management-page-header__action .ui-button { min-width: 180px; justify-content: center; }
+
+.management-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  min-width: 0;
+}
+
+.management-toolbar__tabs { min-width: 0; }
+.management-toolbar__controls {
+  display: flex;
+  flex: 1 1 320px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.management-toolbar__search { width: min(100%, 400px); }
+
+.management-tabs { display: flex; gap: 6px; }
+.management-tab {
+  position: relative;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.management-tab:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.management-tab.active { background: var(--accent-primary); color: #fff; }
+
+@media (max-width: 900px) {
+  .management-toolbar { align-items: stretch; flex-wrap: wrap; }
+  .management-toolbar__controls { flex-basis: 100%; flex-wrap: wrap; justify-content: stretch; }
+  .management-toolbar__search { width: 100%; max-width: none; }
+}
+
+@media (max-width: 640px) {
+  .management-page-controls--sticky { position: static; }
+  .management-page-header { align-items: stretch; flex-direction: column; }
+  .management-page-header__action .ui-button { width: 100%; }
+  .management-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .management-tab { padding: 10px 8px; white-space: normal; }
+}

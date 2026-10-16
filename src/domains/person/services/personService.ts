@@ -1,9 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
+import { DeletedPerson, PaginatedDeletedPersonResponse, Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
   createPerson: "create_person",
   getPersons: "get_persons",
+  getPersonById: "get_person_by_id",
   getPersonsPaginated: "get_persons_paginated",
   getPersonsPaginatedResponse: "get_persons_paginated_response",
   searchPersonsPaginated: "search_persons_paginated",
@@ -13,10 +14,21 @@ const requestNames = {
   deletePerson: "delete_person",
   restorePerson: "restore_person",
   getDeletedPeople: "get_deleted_people",
+  getDeletedPeoplePaginated: "get_deleted_people_paginated",
+  searchDeletedPeoplePaginated: "search_deleted_people_paginated",
   countDeletedPeople: "count_deleted_people"
 };
 
 export class PersonService {
+  static async getPersonById(id: number): Promise<Person | null> {
+    try {
+      return await invoke(requestNames.getPersonById, { id }) as Person | null;
+    } catch (error) {
+      console.error("Error getting person:", error);
+      throw new Error(`Error al obtener la persona: ${error}`);
+    }
+  }
+
   /**
    * Crea una nueva persona
    */
@@ -140,13 +152,26 @@ export class PersonService {
   /**
    * Obtiene todas las personas eliminadas lógicamente
    */
-  static async getDeletedPeople(): Promise<Person[]> {
+  static async getDeletedPeople(): Promise<DeletedPerson[]> {
     try {
       return await invoke(requestNames.getDeletedPeople);
     } catch (error) {
       console.error("Error getting deleted people:", error);
       throw new Error(`Error al obtener personas eliminadas: ${error}`);
     }
+  }
+
+  static async getDeletedPeoplePaginated(page: number, pageSize: number): Promise<PaginatedDeletedPersonResponse> {
+    try {
+      return await invoke(requestNames.getDeletedPeoplePaginated, { page, pageSize }) as PaginatedDeletedPersonResponse;
+    } catch (error) {
+      console.error("Error getting paginated deleted people:", error);
+      throw new Error(`Error al obtener las personas eliminadas paginadas: ${error}`);
+    }
+  }
+
+  static async searchDeletedPeoplePaginated(query: string, page: number, pageSize: number): Promise<PaginatedDeletedPersonResponse> {
+    return await invoke(requestNames.searchDeletedPeoplePaginated, { query, page, pageSize }) as PaginatedDeletedPersonResponse;
   }
 
   /**
@@ -160,4 +185,4 @@ export class PersonService {
       throw new Error(`Error al contar personas eliminadas: ${error}`);
     }
   }
-} 
+}

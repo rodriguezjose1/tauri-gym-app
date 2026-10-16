@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
 import './Modal.css';
 
+let openModalCount = 0;
+let bodyOverflowBeforeModals = '';
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,22 +26,30 @@ export const Modal: React.FC<ModalProps> = ({
   className = ''
 }) => {
   useEffect(() => {
-    if (!closeOnEscape) return;
+    if (!isOpen) return;
+
+    if (openModalCount === 0) {
+      bodyOverflowBeforeModals = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    openModalCount += 1;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (closeOnEscape && event.key === 'Escape') {
         onClose();
       }
     };
 
-    if (isOpen) {
+    if (closeOnEscape) {
       document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0) {
+        document.body.style.overflow = bodyOverflowBeforeModals;
+      }
     };
   }, [isOpen, onClose, closeOnEscape]);
 
@@ -78,4 +89,4 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
-}; 
+};

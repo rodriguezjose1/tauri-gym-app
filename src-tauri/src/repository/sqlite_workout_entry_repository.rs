@@ -25,11 +25,6 @@ impl SqliteWorkoutEntryRepository {
         Ok(repo)
     }
 
-    /// Dummy constructor: always returns empty results or errors
-    pub fn new_dummy() -> Self {
-        Self::new("", true)
-    }
-
     fn create_table(&self) -> SqliteResult<()> {
         if self.is_dummy {
             return Ok(());
@@ -386,21 +381,6 @@ impl WorkoutEntryRepository for SqliteWorkoutEntryRepository {
 
         conn.execute("DELETE FROM workout_entries WHERE id = ?1", params![id])
             .map_err(|e| e.to_string())?;
-
-        Ok(())
-    }
-
-    fn delete_by_person_and_date(&self, person_id: i32, date: &str) -> Result<(), String> {
-        if self.is_dummy {
-            return Err("WorkoutEntry repository unavailable".to_string());
-        }
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
-
-        conn.execute(
-            "DELETE FROM workout_entries WHERE person_id = ?1 AND date(date) = date(?2)",
-            params![person_id, date],
-        )
-        .map_err(|e| e.to_string())?;
 
         Ok(())
     }

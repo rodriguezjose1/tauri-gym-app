@@ -5,10 +5,18 @@ export interface Person {
   phone: string;
 }
 
+export interface DeletedPerson extends Person {
+  deleted_at: string;
+}
+
 export interface Exercise {
   id?: number;
   name: string;
   code: string;
+}
+
+export interface DeletedExercise extends Exercise {
+  deleted_at: string;
 }
 
 export interface WorkoutEntry {
@@ -135,4 +143,20 @@ export interface PaginatedPersonResponse {
   page: number;
   page_size: number;
   total_pages: number;
-} 
+}
+
+export interface PaginatedDeletedPersonResponse extends Omit<PaginatedPersonResponse, 'persons'> {
+  persons: DeletedPerson[];
+}
+
+export interface PaginatedDeletedExerciseResponse extends Omit<PaginatedExerciseResponse, 'exercises'> {
+  exercises: DeletedExercise[];
+}
+
+export interface PaginatedRoutineResponse {
+  routines: Routine[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

@@ -1,4 +1,4 @@
-use crate::models::person::Person;
+use crate::models::person::{DeletedPerson, Person};
 use crate::repository::person_repository::PersonRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
 
@@ -16,13 +16,6 @@ impl SqlitePersonRepository {
         repo.create_table()
             .map_err(|e| format!("Failed to create people table: {}", e))?;
         Ok(repo)
-    }
-
-    pub fn new_dummy() -> Self {
-        Self {
-            db_path: String::new(),
-            is_dummy: true,
-        }
     }
 
     fn create_table(&self) -> SqliteResult<()> {
@@ -49,6 +42,17 @@ impl SqlitePersonRepository {
                 [],
             )?;
         }
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS person_activity_periods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person_id INTEGER NOT NULL REFERENCES people(id),
+                active_from TEXT NOT NULL,
+                inactive_from TEXT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_open_person_activity
+                ON person_activity_periods(person_id) WHERE inactive_from IS NULL;",
+        )?;
         Ok(())
     }
 
@@ -103,12 +107,19 @@ impl PersonRepository for SqlitePersonRepository {
 
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        conn.execute(
-            "INSERT INTO people (name, last_name, phone) VALUES (?1, ?2, ?3)",
-            params![person.name, person.last_name, person.phone],
-        )
-        .map_err(|e| e.to_string())?;
-
+        let transaction = conn.unchecked_transaction().map_err(|e| e.to_string())?;
+        transaction
+            .execute(
+                "INSERT INTO people (name, last_name, phone) VALUES (?1, ?2, ?3)",
+                params![person.name, person.last_name, person.phone],
+            )
+            .map_err(|e| e.to_string())?;
+        let person_id = transaction.last_insert_rowid();
+        transaction.execute(
+            "INSERT INTO person_activity_periods(person_id,active_from) VALUES(?1,strftime('%Y-%m','now','localtime'))",
+            [person_id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -173,7 +184,7 @@ impl PersonRepository for SqlitePersonRepository {
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
+             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name",
             )
@@ -219,18 +230,22 @@ impl PersonRepository for SqlitePersonRepository {
             return Ok(());
         }
 
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut conn = self.get_connection().map_err(|e| e.to_string())?;
 
         // Logical deletion instead of physical deletion
-        let affected = conn.execute(
+        let transaction = conn.transaction().map_err(|e| e.to_string())?;
+        let affected = transaction.execute(
             "UPDATE people SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1 AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             params![id]
         ).map_err(|e| e.to_string())?;
         if affected == 0 {
-            Err("Active person not found".into())
-        } else {
-            Ok(())
+            return Err("Active person not found".into());
         }
+        transaction.execute(
+            "UPDATE person_activity_periods SET inactive_from=strftime('%Y-%m','now','localtime') WHERE person_id=?1 AND inactive_from IS NULL",
+            [id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())
     }
 
     fn search_paginated(
@@ -250,7 +265,7 @@ impl PersonRepository for SqlitePersonRepository {
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
+             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name
              LIMIT ?2 OFFSET ?3",
@@ -340,21 +355,25 @@ impl PersonRepository for SqlitePersonRepository {
             return Ok(());
         }
 
-        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let mut conn = self.get_connection().map_err(|e| e.to_string())?;
 
         // Restore logically deleted person
-        let affected = conn.execute(
+        let transaction = conn.transaction().map_err(|e| e.to_string())?;
+        let affected = transaction.execute(
             "UPDATE people SET deleted_at = NULL, is_active = 1 WHERE id = ?1 AND deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
             params![id]
         ).map_err(|e| e.to_string())?;
         if affected == 0 {
-            Err("Deleted person not found".into())
-        } else {
-            Ok(())
+            return Err("Deleted person not found".into());
         }
+        transaction.execute(
+            "INSERT INTO person_activity_periods(person_id,active_from) VALUES(?1,strftime('%Y-%m','now','localtime'))",
+            [id],
+        ).map_err(|e| e.to_string())?;
+        transaction.commit().map_err(|e| e.to_string())
     }
 
-    fn list_deleted(&self) -> Result<Vec<Person>, String> {
+    fn list_deleted(&self) -> Result<Vec<DeletedPerson>, String> {
         if self.is_dummy {
             return Ok(Vec::new());
         }
@@ -362,25 +381,105 @@ impl PersonRepository for SqlitePersonRepository {
 
         let mut stmt = conn
             .prepare(
-                "SELECT id, name, last_name, phone FROM people
+                "SELECT id, name, last_name, phone, deleted_at FROM people
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             ORDER BY deleted_at DESC",
+             ORDER BY name COLLATE NOCASE, last_name COLLATE NOCASE, id",
             )
             .map_err(|e| e.to_string())?;
 
         let person_iter = stmt
             .query_map([], |row| {
-                Ok(Person {
+                Ok(DeletedPerson {
                     id: Some(row.get(0)?),
                     name: row.get(1)?,
                     last_name: row.get(2)?,
                     phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
                 })
             })
             .map_err(|e| e.to_string())?;
         person_iter
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())
+    }
+
+    fn list_deleted_paginated(
+        &self,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,last_name,phone,deleted_at FROM people
+                 WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+                 ORDER BY name COLLATE NOCASE,last_name COLLATE NOCASE,id LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(DeletedPerson {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<DeletedPerson>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let pattern = format!("%{}%", query.to_lowercase());
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn.prepare(
+            "SELECT id,name,last_name,phone,deleted_at FROM people
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
+             ORDER BY name COLLATE NOCASE,last_name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
+        ).map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![pattern, page_size, offset], |row| {
+                Ok(DeletedPerson {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                    deleted_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    fn search_deleted_count(&self, query: &str) -> Result<i32, String> {
+        if self.is_dummy {
+            return Ok(0);
+        }
+        let pattern = format!("%{}%", query.to_lowercase());
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            "SELECT COUNT(*) FROM people WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)",
+            params![pattern], |row| row.get(0),
+        ).map_err(|e| e.to_string())
     }
 
     fn count_deleted(&self) -> Result<i32, String> {

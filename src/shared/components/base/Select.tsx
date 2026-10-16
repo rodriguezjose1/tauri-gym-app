@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import './Select.css';
 
 export interface SelectOption {
@@ -34,6 +34,7 @@ export const Select: React.FC<SelectProps> = ({
   error = false,
   helperText
 }) => {
+  const selectId = useId();
   const containerClasses = [
     'ui-select-container',
     fullWidth ? 'ui-select-container--full-width' : '',
@@ -50,13 +51,14 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className={containerClasses}>
       {label && (
-        <label className="ui-select-label">
+        <label className="ui-select-label" htmlFor={selectId}>
           {label}
         </label>
       )}
       
       <div className="ui-select-wrapper">
         <select
+          id={selectId}
           className={selectClasses}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
@@ -87,4 +89,4 @@ export const Select: React.FC<SelectProps> = ({
       )}
     </div>
   );
-}; 
+};

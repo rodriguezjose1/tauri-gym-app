@@ -32,6 +32,8 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   // Función para generar código automáticamente desde el nombre
   const generateCodeFromName = (name: string): string => {
     return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toUpperCase()
       .replace(/[^A-Z0-9\s]/g, '') // Remove special characters, keep only letters, numbers, and spaces
       .trim()
@@ -75,7 +77,10 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       return;
     }
 
-    const success = await onSubmit(form);
+    const success = await onSubmit({
+      name: form.name.trim(),
+      code: form.code.trim(),
+    });
     if (success) {
       handleReset();
     }
@@ -172,4 +177,4 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       </form>
     </Modal>
   );
-}; 
+};

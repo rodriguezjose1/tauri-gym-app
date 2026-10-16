@@ -1,104 +1,38 @@
-import React, { useState } from 'react';
-import { SettingsModal } from '../components';
-import { getContainerStyles } from '../../../config/layout';
+import React, { Suspense, useState } from 'react';
+import { Card } from '../../../shared/components/base';
+import { ManagementPageHeader, ManagementToolbar } from '../../../shared/components/management';
+import { PlansManager } from '../../billing/components/PlansManager';
 import '../../../styles/ConfiguracionesPage.css';
 
+const BillingDevTools = import.meta.env.DEV
+  ? React.lazy(async () => ({ default: (await import('../../billing/components/BillingDevTools')).BillingDevTools }))
+  : null;
+
 const ConfiguracionesPage = () => {
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('plans');
+  const tabs = BillingDevTools ? <div className="management-tabs" role="tablist" aria-label="Secciones de configuración">
+    <button role="tab" aria-selected={activeTab === 'plans'} className={`management-tab ${activeTab === 'plans' ? 'active' : ''}`} onClick={() => setActiveTab('plans')}>Planes</button>
+    <button role="tab" aria-selected={activeTab === 'billing-dev'} className={`management-tab ${activeTab === 'billing-dev' ? 'active' : ''}`} onClick={() => setActiveTab('billing-dev')}>Desarrollo</button>
+  </div> : null;
 
   return (
-    <div className="configuraciones-container">
-      <div className="configuraciones-wrapper" style={getContainerStyles()}>
-        <div className="configuraciones-card">
-          <div className="configuraciones-header">
-            <div className="configuraciones-header-icon">
-              ⚙️
+    <div className="configuraciones-container management-page-frame"><div className="configuraciones-wrapper">
+      <Card variant="elevated" padding="md" className="configuraciones-card management-page-card">
+        {activeTab === 'plans' || !BillingDevTools ? <PlansManager toolbar={tabs} /> : (
+          <div className="configuraciones-development">
+            <div className="management-page-controls">
+              <ManagementPageHeader title="Desarrollo" />
+              <ManagementToolbar tabs={tabs} />
             </div>
-            <div className="configuraciones-header-content">
-              <h1>Configuraciones</h1>
-              <p>Personaliza tu experiencia en Quality GYM</p>
-            </div>
-          </div>
-
-          <div className="configuraciones-content">
-            <div className="configuraciones-section">
-              <h2>🎨 Configuración General</h2>
-              <div className="configuraciones-action-card">
-                <div className="configuraciones-action-content">
-                  <div className="configuraciones-action-icon">
-                    ⚙️
-                  </div>
-                  <div className="configuraciones-action-body">
-                    <div className="configuraciones-action-header">
-                      <h3>Preferencias de la Aplicación</h3>
-                      <button 
-                        className="configuraciones-action-button"
-                        onClick={() => setShowSettingsModal(true)}
-                      >
-                        Configurar
-                      </button>
-                    </div>
-                    <p>
-                      Ajusta el tema, idioma y otras configuraciones de Quality GYM.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="configuraciones-section">
-              <h2>🔮 Próximamente</h2>
-              <div className="coming-soon-grid">
-                <div className="coming-soon-card">
-                  <div className="coming-soon-card-content">
-                    <div className="coming-soon-card-icon">
-                      🔔
-                    </div>
-                    <div className="coming-soon-card-body">
-                      <div className="coming-soon-card-header">
-                        <h3>Notificaciones</h3>
-                        <span className="coming-soon-badge">
-                          Próximamente
-                        </span>
-                      </div>
-                      <p>
-                        Recordatorios de entrenamientos y alertas personalizadas de Quality GYM.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="coming-soon-card">
-                  <div className="coming-soon-card-content">
-                    <div className="coming-soon-card-icon">
-                      📦
-                    </div>
-                    <div className="coming-soon-card-body">
-                      <div className="coming-soon-card-header">
-                        <h3>Configuración de Backup</h3>
-                        <span className="coming-soon-badge">
-                          Próximamente
-                        </span>
-                      </div>
-                      <p>
-                        Configuración completa de servicios de email, frecuencia y opciones de backup.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="configuraciones-development-content">
+              <Suspense fallback={<div className="plans-state">Cargando herramientas…</div>}>
+                <BillingDevTools />
+              </Suspense>
             </div>
           </div>
-        </div>
-
-        {/* Settings Modal */}
-        <SettingsModal
-          isOpen={showSettingsModal}
-          onClose={() => setShowSettingsModal(false)}
-        />
-      </div>
-    </div>
+        )}
+      </Card>
+    </div></div>
   );
 };
-
-export default ConfiguracionesPage; 
+export default ConfiguracionesPage;

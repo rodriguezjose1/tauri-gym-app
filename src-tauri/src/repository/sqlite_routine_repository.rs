@@ -1,7 +1,7 @@
-use rusqlite::{Connection, OptionalExtension, Result as SqliteResult, params};
 use crate::models::routine::{Routine, RoutineWithExercises};
 use crate::models::routine_exercise::{RoutineExercise, RoutineExerciseWithDetails};
 use crate::repository::routine_repository::RoutineRepository;
+use rusqlite::{params, Connection, OptionalExtension, Result as SqliteResult};
 
 pub struct SqliteRoutineRepository {
     db_path: String,
@@ -26,15 +26,12 @@ impl SqliteRoutineRepository {
         Ok(repo)
     }
 
-    /// Dummy constructor: always returns empty results or errors
-    pub fn new_dummy() -> Self {
-        Self::new("", true)
-    }
-
     fn create_tables(&self) -> SqliteResult<()> {
-        if self.is_dummy { return Ok(()); }
+        if self.is_dummy {
+            return Ok(());
+        }
         let conn = self.get_connection()?;
-        
+
         // Create routines table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS routines (
@@ -95,14 +92,18 @@ impl SqliteRoutineRepository {
     }
 
     fn check_if_routine_group_migration_needed(&self) -> SqliteResult<bool> {
-        if self.is_dummy { return Ok(false); }
+        if self.is_dummy {
+            return Ok(false);
+        }
         let conn = self.get_connection()?;
-        
+
         let mut stmt = conn.prepare("PRAGMA table_info(routine_exercises)")?;
-        let column_info: Result<Vec<String>, _> = stmt.query_map([], |row| {
-            Ok(row.get::<_, String>(1)?) // Column name is at index 1
-        })?.collect();
-        
+        let column_info: Result<Vec<String>, _> = stmt
+            .query_map([], |row| {
+                Ok(row.get::<_, String>(1)?) // Column name is at index 1
+            })?
+            .collect();
+
         match column_info {
             Ok(columns) => Ok(!columns.contains(&"group_number".to_string())),
             Err(_) => Ok(false),
@@ -110,29 +111,35 @@ impl SqliteRoutineRepository {
     }
 
     fn migrate_routine_group_column(&self) -> SqliteResult<()> {
-        if self.is_dummy { return Ok(()); }
+        if self.is_dummy {
+            return Ok(());
+        }
         let conn = self.get_connection()?;
-        
+
         println!("Adding group_number column to routine_exercises table...");
-        
+
         conn.execute(
             "ALTER TABLE routine_exercises ADD COLUMN group_number INTEGER DEFAULT 1",
             [],
         )?;
-        
+
         println!("group_number column added successfully to routine_exercises table");
         Ok(())
     }
 
     fn check_if_logical_deletion_migration_needed(&self) -> SqliteResult<bool> {
-        if self.is_dummy { return Ok(false); }
+        if self.is_dummy {
+            return Ok(false);
+        }
         let conn = self.get_connection()?;
-        
+
         let mut stmt = conn.prepare("PRAGMA table_info(routines)")?;
-        let column_info: Result<Vec<String>, _> = stmt.query_map([], |row| {
-            Ok(row.get::<_, String>(1)?) // Column name is at index 1
-        })?.collect();
-        
+        let column_info: Result<Vec<String>, _> = stmt
+            .query_map([], |row| {
+                Ok(row.get::<_, String>(1)?) // Column name is at index 1
+            })?
+            .collect();
+
         match column_info {
             Ok(columns) => Ok(!columns.contains(&"deleted_at".to_string())),
             Err(_) => Ok(false),
@@ -140,21 +147,20 @@ impl SqliteRoutineRepository {
     }
 
     fn migrate_logical_deletion(&self) -> SqliteResult<()> {
-        if self.is_dummy { return Ok(()); }
+        if self.is_dummy {
+            return Ok(());
+        }
         let conn = self.get_connection()?;
-        
+
         println!("Adding logical deletion columns to routines table...");
-        
-        conn.execute(
-            "ALTER TABLE routines ADD COLUMN deleted_at DATETIME",
-            [],
-        )?;
-        
+
+        conn.execute("ALTER TABLE routines ADD COLUMN deleted_at DATETIME", [])?;
+
         conn.execute(
             "ALTER TABLE routines ADD COLUMN is_active INTEGER DEFAULT 1",
             [],
         )?;
-        
+
         println!("Logical deletion columns added successfully to routines table");
         Ok(())
     }
@@ -169,29 +175,36 @@ impl SqliteRoutineRepository {
 
 impl RoutineRepository for SqliteRoutineRepository {
     fn create(&self, routine: Routine) -> Result<i32, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         conn.execute(
             "INSERT INTO routines (name, code) VALUES (?1, ?2)",
-            params![routine.name, routine.code]
-        ).map_err(|e| e.to_string())?;
-        
+            params![routine.name, routine.code],
+        )
+        .map_err(|e| e.to_string())?;
+
         // Get the ID of the newly created routine
         let routine_id = conn.last_insert_rowid() as i32;
         Ok(routine_id)
     }
 
     fn get_by_id(&self, id: i32) -> Result<Option<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines
              WHERE id = ?1 AND (deleted_at IS NULL OR deleted_at = '')
-             AND (is_active = 1 OR is_active IS NULL)"
-        ).map_err(|e| e.to_string())?;
-        
+             AND (is_active = 1 OR is_active IS NULL)",
+            )
+            .map_err(|e| e.to_string())?;
+
         stmt.query_row(params![id], |row| {
             Ok(Routine {
                 id: Some(row.get(0)?),
@@ -200,13 +213,17 @@ impl RoutineRepository for SqliteRoutineRepository {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
             })
-        }).optional().map_err(|e| e.to_string())
+        })
+        .optional()
+        .map_err(|e| e.to_string())
     }
 
     fn get_with_exercises(&self, id: i32) -> Result<Option<RoutineWithExercises>, String> {
-        let Some(routine) = self.get_by_id(id)? else { return Ok(None); };
+        let Some(routine) = self.get_by_id(id)? else {
+            return Ok(None);
+        };
         let exercises = self.get_routine_exercises(id)?;
-        
+
         Ok(Some(RoutineWithExercises {
             id: routine.id,
             name: routine.name,
@@ -218,155 +235,236 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn update(&self, id: i32, name: String, code: String) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let changed = conn.execute(
             "UPDATE routines SET name = ?1, code = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3",
             params![name, code, id]
         ).map_err(|e| e.to_string())?;
-        if changed == 0 { Err("Routine not found".into()) } else { Ok(()) }
+        if changed == 0 {
+            Err("Routine not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn delete(&self, id: i32) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // Logical deletion instead of physical deletion
         let changed = conn.execute(
             "UPDATE routines SET deleted_at = datetime('now'), is_active = 0 WHERE id = ?1 AND (is_active = 1 OR is_active IS NULL)",
             params![id]
         ).map_err(|e| e.to_string())?;
-        if changed == 0 { Err("Active routine not found".into()) } else { Ok(()) }
+        if changed == 0 {
+            Err("Active routine not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn restore(&self, id: i32) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // Restore logically deleted routine
         let changed = conn.execute(
             "UPDATE routines SET deleted_at = NULL, is_active = 1 WHERE id = ?1 AND is_active = 0",
             params![id]
         ).map_err(|e| e.to_string())?;
-        if changed == 0 { Err("Deleted routine not found".into()) } else { Ok(()) }
+        if changed == 0 {
+            Err("Deleted routine not found".into())
+        } else {
+            Ok(())
+        }
     }
 
     fn list_all(&self) -> Result<Vec<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name"
-        ).map_err(|e| e.to_string())?;
-        
-        let routine_iter = stmt.query_map([], |row| {
-            Ok(Routine {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
+             ORDER BY name",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let routine_iter = stmt
+            .query_map([], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        routine_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        routine_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
     fn list_routines_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let offset = (page - 1) * page_size;
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             ORDER BY name LIMIT ?1 OFFSET ?2"
-        ).map_err(|e| e.to_string())?;
-        
-        let routine_iter = stmt.query_map(params![page_size, offset], |row| {
-            Ok(Routine {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
+             ORDER BY name LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let routine_iter = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        routine_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        routine_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    fn count_all(&self) -> Result<i32, String> {
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            "SELECT COUNT(*) FROM routines WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
+            [], |row| row.get(0),
+        ).map_err(|e| e.to_string())
+    }
+
+    fn search_count(&self, query: &str, deleted: bool) -> Result<i32, String> {
+        let pattern = format!("%{}%", query.to_lowercase());
+        let condition = if deleted {
+            "deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0"
+        } else {
+            "(deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)"
+        };
+        self.get_connection().map_err(|e| e.to_string())?.query_row(
+            &format!("SELECT COUNT(*) FROM routines WHERE {condition} AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)"),
+            params![pattern], |row| row.get(0),
+        ).map_err(|e| e.to_string())
     }
 
     fn search_routines(&self, query: &str) -> Result<Vec<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let search_pattern = format!("%{}%", query);
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              AND (name LIKE ?1 OR code LIKE ?1) 
-             ORDER BY name"
-        ).map_err(|e| e.to_string())?;
-        
-        let routine_iter = stmt.query_map(params![search_pattern], |row| {
-            Ok(Routine {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
+             ORDER BY name",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let routine_iter = stmt
+            .query_map(params![search_pattern], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        routine_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        routine_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
-    fn search_routines_paginated(&self, query: &str, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+    fn search_routines_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Routine>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let offset = (page - 1) * page_size;
         let search_pattern = format!("%{}%", query);
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              AND (name LIKE ?1 OR code LIKE ?1) 
-             ORDER BY name LIMIT ?2 OFFSET ?3"
-        ).map_err(|e| e.to_string())?;
-        
-        let routine_iter = stmt.query_map(params![search_pattern, page_size, offset], |row| {
-            Ok(Routine {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
+             ORDER BY name LIMIT ?2 OFFSET ?3",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let routine_iter = stmt
+            .query_map(params![search_pattern, page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        routine_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        routine_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
     fn add_exercise_to_routine(&self, routine_exercise: RoutineExercise) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // First, check if the exercise already exists in this routine
-        let mut stmt = conn.prepare(
-            "SELECT COUNT(*) FROM routine_exercises WHERE routine_id = ?1 AND exercise_id = ?2"
-        ).map_err(|e| e.to_string())?;
-        
-        let count: i32 = stmt.query_row(
-            params![routine_exercise.routine_id, routine_exercise.exercise_id], 
-            |row| row.get(0)
-        ).map_err(|e| e.to_string())?;
-        
+        let mut stmt = conn
+            .prepare(
+                "SELECT COUNT(*) FROM routine_exercises WHERE routine_id = ?1 AND exercise_id = ?2",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let count: i32 = stmt
+            .query_row(
+                params![routine_exercise.routine_id, routine_exercise.exercise_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+
         if count > 0 {
             return Err("Este ejercicio ya está en la rutina".to_string());
         }
-        
+
         conn.execute(
             "INSERT INTO routine_exercises (routine_id, exercise_id, order_index, sets, reps, weight, notes, group_number)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
@@ -385,9 +483,11 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn update_routine_exercise(&self, routine_exercise: RoutineExercise) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let changed = conn.execute(
             "UPDATE routine_exercises 
              SET order_index = ?1, sets = ?2, reps = ?3, weight = ?4, notes = ?5, group_number = ?6, updated_at = CURRENT_TIMESTAMP
@@ -403,24 +503,45 @@ impl RoutineRepository for SqliteRoutineRepository {
                 routine_exercise.routine_id
             ],
         ).map_err(|e| e.to_string())?;
-        if changed == 0 { Err("Routine exercise not found".into()) } else { Ok(()) }
+        if changed == 0 {
+            Err("Routine exercise not found".into())
+        } else {
+            Ok(())
+        }
     }
 
-    fn remove_exercise_from_routine(&self, routine_id: i32, exercise_id: i32) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+    fn remove_exercise_from_routine(
+        &self,
+        routine_id: i32,
+        exercise_id: i32,
+    ) -> Result<(), String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        let changed = conn.execute(
-            "DELETE FROM routine_exercises WHERE routine_id = ?1 AND exercise_id = ?2",
-            params![routine_id, exercise_id]
-        ).map_err(|e| e.to_string())?;
-        if changed == 0 { Err("Routine exercise not found".into()) } else { Ok(()) }
+
+        let changed = conn
+            .execute(
+                "DELETE FROM routine_exercises WHERE routine_id = ?1 AND exercise_id = ?2",
+                params![routine_id, exercise_id],
+            )
+            .map_err(|e| e.to_string())?;
+        if changed == 0 {
+            Err("Routine exercise not found".into())
+        } else {
+            Ok(())
+        }
     }
 
-    fn get_routine_exercises(&self, routine_id: i32) -> Result<Vec<RoutineExerciseWithDetails>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+    fn get_routine_exercises(
+        &self,
+        routine_id: i32,
+    ) -> Result<Vec<RoutineExerciseWithDetails>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let mut stmt = conn.prepare(
             "SELECT re.id, re.routine_id, re.exercise_id, re.order_index, re.sets, re.reps, re.weight, re.notes, re.group_number, re.created_at, re.updated_at,
                     e.name as exercise_name, e.code as exercise_code
@@ -429,66 +550,92 @@ impl RoutineRepository for SqliteRoutineRepository {
              WHERE re.routine_id = ?1
              ORDER BY re.group_number, re.order_index"
         ).map_err(|e| e.to_string())?;
-        
-        let exercise_iter = stmt.query_map(params![routine_id], |row| {
-            Ok(RoutineExerciseWithDetails {
-                id: row.get(0)?,
-                routine_id: row.get(1)?,
-                exercise_id: row.get(2)?,
-                order_index: row.get(3)?,
-                sets: row.get(4)?,
-                reps: row.get(5)?,
-                weight: row.get(6)?,
-                notes: row.get(7)?,
-                group_number: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
-                exercise_name: row.get(11)?,
-                exercise_code: row.get(12)?,
+
+        let exercise_iter = stmt
+            .query_map(params![routine_id], |row| {
+                Ok(RoutineExerciseWithDetails {
+                    id: row.get(0)?,
+                    routine_id: row.get(1)?,
+                    exercise_id: row.get(2)?,
+                    order_index: row.get(3)?,
+                    sets: row.get(4)?,
+                    reps: row.get(5)?,
+                    weight: row.get(6)?,
+                    notes: row.get(7)?,
+                    group_number: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                    exercise_name: row.get(11)?,
+                    exercise_code: row.get(12)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        exercise_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        exercise_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
-    fn reorder_routine_exercises(&self, routine_id: i32, exercise_orders: Vec<(i32, i32)>) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+    fn reorder_routine_exercises(
+        &self,
+        routine_id: i32,
+        exercise_orders: Vec<(i32, i32)>,
+    ) -> Result<(), String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-        
+
         {
-            let mut stmt = tx.prepare("UPDATE routine_exercises SET order_index = ?1 WHERE id = ?2")
+            let mut stmt = tx
+                .prepare("UPDATE routine_exercises SET order_index = ?1 WHERE id = ?2")
                 .map_err(|e| e.to_string())?;
-            
+
             for (id, order) in exercise_orders {
-                let changed = stmt.execute(params![order, id]).map_err(|e| e.to_string())?;
+                let changed = stmt
+                    .execute(params![order, id])
+                    .map_err(|e| e.to_string())?;
                 if changed == 0 {
                     return Err("Routine exercise not found".into());
                 }
-                let belongs: i32 = tx.query_row(
-                    "SELECT COUNT(*) FROM routine_exercises WHERE id = ?1 AND routine_id = ?2",
-                    params![id, routine_id],
-                    |row| row.get(0),
-                ).map_err(|e| e.to_string())?;
-                if belongs == 0 { return Err("Routine exercise does not belong to routine".into()); }
+                let belongs: i32 = tx
+                    .query_row(
+                        "SELECT COUNT(*) FROM routine_exercises WHERE id = ?1 AND routine_id = ?2",
+                        params![id, routine_id],
+                        |row| row.get(0),
+                    )
+                    .map_err(|e| e.to_string())?;
+                if belongs == 0 {
+                    return Err("Routine exercise does not belong to routine".into());
+                }
             }
         }
-        
+
         tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn replace_routine_exercises(&self, routine_id: i32, exercises: Vec<RoutineExercise>) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+    fn replace_routine_exercises(
+        &self,
+        routine_id: i32,
+        exercises: Vec<RoutineExercise>,
+    ) -> Result<(), String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-        
+
         {
             // Delete existing exercises for this routine
-            tx.execute("DELETE FROM routine_exercises WHERE routine_id = ?1", params![routine_id])
-                .map_err(|e| e.to_string())?;
-            
+            tx.execute(
+                "DELETE FROM routine_exercises WHERE routine_id = ?1",
+                params![routine_id],
+            )
+            .map_err(|e| e.to_string())?;
+
             // Insert new exercises
             if !exercises.is_empty() {
                 let mut stmt = tx.prepare(
@@ -506,23 +653,31 @@ impl RoutineRepository for SqliteRoutineRepository {
                         exercise.weight,
                         exercise.notes,
                         exercise.group_number
-                    ]).map_err(|e| e.to_string())?;
+                    ])
+                    .map_err(|e| e.to_string())?;
                 }
             }
         }
-        
+
         tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    fn create_with_exercises(&self, routine: Routine, exercises: Vec<RoutineExercise>) -> Result<i32, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+    fn create_with_exercises(
+        &self,
+        routine: Routine,
+        exercises: Vec<RoutineExercise>,
+    ) -> Result<i32, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
         tx.execute(
             "INSERT INTO routines (name, code) VALUES (?1, ?2)",
             params![routine.name, routine.code],
-        ).map_err(|e| e.to_string())?;
+        )
+        .map_err(|e| e.to_string())?;
         let routine_id = tx.last_insert_rowid() as i32;
         for mut exercise in exercises {
             exercise.routine_id = routine_id;
@@ -536,79 +691,160 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn renumber_routine_groups(&self, routine_id: i32) -> Result<(), String> {
-        if self.is_dummy { return Err("Routine repository unavailable".to_string()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".to_string());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         // Start transaction
         let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-        
+
         {
             // Get all distinct group numbers for this routine, ordered by group number
-            let mut stmt = tx.prepare(
-                "SELECT DISTINCT group_number FROM routine_exercises 
+            let mut stmt = tx
+                .prepare(
+                    "SELECT DISTINCT group_number FROM routine_exercises 
                  WHERE routine_id = ?1 
-                 ORDER BY group_number"
-            ).map_err(|e| e.to_string())?;
-            
-            let group_numbers: Result<Vec<i32>, _> = stmt.query_map(params![routine_id], |row| {
-                Ok(row.get::<_, i32>(0)?)
-            }).map_err(|e| e.to_string())?.collect();
-            
+                 ORDER BY group_number",
+                )
+                .map_err(|e| e.to_string())?;
+
+            let group_numbers: Result<Vec<i32>, _> = stmt
+                .query_map(params![routine_id], |row| Ok(row.get::<_, i32>(0)?))
+                .map_err(|e| e.to_string())?
+                .collect();
+
             let group_numbers = group_numbers.map_err(|e| e.to_string())?;
-            
+
             // Renumber groups consecutively starting from 1
             for (new_group_number, old_group_number) in group_numbers.iter().enumerate() {
                 let new_group = (new_group_number + 1) as i32;
-                
+
                 // Only update if the group number needs to change
                 if new_group != *old_group_number {
                     tx.execute(
                         "UPDATE routine_exercises 
                          SET group_number = ?1 
                          WHERE routine_id = ?2 AND group_number = ?3",
-                        params![new_group, routine_id, old_group_number]
-                    ).map_err(|e| e.to_string())?;
+                        params![new_group, routine_id, old_group_number],
+                    )
+                    .map_err(|e| e.to_string())?;
                 }
             }
         }
-        
+
         tx.commit().map_err(|e| e.to_string())?;
         Ok(())
     }
 
     fn list_deleted(&self) -> Result<Vec<Routine>, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
-        let mut stmt = conn.prepare(
-            "SELECT id, name, code, created_at, updated_at FROM routines 
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             ORDER BY deleted_at DESC"
-        ).map_err(|e| e.to_string())?;
-        
-        let routine_iter = stmt.query_map([], |row| {
-            Ok(Routine {
-                id: Some(row.get(0)?),
-                name: row.get(1)?,
-                code: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
+             ORDER BY deleted_at DESC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let routine_iter = stmt
+            .query_map([], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
             })
-        }).map_err(|e| e.to_string())?;
-        routine_iter.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        routine_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    fn list_deleted_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Routine>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,code,created_at,updated_at FROM routines
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             ORDER BY name COLLATE NOCASE,id LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
+    }
+
+    fn search_deleted_paginated(
+        &self,
+        query: &str,
+        page: i32,
+        page_size: i32,
+    ) -> Result<Vec<Routine>, String> {
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
+        let conn = self.get_connection().map_err(|e| e.to_string())?;
+        let pattern = format!("%{}%", query.to_lowercase());
+        let offset = (page - 1) * page_size;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id,name,code,created_at,updated_at FROM routines
+             WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
+             AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)
+             ORDER BY name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map(params![pattern, page_size, offset], |row| {
+                Ok(Routine {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    code: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string());
+        result
     }
 
     fn count_deleted(&self) -> Result<i32, String> {
-        if self.is_dummy { return Err("Routine repository unavailable".into()); }
+        if self.is_dummy {
+            return Err("Routine repository unavailable".into());
+        }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        
+
         let count: Result<i32, _> = conn.query_row(
             "SELECT COUNT(*) FROM routines 
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0",
             [],
             |row| row.get(0),
         );
-        
+
         count.map_err(|e| e.to_string())
     }
 }

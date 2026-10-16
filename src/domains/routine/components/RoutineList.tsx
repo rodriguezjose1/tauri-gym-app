@@ -1,13 +1,5 @@
 import React from 'react';
-import { Button } from '../../../shared/components/base';
 import { Routine } from '../../../services';
-import { ROUTINE_UI_LABELS } from '../../../shared/constants';
-
-// Constantes locales para labels faltantes
-const LOCAL_LABELS = {
-  ROUTINES_TITLE: 'Rutinas',
-  CREATE_ROUTINE_BUTTON: 'Nueva Rutina'
-} as const;
 
 interface RoutineListProps {
   routines: Routine[];
@@ -15,8 +7,6 @@ interface RoutineListProps {
   loading: boolean;
   onSelectRoutine: (routineId: number) => void;
   onDeleteRoutine: (routineId: number, routineName: string) => void;
-  onCreateNew: () => void;
-  hideCreateButton?: boolean;
 }
 
 export const RoutineList: React.FC<RoutineListProps> = ({
@@ -25,8 +15,6 @@ export const RoutineList: React.FC<RoutineListProps> = ({
   loading,
   onSelectRoutine,
   onDeleteRoutine,
-  onCreateNew,
-  hideCreateButton = false
 }) => {
   if (loading) {
     return (
@@ -47,10 +35,20 @@ export const RoutineList: React.FC<RoutineListProps> = ({
         routines.map((routine) => (
           <div
             key={routine.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`Seleccionar rutina ${routine.name}`}
+            aria-pressed={selectedRoutineId === routine.id}
             className={`routine-manager-routine-item ${
               selectedRoutineId === routine.id ? 'selected' : ''
             }`}
             onClick={() => onSelectRoutine(routine.id!)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelectRoutine(routine.id!);
+              }
+            }}
           >
             <div className="routine-manager-routine-info">
               <div className="routine-manager-routine-name">
@@ -63,6 +61,8 @@ export const RoutineList: React.FC<RoutineListProps> = ({
               )}
             </div>
             <button
+              type="button"
+              aria-label={`Eliminar rutina ${routine.name}`}
               className="routine-manager-routine-delete"
               onClick={(e) => {
                 e.stopPropagation();
@@ -76,4 +76,4 @@ export const RoutineList: React.FC<RoutineListProps> = ({
       )}
     </div>
   );
-}; 
+};

@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import { checkVersions } from './release-version.mjs';
 const version = checkVersions();
-if (process.env.GITHUB_REF_NAME !== `v${version}`) {
+const releaseTag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME;
+if (releaseTag !== `v${version}`) {
   throw new Error('El tag debe coincidir con la versión de la aplicación: v' + version);
 }
 for (const name of ['TAURI_UPDATER_PUBLIC_KEY', 'TAURI_SIGNING_PRIVATE_KEY', 'RESEND_API_KEY']) {

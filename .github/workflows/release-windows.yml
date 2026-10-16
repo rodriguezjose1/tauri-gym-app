@@ -2,6 +2,13 @@ name: Release Windows
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - src-tauri/tauri.conf.json
+      - src-tauri/Cargo.toml
+      - src-tauri/Cargo.lock
 permissions:
   contents: write
 concurrency:
@@ -12,12 +19,36 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve release version
+        id: release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          $tag = "v$version"
+          if ("${{ github.ref_type }}" -eq "tag" -and "${{ github.ref_name }}" -ne $tag) {
+            throw "El tag ${{ github.ref_name }} no coincide con la versión $version"
+          }
+          $published = $false
+          $release = gh release view $tag --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $published = -not (($release | ConvertFrom-Json).isDraft)
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "skip=$($published.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          exit 0
       - uses: actions/setup-node@v4
+        if: steps.release.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.release.outputs.skip != 'true'
       - name: Restore Rust dependencies
+        if: steps.release.outputs.skip != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: windows-rust-dependencies
@@ -27,44 +58,63 @@ jobs:
           cache-workspace-crates: false
           save-if: false
       - run: npm ci
+        if: steps.release.outputs.skip != 'true'
       - name: Validate version and configure signing
+        if: steps.release.outputs.skip != 'true'
         run: node scripts/prepare-release.mjs
         env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       - run: npm run test:run
+        if: steps.release.outputs.skip != 'true'
       - run: node --test scripts/update-manifest.test.mjs
+        if: steps.release.outputs.skip != 'true'
       - run: npm run test:backend
+        if: steps.release.outputs.skip != 'true'
       - name: Verify native installation gate
+        if: steps.release.outputs.skip != 'true'
         shell: pwsh
         run: |
           rustc --test src-tauri/src/services/updater_service.rs -o updater-lifecycle-test.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./updater-lifecycle-test.exe
       - name: Build signed MSI
+        if: steps.release.outputs.skip != 'true'
         run: npx tauri build --bundles msi --config src-tauri/tauri.release.conf.json -- --locked
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       - name: Publish complete release
+        if: steps.release.outputs.skip != 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
-          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Quality GYM $env:GITHUB_REF_NAME" --generate-notes
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git fetch origin tag $env:RELEASE_TAG 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            git tag -a $env:RELEASE_TAG -m "Quality GYM $env:RELEASE_TAG"
+            git push origin $env:RELEASE_TAG
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:RELEASE_TAG --draft --verify-tag --title "Quality GYM $env:RELEASE_TAG" --generate-notes
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
           $assets = Get-ChildItem src-tauri/target/release/bundle/msi/* | Where-Object { $_.Name -match '\.msi(\.sig)?$' } | ForEach-Object { $_.FullName }
-          gh release upload $env:GITHUB_REF_NAME @assets
+          gh release upload $env:RELEASE_TAG @assets --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # The REST lookup by tag only resolves published releases.
-          $releaseId = gh release view $env:GITHUB_REF_NAME --json databaseId --jq '.databaseId'
+          $releaseId = gh release view $env:RELEASE_TAG --json databaseId --jq '.databaseId'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($releaseId -notmatch '^\d+$') { throw 'GitHub no devolvió un ID de release válido' }
           gh api "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" > release-assets.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/update-manifest.mjs release-assets.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release upload $env:GITHUB_REF_NAME latest.json
+          gh release upload $env:RELEASE_TAG latest.json --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release edit $env:GITHUB_REF_NAME --draft=false --latest
+          gh release edit $env:RELEASE_TAG --draft=false --latest

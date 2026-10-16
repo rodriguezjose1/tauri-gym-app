@@ -189,6 +189,29 @@ mod contracts {
     }
 
     #[test]
+    fn deleted_exercises_are_paginated_and_out_of_range_pages_are_clamped() {
+        let f = Fixture::new();
+        for index in 0..5 {
+            let id = f.create_exercise(&format!("Ejercicio {index}"), &format!("E{index}"));
+            f.exercise_service.delete_exercise(id).unwrap();
+        }
+
+        let first = f.exercise_service.list_deleted_exercises_paginated(1, 2).unwrap();
+        let second = f.exercise_service.list_deleted_exercises_paginated(2, 2).unwrap();
+        let clamped = f.exercise_service.list_deleted_exercises_paginated(99, 2).unwrap();
+        assert_eq!((first.total, first.total_pages, first.exercises.len()), (5, 3, 2));
+        assert_eq!((second.page, second.exercises.len()), (2, 2));
+        assert_eq!((clamped.page, clamped.exercises.len()), (3, 1));
+        assert_eq!(first.exercises[0].name, "Ejercicio 0");
+        assert!(first
+            .exercises
+            .iter()
+            .all(|exercise| !exercise.deleted_at.is_empty()));
+        let searched = f.exercise_service.search_deleted_exercises_paginated("E3", 1, 10).unwrap();
+        assert_eq!((searched.total, searched.exercises[0].code.as_str()), (1, "E3"));
+    }
+
+    #[test]
     fn duplicate_exercise_code_is_rejected_without_changing_catalog() {
         let f = Fixture::new();
         f.create_exercise("Sentadilla", "SQ");

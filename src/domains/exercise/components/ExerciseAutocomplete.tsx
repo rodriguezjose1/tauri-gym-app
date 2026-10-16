@@ -26,6 +26,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isSelectingRef = useRef(false);
+  const requestId = useRef(0);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -49,10 +50,12 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       return;
     }
 
+    const id = ++requestId.current;
     setLoading(true);
     setSearchError(null);
     try {
       const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       if (reset) {
         setExercises(response.exercises);
@@ -68,7 +71,7 @@ export const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       setSearchError('No se pudieron buscar los ejercicios. Volvé a escribir para reintentar.');
       setHasMore(false);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 

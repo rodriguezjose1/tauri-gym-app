@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
+import { Input, Button, Select, Card, ErrorMessage } from '../../../shared/components/base';
 import { Exercise } from '../../../shared/types/dashboard';
 import { ExerciseService } from '../../../services';
 import { ROUTINE_UI_LABELS } from '../../../shared/constants';
@@ -29,11 +29,16 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   const [hasMore, setHasMore] = useState(true);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const requestId = useRef(0);
 
   // Load exercises with pagination
   const loadExercises = useCallback(async (page = 1, append = false) => {
+    const id = ++requestId.current;
     try {
+      setError(null);
       if (page === 1) {
         setSearchLoading(true);
       } else {
@@ -41,6 +46,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       }
       
       const response = await ExerciseService.getExercisesPaginated(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       if (response.exercises.length === 0 && page > 1) {
         setHasMore(false);
@@ -58,15 +64,20 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setCurrentPage(page);
     } catch (error) {
       console.error("Error loading exercises:", error);
+      if (id === requestId.current) setError('No se pudieron cargar los ejercicios');
     } finally {
-      setSearchLoading(false);
-      setIsLoadingMore(false);
+      if (id === requestId.current) {
+        setSearchLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   }, []);
 
   // Search exercises with pagination
   const searchExercises = useCallback(async (query: string, page = 1, append = false) => {
+    const id = ++requestId.current;
     try {
+      setError(null);
       if (page === 1) {
         setSearchLoading(true);
       } else {
@@ -79,6 +90,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       }
 
       const response = await ExerciseService.searchExercisesPaginated(query, page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
       
       if (response.exercises.length === 0 && page > 1) {
         setHasMore(false);
@@ -96,9 +108,12 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setCurrentPage(page);
     } catch (error) {
       console.error("Error searching exercises:", error);
+      if (id === requestId.current) setError('No se pudo realizar la búsqueda');
     } finally {
-      setSearchLoading(false);
-      setIsLoadingMore(false);
+      if (id === requestId.current) {
+        setSearchLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   }, [loadExercises]);
 
@@ -184,7 +199,10 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
   };
 
   const handleAddSelectedExercises = async () => {
+    if (isAdding || selectedExercises.length === 0) return;
     try {
+      setIsAdding(true);
+      setError(null);
       for (const exercise of selectedExercises) {
         await onAddExercise(exercise, exercise.selectedGroup);
       }
@@ -192,7 +210,10 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setSearchTerm('');
     } catch (error) {
       console.error('Error adding selected exercises:', error);
+      setError('No se pudieron agregar todos los ejercicios. Puedes volver a intentarlo.');
       // No limpiar la selección si hay error para que el usuario pueda intentar de nuevo
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -202,6 +223,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
     setSearchResults([]);
     setIsSearchActive(false);
     setCurrentPage(1);
+    setError(null);
     onClose();
   };
 
@@ -214,15 +236,10 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
       setIsSearchActive(false);
       setCurrentPage(1);
       setHasMore(true); // Reset hasMore to true
+      setError(null);
       // Load initial exercises
       loadExercises(1, false);
       
-      // Check container dimensions after a short delay
-      setTimeout(() => {
-        if (resultsRef.current) {
-          const { scrollHeight, clientHeight } = resultsRef.current;
-        }
-      }, 100);
     }
   }, [isOpen, loadExercises]);
 
@@ -271,6 +288,8 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
             {ROUTINE_UI_LABELS.ADD_EXERCISE_TITLE}
           </h3>
           <button
+            type="button"
+            aria-label="Cerrar búsqueda de ejercicios"
             onClick={handleClose}
             className="exercise-search-close-button"
           >
@@ -303,6 +322,7 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
         </div>
 
         <div className="exercise-search-content">
+          {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
           {/* Mensaje de ayuda sobre grupos */}
           <div className="exercise-search-help">
             <div className="exercise-search-help-icon">💡</div>
@@ -350,6 +370,8 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
                         size="sm"
                       />
                       <button
+                        type="button"
+                        aria-label={`Quitar ${exercise.name}`}
                         onClick={() => handleRemoveSelected(exercise.id!)}
                         className="exercise-search-remove-button"
                         title="Quitar ejercicio"
@@ -387,7 +409,16 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
                     variant="default" 
                     padding="sm" 
                     className="exercise-search-item"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Seleccionar ejercicio ${exercise.name}`}
                     onClick={() => handleToggleExercise(exercise)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        handleToggleExercise(exercise);
+                      }
+                    }}
                   >
                     <div className="exercise-search-item-avatar">
                       {exercise.name.charAt(0).toUpperCase()}
@@ -450,19 +481,20 @@ export const ExerciseSearch: React.FC<ExerciseSearchProps> = ({
             <Button
               onClick={handleClose}
               variant="secondary"
+              disabled={isAdding}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleAddSelectedExercises}
               variant="primary"
-              disabled={selectedExercises.length === 0}
+              disabled={selectedExercises.length === 0 || isAdding}
             >
-              ✅ Agregar Ejercicios
+              {isAdding ? 'Agregando...' : '✅ Agregar Ejercicios'}
             </Button>
           </div>
         </div>
       </div>
     </div>
   );
-}; 
+};

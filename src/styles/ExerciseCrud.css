@@ -1,9 +1,6 @@
 /* Exercise CRUD Container */
 .exercise-crud-container {
   background: #1a1a1a;
-  min-height: 100vh;
-  width: 100%;
-  padding: 24px;
 }
 
 .exercise-crud-wrapper {
@@ -53,67 +50,6 @@
   border-top: 1px solid #404040;
 }
 
-/* List Header */
-.exercise-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #404040;
-  gap: 16px;
-  position: sticky;
-  top: 80px; /* Account for navbar height */
-  background-color: var(--bg-primary);
-  z-index: 10;
-  padding-top: 16px;
-  margin-top: -16px;
-}
-
-.exercise-list-title-section {
-  flex: 1;
-}
-
-.exercise-list-description {
-  color: #b0b0b0;
-  margin: 8px 0 0 0;
-  font-size: 14px;
-}
-
-.exercise-list-actions {
-  flex: 1;
-  max-width: 400px;
-}
-
-.exercise-list-create-action {
-  flex-shrink: 0;
-}
-
-.exercise-list-create-action .ui-button {
-  width: 200px;
-  justify-content: center;
-}
-
-.exercise-list-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #404040;
-}
-
-.exercise-count {
-  color: #b0b0b0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.exercise-page-info {
-  color: #808080;
-  font-size: 12px;
-}
-
 /* Search */
 .exercise-crud-search-container {
   margin-bottom: 24px;
@@ -140,8 +76,8 @@
 /* Exercise List - Vertical Layout */
 .exercise-list-grid {
   display: grid;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 12px;
   flex: 1;
 }
 
@@ -154,7 +90,7 @@
   transition: all 0.2s ease;
   cursor: pointer;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .exercise-card:hover {
@@ -237,24 +173,8 @@
 .exercise-pagination {
   position: sticky;
   bottom: 0;
-  background: var(--bg-primary, #1a1a1a);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid #404040;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 16px 24px;
   margin-top: auto;
-  flex-shrink: 0;
-}
-
-.exercise-page-indicator {
-  color: #b0b0b0;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 /* Delete Confirmation Modal */
@@ -287,28 +207,8 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .exercise-crud-container {
-    padding: 16px;
-  }
-  
   .exercise-crud-wrapper .card {
     min-height: 60vh;
-  }
-  
-  .exercise-list-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-  
-  .exercise-list-actions {
-    align-self: flex-start;
-  }
-  
-  .exercise-list-stats {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
   }
   
   .exercise-card {
@@ -327,59 +227,6 @@
     flex-direction: column;
   }
   
-  .exercise-pagination {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 8px;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  .exercise-page-indicator {
-    font-size: 12px;
-  }
-}
-
-/* Exercise Tabs */
-.exercise-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--border-color, #404040);
-  padding-bottom: 8px;
-}
-
-.exercise-tab {
-  background: transparent;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary, #b0b0b0);
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.exercise-tab:hover {
-  background: var(--bg-secondary, #2d2d2d);
-  color: var(--text-primary, #ffffff);
-}
-
-.exercise-tab.active {
-  background: var(--accent-primary, #2196F3);
-  color: white;
-}
-
-.exercise-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -9px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent-primary, #2196F3);
-  border-radius: 1px;
 }
 
 /* Deleted Exercise Cards */
@@ -401,8 +248,8 @@
 }
 
 .exercise-deleted-status {
-  color: var(--error-color, #f44336);
-  font-size: 12px;
+  color: #b0b0b0;
+  font-size: 13px;
   font-weight: 500;
   margin: 4px 0 0 0;
   display: flex;
@@ -410,28 +257,7 @@
   gap: 4px;
 }
 
-/* Responsive tabs */
-@media (max-width: 768px) {
-  .exercise-tabs {
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .exercise-tab {
-    text-align: center;
-    padding: 12px 16px;
-  }
-  
-  .exercise-tab.active::after {
-    display: none;
-  }
-}
-
 @media (max-width: 480px) {
-  .exercise-crud-container {
-    padding: 8px;
-  }
-  
   .exercise-crud-wrapper .card {
     min-height: 50vh;
   }
@@ -456,17 +282,4 @@
     gap: 12px;
   }
   
-  .exercise-pagination {
-    padding: 8px 12px;
-    gap: 6px;
-  }
-  
-  .exercise-pagination button {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-  
-  .exercise-page-indicator {
-    font-size: 11px;
-  }
-} 
+}

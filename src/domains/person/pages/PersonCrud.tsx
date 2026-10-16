@@ -1,23 +1,39 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PersonService, Person } from "../../../services";
-import { Button, Input, Title, Card, Modal, ErrorMessage } from "../../../shared/components/base";
+import type { DeletedPerson } from "../../../shared/types/dashboard";
+import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
+import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput, Select } from "../../../shared/components/base";
+import { ManagementPageHeader, ManagementToolbar } from "../../../shared/components/management";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/PersonCrud.css";
+import { BillingService, type PaymentStatus, type PaymentStatusCounts } from '../../billing/services/billingService';
+import { PersonPaymentProfile } from '../../billing/components/PersonPaymentProfile';
 
 const ITEMS_PER_PAGE = 10;
+type PaymentStatusFilter = PaymentStatus | 'all';
+const PAYMENT_STATUS_LABELS: Record<PaymentStatusFilter, string> = { all: 'Todas', overdue: 'Vencidos', pending: 'Pendientes', current: 'Al día', no_plan: 'Sin plan determinado' };
+const isPaymentStatusFilter = (value: string | null): value is PaymentStatusFilter => Boolean(value && Object.prototype.hasOwnProperty.call(PAYMENT_STATUS_LABELS, value));
 
 export default function PersonCrud() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [persons, setPersons] = useState<Person[]>([]);
-  const [deletedPersons, setDeletedPersons] = useState<Person[]>([]);
+  const [deletedPersons, setDeletedPersons] = useState<DeletedPerson[]>([]);
   const [deletedPersonsCount, setDeletedPersonsCount] = useState(0);
+  const [deletedPage, setDeletedPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const debouncedSearch = useDebouncedValue(searchTerm.trim(), 300);
+  const searchQuery = searchTerm.trim() ? debouncedSearch : '';
+  const requestId = useRef(0);
+  const countsRequestId = useRef(0);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Start in a loading state so the empty state is not painted before the
+  // initial request (effects run after the first render).
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -31,24 +47,69 @@ export default function PersonCrud() {
     personName: ""
   });
   const [isInitialized, setIsInitialized] = useState(false);
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<number, PaymentStatus>>({});
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>(() => {
+    const value = new URLSearchParams(window.location.search).get('paymentStatus');
+    return isPaymentStatusFilter(value) ? value : 'all';
+  });
+  const selectedPaymentPeriod = searchParams.get('period') || undefined;
+  const [statusCounts, setStatusCounts] = useState<PaymentStatusCounts | null>(null);
+  const [countsLoading, setCountsLoading] = useState(false);
+  const [countsError, setCountsError] = useState(false);
+  const [profilePerson, setProfilePerson] = useState<Person | null>(null);
+  const requestedPersonId = searchParams.get('personId');
+
+  const loadStatusCounts = async () => {
+    const id = ++countsRequestId.current;
+    setCountsLoading(true);
+    setCountsError(false);
+    try {
+      const counts = await BillingService.paymentStatusCounts();
+      if (id === countsRequestId.current) setStatusCounts(counts);
+    } catch (countError) {
+      console.error('Error loading payment status counts:', countError);
+      if (id === countsRequestId.current) { setStatusCounts(null); setCountsError(true); }
+    } finally {
+      if (id === countsRequestId.current) setCountsLoading(false);
+    }
+  };
 
   // Initial load - only run once
   useEffect(() => {
     if (!isInitialized) {
-      loadPersons();
       loadDeletedPersonsCount();
+      void loadStatusCounts();
       setIsInitialized(true);
     }
   }, [isInitialized]);
 
-  // Load data when tab changes
+  // Load the selected catalog after the shared debounce.
   useEffect(() => {
     if (activeTab === 'active') {
-      loadPersons();
+      if (requestedPersonId) void loadRequestedPerson(requestedPersonId);
+      else void loadPersons(1, searchQuery);
     } else {
-      loadDeletedPersons();
+      void loadDeletedPersons(1, searchQuery);
     }
-  }, [activeTab]);
+  }, [activeTab, searchQuery, paymentStatusFilter, selectedPaymentPeriod, requestedPersonId]);
+
+  useEffect(() => {
+    const requested = searchParams.get('paymentStatus');
+    const nextFilter = isPaymentStatusFilter(requested) ? requested : 'all';
+    setPaymentStatusFilter(nextFilter);
+    if (requested) setActiveTab('active');
+    setCurrentPage(1);
+  }, [searchParams]);
+
+  const closeProfile = () => {
+    setProfilePerson(null);
+  };
+
+  const clearPersonFilter = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('personId');
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const loadDeletedPersonsCount = async () => {
     try {
@@ -61,110 +122,107 @@ export default function PersonCrud() {
   };
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
+    if (tab === activeTab) return;
+    setLoading(true);
     setActiveTab(tab);
     setSearchTerm("");
-    setIsSearchActive(false);
   };
 
-  const loadDeletedPersons = async () => {
+  const handlePaymentStatusChange = (value: string | number) => {
+    const nextFilter = isPaymentStatusFilter(String(value)) ? String(value) as PaymentStatusFilter : 'all';
+    setPaymentStatusFilter(nextFilter);
+    setCurrentPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextFilter === 'all') {
+      nextParams.delete('paymentStatus');
+      nextParams.delete('period');
+    }
+    else nextParams.set('paymentStatus', nextFilter);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const loadDeletedPersons = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
-      const result = await PersonService.getDeletedPeople();
-      setDeletedPersons(result);
-      setDeletedPersonsCount(result.length);
+      const result = query
+        ? await PersonService.searchDeletedPeoplePaginated(query, page, ITEMS_PER_PAGE)
+        : await PersonService.getDeletedPeoplePaginated(page, ITEMS_PER_PAGE);
+      if (id !== requestId.current) return;
+      setDeletedPersons(result.persons);
+      setDeletedPersonsCount(result.total);
+      setDeletedPage(result.page);
     } catch (error) {
       console.error("Error loading deleted persons:", error);
       setError("No se pudieron cargar las personas eliminadas.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
   // Remove the debounced search effect - search will only work manually
 
-  const loadPersons = async (page = 1, append = false) => {
+  const loadPersons = async (page = 1, query = searchQuery) => {
+    const id = ++requestId.current;
     try {
       setLoading(true);
       setError(null);
-      const response = await PersonService.getPersonsPaginatedResponse(page, ITEMS_PER_PAGE);
+      const response = await BillingService.personsPaymentPage(query, paymentStatusFilter, page, ITEMS_PER_PAGE, selectedPaymentPeriod);
+      if (id !== requestId.current) return;
       
-      if (response.persons.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setPersons(prev => [...prev, ...response.persons]);
-      } else {
-        setPersons(response.persons);
-      }
+      setPersons(response.persons);
+      setPaymentStatuses(Object.fromEntries(response.persons.flatMap((person) => person.id ? [[person.id, person.payment_status] as const] : [])));
       
       setTotalPersons(response.total);
-      setHasMore(response.persons.length === ITEMS_PER_PAGE);
-      setCurrentPage(page);
+      setCurrentPage(response.page);
     } catch (error) {
       console.error("Error loading persons:", error);
       setError("No se pudieron cargar las personas.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   };
 
-  const searchPersons = useCallback(async (query: string, page = 1, append = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (query.trim() === "") {
-        // Si no hay query, cargar personas normales
-        await loadPersons(page, append);
-        return;
-      }
-
-      const response = await PersonService.searchPersonsPaginatedResponse(query, page, ITEMS_PER_PAGE);
-      
-      if (response.persons.length === 0 && page > 1) {
-        setHasMore(false);
-        setLoading(false);
-        return;
-      }
-      
-      if (append) {
-        setPersons(prev => [...prev, ...response.persons]);
-      } else {
-        setPersons(response.persons);
-      }
-      
-      setTotalPersons(response.total);
-      setHasMore(response.persons.length === ITEMS_PER_PAGE);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error("Error searching persons:", error);
-      setError("No se pudo completar la búsqueda de personas.");
-    } finally {
+  const loadRequestedPerson = async (rawId: string) => {
+    const id = ++requestId.current;
+    const personId = Number(rawId);
+    setLoading(true);
+    setError(null);
+    if (!Number.isInteger(personId) || personId < 1) {
+      setPersons([]);
+      setTotalPersons(0);
+      setError('La persona solicitada no es válida.');
       setLoading(false);
+      return;
     }
-  }, []);
-
-  const loadMorePersons = () => {
-    if (hasMore && !loading) {
-      if (isSearchActive) {
-        searchPersons(searchTerm, currentPage + 1, true);
-      } else {
-        loadPersons(currentPage + 1, true);
+    try {
+      const person = await PersonService.getPersonById(personId);
+      if (id !== requestId.current) return;
+      if (!person) {
+        setPersons([]);
+        setTotalPersons(0);
+        setError('No se encontró la persona solicitada.');
+        return;
       }
+      const statuses = await BillingService.personStatuses([personId]);
+      if (id !== requestId.current) return;
+      setPersons([person]);
+      setPaymentStatuses(Object.fromEntries(statuses.map(item => [item.person_id, item.status])));
+      setTotalPersons(1);
+      setCurrentPage(1);
+      setActiveTab('active');
+    } catch (loadError) {
+      console.error('Error loading requested person:', loadError);
+      if (id === requestId.current) setError('No se pudo cargar la persona solicitada.');
+    } finally {
+      if (id === requestId.current) setLoading(false);
     }
   };
 
   const goToPage = (page: number) => {
     if (page > 0 && page !== currentPage) {
-      if (isSearchActive) {
-        searchPersons(searchTerm, page);
-      } else {
-        loadPersons(page);
-      }
+      loadPersons(page, searchQuery);
     }
   };
 
@@ -186,12 +244,6 @@ export default function PersonCrud() {
         };
         
         await PersonService.updatePerson(updatedPerson);
-        
-        // Actualizar la lista local directamente
-        setPersons(prev => prev.map(p => 
-          p.id === editingPerson.id ? updatedPerson : p
-        ));
-        
         setEditingPerson(null);
       } else {
         // Crear nueva persona
@@ -202,24 +254,13 @@ export default function PersonCrud() {
         };
         
         await PersonService.createPerson(newPerson);
-        
-        // Solo recargar si estamos en modo búsqueda
-        if (isSearchActive) {
-          await searchPersons(searchTerm);
-        } else {
-          // Para la primera página, solo incrementar el total sin recargar
-          setTotalPersons(prev => prev + 1);
-          // Si estamos en la primera página y hay espacio, agregar al inicio
-          if (currentPage === 1 && persons.length < ITEMS_PER_PAGE) {
-            // Simular que la nueva persona se agregó al inicio
-            setPersons(prev => [newPerson, ...prev]);
-          }
-        }
       }
+      await loadPersons(editingPerson ? currentPage : 1, searchQuery);
       
       // Limpiar formulario y cerrar modal
       setForm({ name: "", last_name: "", phone: "" });
       setShowFormModal(false);
+      await loadStatusCounts();
       
     } catch (error) {
       console.error("Error saving person:", error);
@@ -271,6 +312,7 @@ export default function PersonCrud() {
       setPersons(prev => prev.filter(p => p.id !== deleteConfirm.personId));
       setTotalPersons(prev => prev - 1);
       setDeletedPersonsCount(prev => prev + 1);
+      await loadStatusCounts();
       setDeleteConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error deleting person:", error);
@@ -295,9 +337,11 @@ export default function PersonCrud() {
       setLoading(true);
       setError(null);
       await PersonService.restorePerson(restoreConfirm.personId);
-      setDeletedPersons(prev => prev.filter(p => p.id !== restoreConfirm.personId));
-      setDeletedPersonsCount(prev => prev - 1);
+      const remaining = Math.max(deletedPersonsCount - 1, 0);
+      const targetPage = Math.min(deletedPage, Math.max(Math.ceil(remaining / ITEMS_PER_PAGE), 1));
+      await loadDeletedPersons(targetPage);
       setTotalPersons(prev => prev + 1);
+      await loadStatusCounts();
       setRestoreConfirm({ show: false, personId: null, personName: "" });
     } catch (error) {
       console.error("Error restoring person:", error);
@@ -307,102 +351,64 @@ export default function PersonCrud() {
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleSearch = () => {
-    if (searchTerm.trim() !== "") {
-      setIsSearchActive(true);
-      searchPersons(searchTerm);
-    } else {
-      setIsSearchActive(false);
-      loadPersons();
-    }
-  };
-
   const clearSearch = () => {
     setSearchTerm("");
-    setIsSearchActive(false);
-    loadPersons(); // Reload default list when clearing
   };
 
   // No need for filteredPersons anymore since we're using backend search
   const displayedPersons = persons;
 
   return (
-    <div className="person-crud-container">
+    <div className="person-crud-container management-page-frame">
       <div className="person-crud-wrapper">
         {/* Persons List */}
-        <Card variant="elevated" padding="lg">
+        <Card variant="elevated" padding="md" className="management-page-card">
           <div className="person-card-content">
             <div className="person-main-content">
-              <div className="person-list-header">
-                <div className="person-list-title-section">
-                  <Title level={2} variant="default">
-                    Gestión de Personas
-                  </Title>
-                  <p className="person-list-description">
-                    Administra las personas que participan en los entrenamientos de Quality GYM
-                  </p>
-                </div>
-                
-                {/* Tab System */}
-                <div className="person-tabs">
+              <div className="management-page-controls management-page-controls--sticky">
+                <ManagementPageHeader
+                  title="Gestión de Personas"
+                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">Nueva Persona</Button>}
+                />
+                <ManagementToolbar
+                  tabs={<div className="management-tabs">
                   <button
-                    className={`person-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'active'}
                     onClick={() => handleTabChange('active')}
                   >
-                    Personas Activas ({totalPersons})
+                    Personas Activas ({statusCounts?.all ?? totalPersons})
                   </button>
                   <button
-                    className={`person-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'deleted'}
                     onClick={() => handleTabChange('deleted')}
                   >
                     Personas Eliminadas ({deletedPersonsCount})
                   </button>
-                </div>
-                
-                <div className="person-list-actions">
-                  <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="person-search-form">
-                    <Input
+                  </div>}
+                  filter={activeTab === 'active' ? <div className={`person-payment-filter ${paymentStatusFilter !== 'all' ? 'active' : ''}`}>
+                    <Select
+                      options={(Object.keys(PAYMENT_STATUS_LABELS) as PaymentStatusFilter[]).map((status) => ({
+                        value: status,
+                        label: `${PAYMENT_STATUS_LABELS[status]}${statusCounts ? ` (${statusCounts[status]})` : countsLoading ? ' (…)' : ''}`,
+                      }))}
+                      value={paymentStatusFilter}
+                      onChange={handlePaymentStatusChange}
+                      placeholder="Estado de pago"
+                      size="sm"
+                      disabled={countsLoading}
+                    />
+                    {countsError && <span className="person-payment-filter-error" title="No se pudieron cargar los conteos">!</span>}
+                  </div> : undefined}
+                  search={<SearchInput
+                      ariaLabel="Buscar personas"
                       placeholder="Buscar personas..."
                       value={searchTerm}
-                      onChange={handleSearchChange}
-                      variant="primary"
-                      leftIcon="🔍"
-                      fullWidth
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={loading}
-                      className="person-search-button"
-                    >
-                      Buscar
-                    </Button>
-                    {searchTerm.trim() !== "" && (
-                      <Button
-                        type="button"
-                        onClick={clearSearch}
-                        variant="secondary"
-                        size="sm"
-                        className="person-clear-search-button"
-                      >
-                        Limpiar
-                      </Button>
-                    )}
-                  </form>
-                </div>
-                <div className="person-list-create-action">
-                  <Button
-                    onClick={handleOpenCreateModal}
-                    variant="primary"
-                    size="md"
-                  >
-                    ➕ Nueva Persona
-                  </Button>
-                </div>
+                      onChange={setSearchTerm}
+                      onClear={clearSearch}
+                  />}
+                />
               </div>
 
               {error && (
@@ -411,24 +417,13 @@ export default function PersonCrud() {
                 </div>
               )}
 
-              <div className="person-list-stats">
-                <span className="person-count">
-                  {activeTab === 'active' 
-                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
-                    : deletedPersonsCount
-                  } {(activeTab === 'active' 
-                    ? (isSearchActive ? displayedPersons.length : totalPersons) 
-                    : deletedPersonsCount) === 1 ? 'persona' : 'personas'} {activeTab === 'active' 
-                    ? (isSearchActive ? 'encontradas' : 'total') 
-                    : 'eliminadas'}
-                </span>
-                {activeTab === 'active' && !isSearchActive && (
-                  <span className="person-page-info">
-                    Página {currentPage}
-                  </span>
-                )}
-              </div>
-              
+              {requestedPersonId && activeTab === 'active' && (
+                <div className="person-direct-filter">
+                  <span>Mostrando únicamente la persona seleccionada.</span>
+                  <Button variant="secondary" size="sm" onClick={clearPersonFilter}>Ver todas las personas</Button>
+                </div>
+              )}
+
               {loading ? (
                 <div className="person-loading-state">
                   <div className="person-loading-icon">⏳</div>
@@ -438,21 +433,21 @@ export default function PersonCrud() {
                 </div>
               ) : activeTab === 'active' ? (
                 // Active people content
-                (isSearchActive ? displayedPersons.length === 0 : persons.length === 0) ? (
+                persons.length === 0 ? (
                   <div className="person-empty-state">
                     <div className="person-empty-icon">
-                      {isSearchActive ? '🔍' : '👥'}
+                      {searchQuery || paymentStatusFilter !== 'all' ? '🔍' : '👥'}
                     </div>
                     <Title level={3} variant="secondary" align="center">
-                      {isSearchActive ? 'No se encontraron personas' : 'No hay personas registradas'}
+                      {searchQuery || paymentStatusFilter !== 'all' ? 'No se encontraron personas' : 'No hay personas registradas'}
                     </Title>
                     <p className="person-empty-description">
-                      {isSearchActive 
-                        ? `No hay personas que coincidan con "${searchTerm}"`
+                      {searchQuery || paymentStatusFilter !== 'all'
+                        ? `No hay personas que coincidan con los filtros seleccionados${searchQuery ? ` y "${searchQuery}"` : ''}`
                         : 'Agrega tu primera persona haciendo clic en "Nueva Persona"'
                       }
                     </p>
-                    {!isSearchActive && (
+                    {!searchQuery && paymentStatusFilter === 'all' && (
                       <Button
                         onClick={handleOpenCreateModal}
                         variant="primary"
@@ -482,9 +477,13 @@ export default function PersonCrud() {
                           {person.phone && person.phone !== "0" && (
                             <p className="person-phone">Tel: {person.phone}</p>
                           )}
+                          <span className={`person-payment-status ${paymentStatuses[person.id!] ?? 'no_plan'}`}>
+                            {{ overdue: 'Vencido', pending: 'Pendiente', current: 'Al día', no_plan: 'Sin plan determinado' }[paymentStatuses[person.id!] ?? 'no_plan']}
+                          </span>
                         </div>
                         
                         <div className="person-actions">
+                          <Button onClick={() => setProfilePerson(person)} variant="primary" size="sm">Pagos</Button>
                           <Button
                             onClick={() => handleEdit(person)}
                             variant="secondary"
@@ -537,7 +536,7 @@ export default function PersonCrud() {
                             <p className="person-phone">Tel: {person.phone}</p>
                           )}
                           <p className="person-deleted-status">
-                            🗑️ Eliminada
+                            Eliminada el {formatDateTimeForDisplay(person.deleted_at)}
                           </p>
                         </div>
                         
@@ -558,47 +557,24 @@ export default function PersonCrud() {
             </div>
 
             {/* Pagination Controls - Always visible at bottom */}
-            {activeTab === 'active' && (
-              <div className="person-pagination">
-                <Button
-                  onClick={() => goToPage(currentPage - 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={currentPage === 1 || loading}
-                >
-                  ← Anterior
-                </Button>
-                
-                <span className="person-page-indicator">
-                  Página {currentPage} {totalPersons > 0 && `de ${Math.ceil(totalPersons / ITEMS_PER_PAGE)}`}
-                </span>
-                
-                <Button
-                  onClick={() => goToPage(currentPage + 1)}
-                  variant="secondary"
-                  size="sm"
-                  disabled={!hasMore || loading}
-                >
-                  Siguiente →
-                </Button>
-                
-                {hasMore && (
-                  <Button
-                    onClick={loadMorePersons}
-                    variant="primary"
-                    size="sm"
-                    disabled={loading}
-                  >
-                    {loading ? "Cargando..." : "Cargar más"}
-                  </Button>
-                )}
-              </div>
+            {activeTab === 'active' ? (
+              <Pagination className="person-pagination" total={totalPersons} page={currentPage} totalPages={Math.ceil(totalPersons / ITEMS_PER_PAGE)} singularLabel="persona" pluralLabel="personas" loading={loading} onPageChange={goToPage} />
+            ) : (
+              <Pagination className="person-pagination" total={deletedPersonsCount} page={deletedPage} totalPages={Math.ceil(deletedPersonsCount / ITEMS_PER_PAGE)} singularLabel="persona eliminada" pluralLabel="personas eliminadas" loading={loading} onPageChange={(page) => loadDeletedPersons(page, searchQuery)} />
             )}
           </div>
         </Card>
       </div>
 
       {/* Form Modal */}
+      {profilePerson && (
+        <PersonPaymentProfile
+          person={profilePerson}
+          onClose={closeProfile}
+          onChanged={() => { void loadPersons(currentPage, searchQuery); void loadStatusCounts(); }}
+        />
+      )}
+
       <Modal
         isOpen={showFormModal}
         onClose={handleCancelEdit}

@@ -2,6 +2,7 @@ import React from 'react';
 import './Input.css';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  inputRef?: React.Ref<HTMLInputElement>;
   label?: string;
   error?: string;
   helperText?: string;
@@ -21,6 +22,7 @@ export const Input: React.FC<InputProps> = ({
   rightIcon,
   className = '',
   id,
+  inputRef,
   ...props
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
@@ -56,6 +58,7 @@ export const Input: React.FC<InputProps> = ({
         )}
         
         <input
+          ref={inputRef}
           id={inputId}
           className={inputClass}
           {...props}
@@ -75,4 +78,4 @@ export const Input: React.FC<InputProps> = ({
       )}
     </div>
   );
-}; 
+};

@@ -1,33 +1,69 @@
-import React, { useEffect } from 'react';
-import { Card, Title, Button } from '../../../shared/components/base';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Card } from '../../../shared/components/base';
+import { ManagementPageHeader } from '../../../shared/components/management';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
 
 import { ConfirmationModal } from '../../../shared/components/modals/ConfirmationModal';
-import { SettingsModal } from '../../settings/components/SettingsModal';
-import ToastContainer from '../../../shared/components/notifications/ToastContainer';
 import { useDashboardController } from '../hooks/useDashboardController';
 import { useConfig } from '../../../shared/contexts/ConfigContext';
+import { PersonService } from '../../person/services/personService';
 import '../../../styles/Dashboard.css';
 
 export default function DashboardRefactored() {
+  const [searchParams] = useSearchParams();
+  const requestedPersonId = searchParams.get('personId');
   const { storageWarning } = useConfig();
   // Single controller hook that orchestrates everything
   const {
     data,
-    notifications,
-    removeNotification,
     modals,
     operations,
     handlers
   } = useDashboardController();
+  const [personSearchFocusRequest, setPersonSearchFocusRequest] = useState(0);
+  const [requestedPersonError, setRequestedPersonError] = useState(false);
+
+  useEffect(() => {
+    if (!requestedPersonId) return;
+    const personId = Number(requestedPersonId);
+    if (!Number.isInteger(personId) || personId < 1) {
+      setRequestedPersonError(true);
+      return;
+    }
+    let active = true;
+    setRequestedPersonError(false);
+    void PersonService.getPersonById(personId)
+      .then(person => {
+        if (!active) return;
+        if (person) data.setSelectedPerson(person);
+        else setRequestedPersonError(true);
+      })
+      .catch(() => { if (active) setRequestedPersonError(true); });
+    return () => { active = false; };
+  }, [requestedPersonId]);
+
+  useEffect(() => {
+    const focusPersonSearch = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'b') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable)) return;
+      if (document.querySelector('.ui-modal-overlay')) return;
+      event.preventDefault();
+      setPersonSearchFocusRequest((request) => request + 1);
+    };
+    document.addEventListener('keydown', focusPersonSearch);
+    return () => document.removeEventListener('keydown', focusPersonSearch);
+  }, []);
 
   // Removed unnecessary exercise loading - ExerciseSearch handles its own paginated loading
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container management-page-frame">
       <div className="dashboard-wrapper">
         {storageWarning && <p role="alert" className="dashboard-persistence-warning">{storageWarning}</p>}
+        {requestedPersonError && <p role="alert" className="dashboard-persistence-warning">No se pudo seleccionar la persona solicitada.</p>}
         {data.error && (
           <p role="alert" className="dashboard-persistence-warning">
             No se pudieron cargar algunos datos del calendario. Intentá seleccionar la persona nuevamente.
@@ -39,13 +75,9 @@ export default function DashboardRefactored() {
           </p>
         )}
         {/* Weekly Calendar Card */}
-        <Card variant="elevated" padding="lg" className="dashboard-calendar-card">
-          <div className="dashboard-calendar-header">
-            <div className="dashboard-calendar-title-section">
-              <Title level={2} variant="default">
-                📅 Calendario Semanal
-              </Title>
-            </div>
+        <Card variant="elevated" padding="md" className="dashboard-calendar-card management-page-card">
+          <div className="management-page-controls">
+            <ManagementPageHeader title="Calendario Semanal" />
           </div>
           
           <WeeklyCalendar
@@ -60,6 +92,7 @@ export default function DashboardRefactored() {
             onSelectedDateChange={data.setSelectedDate}
             handlePersonSelect={data.handlePersonSelect}
             handleClearSelection={handlers.clearSelection}
+            personSearchFocusRequest={personSearchFocusRequest}
           />
         </Card>
       </div>
@@ -120,11 +153,6 @@ export default function DashboardRefactored() {
       />
       */}
 
-      {/* Toast Notifications */}
-      <ToastContainer
-        notifications={notifications}
-        onRemoveNotification={removeNotification}
-      />
     </div>
   );
 }

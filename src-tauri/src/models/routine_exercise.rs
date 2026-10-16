@@ -57,4 +57,4 @@ impl RoutineExercise {
             updated_at: None,
         }
     }
-} 
+}

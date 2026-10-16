@@ -1,10 +1,7 @@
 /* Dashboard Page Styles */
 
 .dashboard-container {
-  width: 100%;
-  padding: 24px;
   background-color: var(--bg-primary);
-  min-height: calc(100vh - var(--layout-nav-height, 80px));
 }
 
 .dashboard-wrapper {
@@ -31,18 +28,6 @@
   border: 1px solid transparent;
   width: 100%;
   flex: 1;
-}
-
-/* Calendar Header */
-.dashboard-calendar-header {
-  padding-bottom: 16px;
-}
-
-.dashboard-calendar-title-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0; /* Remove space between title and calendar */
 }
 
 .dashboard-calendar-actions {
@@ -228,20 +213,9 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .dashboard-container {
-    padding: 16px;
-  }
-  
   .dashboard-wrapper {
     gap: 16px;
   }
-  
-  .dashboard-calendar-title-section {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
   .weekly-calendar-controls-row {
     flex-direction: column;
     gap: 16px;
