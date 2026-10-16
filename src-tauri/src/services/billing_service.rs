@@ -275,6 +275,7 @@ impl BillingService {
         self.reconcile_through(&current)
     }
 
+    #[allow(dead_code)] // Public domain helper exercised by the backend contract suite.
     pub fn monthly_due_date(&self, period: &str) -> Result<String, String> {
         if !Self::valid_period(period) {
             return Err("El período debe tener formato AAAA-MM".into());

@@ -26,11 +26,6 @@ impl SqliteRoutineRepository {
         Ok(repo)
     }
 
-    /// Dummy constructor: always returns empty results or errors
-    pub fn new_dummy() -> Self {
-        Self::new("", true)
-    }
-
     fn create_tables(&self) -> SqliteResult<()> {
         if self.is_dummy {
             return Ok(());

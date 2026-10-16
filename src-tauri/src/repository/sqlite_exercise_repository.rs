@@ -8,10 +8,6 @@ pub struct SqliteExerciseRepository {
 }
 
 impl SqliteExerciseRepository {
-    pub fn new(db_path: &str) -> Self {
-        Self::new_safe(db_path).expect("Failed to create exercise table")
-    }
-
     pub fn new_safe(db_path: &str) -> Result<Self, String> {
         let repo = Self {
             db_path: db_path.into(),
@@ -20,13 +16,6 @@ impl SqliteExerciseRepository {
         repo.create_table()
             .map_err(|e| format!("Failed to create exercise table: {e}"))?;
         Ok(repo)
-    }
-
-    pub fn new_dummy() -> Self {
-        Self {
-            db_path: String::new(),
-            is_dummy: true,
-        }
     }
 
     fn create_table(&self) -> SqliteResult<()> {

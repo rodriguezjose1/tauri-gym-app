@@ -18,13 +18,6 @@ impl SqlitePersonRepository {
         Ok(repo)
     }
 
-    pub fn new_dummy() -> Self {
-        Self {
-            db_path: String::new(),
-            is_dummy: true,
-        }
-    }
-
     fn create_table(&self) -> SqliteResult<()> {
         if self.is_dummy {
             return Ok(());

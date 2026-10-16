@@ -72,16 +72,6 @@ impl RoutineService {
         Ok(())
     }
 
-    pub fn get_available_groups(&self, routine_id: i32) -> Result<Vec<i32>, String> {
-        // Validate that routine exists
-        if self.repository.get_by_id(routine_id)?.is_none() {
-            return Err("La rutina especificada no existe".to_string());
-        }
-
-        // Always return all groups from 1 to 5 for selection
-        Ok(vec![1, 2, 3, 4, 5])
-    }
-
     // Routine operations
     pub fn create_routine(&self, name: String, code: String) -> Result<i32, String> {
         // Validate input

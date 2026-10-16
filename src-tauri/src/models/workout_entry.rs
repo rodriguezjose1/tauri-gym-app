@@ -15,7 +15,6 @@ pub struct WorkoutEntry {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkoutEntryWithDetails {
     pub id: Option<i32>,
@@ -35,31 +34,4 @@ pub struct WorkoutEntryWithDetails {
     pub person_last_name: String,
     pub exercise_name: String,
     pub exercise_code: String,
-}
-
-impl WorkoutEntry {
-    pub fn new(
-        person_id: i32,
-        exercise_id: i32,
-        date: String,
-        sets: Option<i32>,
-        reps: Option<i32>,
-        weight: Option<f64>,
-        notes: Option<String>,
-    ) -> Self {
-        Self {
-            id: None,
-            person_id,
-            exercise_id,
-            date,
-            sets,
-            reps,
-            weight,
-            notes,
-            order_index: None,
-            group_number: None,
-            created_at: None,
-            updated_at: None,
-        }
-    }
 }

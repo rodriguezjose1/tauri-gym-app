@@ -179,6 +179,7 @@ impl WorkoutEntryService {
             .replace_session_granular(ids_to_delete, workout_entries_to_insert)
     }
 
+    #[allow(dead_code)] // Kept as a repository contract boundary and covered by integration tests.
     pub fn get_workout_entry(&self, id: i32) -> Result<Option<WorkoutEntry>, String> {
         if id <= 0 {
             return Err("Invalid workout entry ID".into());

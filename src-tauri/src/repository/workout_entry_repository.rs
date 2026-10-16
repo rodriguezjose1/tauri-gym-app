@@ -24,7 +24,6 @@ pub trait WorkoutEntryRepository {
     fn get_by_person(&self, person_id: i32) -> Result<Vec<WorkoutEntryWithDetails>, String>;
     fn update(&self, workout_entry: WorkoutEntry) -> Result<(), String>;
     fn delete(&self, id: i32) -> Result<(), String>;
-    fn delete_by_person_and_date(&self, person_id: i32, date: &str) -> Result<(), String>;
     fn list_all(&self) -> Result<Vec<WorkoutEntryWithDetails>, String>;
     fn update_exercise_order(&self, exercise_orders: Vec<(i32, i32)>) -> Result<(), String>; // (id, order)
     fn renumber_groups(&self, person_id: i32, date: &str) -> Result<(), String>;
