@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
 
 interface ExerciseGroup {
@@ -54,21 +54,21 @@ export const useExerciseGroups = ({ exercises }: UseExerciseGroupsProps): UseExe
   }, [exercises]);
 
   // Grupos vacíos como objetos ExerciseGroup
-  const emptyGroups = useMemo(() => {
-    // Filtrar grupos vacíos que no tienen ejercicios
-    const usedGroups = new Set(exercises.map(e => e.group_number || 1));
-    const actuallyEmptyGroups = emptyGroupNumbers.filter(groupNum => !usedGroups.has(groupNum));
-    
-    // Actualizar la lista si hay diferencias
-    if (actuallyEmptyGroups.length !== emptyGroupNumbers.length) {
-      setEmptyGroupNumbers(actuallyEmptyGroups);
-    }
+  const usedGroups = useMemo(
+    () => new Set(exercises.map(e => e.group_number || 1)),
+    [exercises],
+  );
 
-    return actuallyEmptyGroups.map(groupNumber => ({
+  useEffect(() => {
+    setEmptyGroupNumbers(previous => previous.filter(groupNum => !usedGroups.has(groupNum)));
+  }, [usedGroups]);
+
+  const emptyGroups = useMemo(() => {
+    return emptyGroupNumbers.filter(groupNum => !usedGroups.has(groupNum)).map(groupNumber => ({
       groupNumber,
       exercises: []
     }));
-  }, [emptyGroupNumbers, exercises]);
+  }, [emptyGroupNumbers, usedGroups]);
 
   // Crear nuevo grupo vacío
   const createEmptyGroup = useCallback(() => {
@@ -94,4 +94,4 @@ export const useExerciseGroups = ({ exercises }: UseExerciseGroupsProps): UseExe
     createEmptyGroup,
     removeEmptyGroup
   };
-}; 
+};

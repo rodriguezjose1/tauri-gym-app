@@ -126,3 +126,42 @@ test('una respuesta tardía no sobrescribe un importe ajustado manualmente', asy
 
   await waitFor(() => expect(amount).toHaveValue(275));
 });
+
+test('registra un pago mensual y cierra solamente después del éxito', async () => {
+  const onClose = vi.fn();
+  const onSuccess = vi.fn();
+  const user = userEvent.setup();
+  render(<PaymentDialog isOpen onClose={onClose} onSuccess={onSuccess} initial={{ person, period: '2026-10', planId: 1, amountCents: 30000 }} />);
+
+  await waitFor(() => expect(screen.getByLabelText('Importe')).toHaveValue(300));
+  await user.click(screen.getByRole('button', { name: 'Confirmar pago' }));
+  await waitFor(() => expect(global.mockInvoke).toHaveBeenCalledWith('record_payment', { request: { person_id: 1, modality: 'monthly', period: '2026-10', plan_id: 1, amount_cents: 30000 } }));
+  expect(onSuccess).toHaveBeenCalledOnce();
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+test('conserva abierto el diálogo si falla el registro', async () => {
+  global.mockInvoke.mockImplementation((command: string) => {
+    if (command === 'list_plans') return Promise.resolve(plans);
+    if (command === 'get_payment_quote') return Promise.resolve({ plan_id: 1, amount_cents: 30000, already_paid: false });
+    if (command === 'record_payment') return Promise.reject(new Error('base bloqueada'));
+    return Promise.resolve();
+  });
+  const onClose = vi.fn();
+  render(<PaymentDialog isOpen onClose={onClose} onSuccess={vi.fn()} initial={{ person, period: '2026-10', planId: 1, amountCents: 30000 }} />);
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Confirmar pago' }));
+  expect(await screen.findByText(/base bloqueada/)).toBeInTheDocument();
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test('impide enviar nuevamente un período ya pagado', async () => {
+  global.mockInvoke.mockImplementation((command: string) => {
+    if (command === 'list_plans') return Promise.resolve(plans);
+    if (command === 'get_payment_quote') return Promise.resolve({ plan_id: 1, amount_cents: 30000, already_paid: true });
+    return Promise.resolve();
+  });
+  render(<PaymentDialog isOpen onClose={vi.fn()} onSuccess={vi.fn()} initial={{ person, period: '2026-10', planId: 1, amountCents: 30000 }} />);
+  expect(await screen.findByText(/ya.*pagado/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Confirmar pago' })).toBeDisabled();
+  expect(global.mockInvoke).not.toHaveBeenCalledWith('record_payment', expect.anything());
+});

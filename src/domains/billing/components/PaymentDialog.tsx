@@ -28,6 +28,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
   const [planId, setPlanId] = useState('');
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
+  const [alreadyPaid, setAlreadyPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const quoteRequest = useRef(0);
   const amountEditRevision = useRef(0);
@@ -39,6 +40,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
 
   useEffect(() => {
     if (!isOpen) return;
+    setAlreadyPaid(false);
     if (initial) {
       setPerson(initial.person);
       setModality('monthly');
@@ -57,16 +59,18 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
   }, [isOpen, initial, initialPerson]);
 
   useEffect(() => {
-    if (!person?.id || modality !== 'monthly' || !period) return;
+    if (!isOpen || !person?.id || modality !== 'monthly' || !period) return;
     const request = ++quoteRequest.current;
     const editRevision = amountEditRevision.current;
     BillingService.quote(person.id, period, planId ? Number(planId) : undefined)
       .then((quote) => {
         if (request !== quoteRequest.current || editRevision !== amountEditRevision.current) return;
         if (quote.already_paid) {
+          setAlreadyPaid(true);
           setError(billingTexts.paymentDialog.alreadyPaid);
           return;
         }
+        setAlreadyPaid(false);
         setError(null);
         if (quote.plan_id) {
           setPlanId(String(quote.plan_id));
@@ -77,7 +81,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
         }
       })
       .catch((quoteError) => request === quoteRequest.current && setError(String(quoteError)));
-  }, [person, period, modality, planId]);
+  }, [isOpen, person, period, modality, planId]);
 
   useEffect(() => {
     if (modality !== 'particular') return;
@@ -90,6 +94,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
     const plan = plans.find((candidate) => candidate.id === Number(value));
     quoteRequest.current += 1;
     setPlanId(String(value));
+    setAlreadyPaid(false);
     if (modality === 'particular' && plan) {
       setAmount(String(plan.price_cents / 100));
     } else {
@@ -102,6 +107,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
     quoteRequest.current += 1;
     setPeriod(String(value));
     setAmount('');
+    setAlreadyPaid(false);
     setError(null);
   };
 
@@ -114,6 +120,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
     quoteRequest.current += 1;
     setPerson(selected);
     setAmount('');
+    setAlreadyPaid(false);
     setError(null);
   };
 
@@ -122,12 +129,13 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
     setModality(value as Modality);
     setPlanId('');
     setAmount('');
+    setAlreadyPaid(false);
     setError(null);
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!person?.id || !planId || busy) return;
+    if (!person?.id || !planId || busy || alreadyPaid) return;
     setBusy(true);
     setError(null);
     try {
@@ -187,7 +195,7 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPers
         <Input label="Importe" type="number" min="0.01" step="0.01" value={amount} onChange={changeAmount} required />
         <div className="billing-actions">
           <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Button>
-          <Button type="submit" disabled={busy || !person || !planId || !amount}>
+          <Button type="submit" disabled={busy || alreadyPaid || !person || !planId || !amount}>
             {busy ? billingTexts.paymentDialog.submitting : billingTexts.paymentDialog.submit}
           </Button>
         </div>

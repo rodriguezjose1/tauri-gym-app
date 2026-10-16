@@ -186,17 +186,8 @@ export const RoutineManager: React.FC = () => {
     if (deleteConfirmation.routineId) {
       const success = await routineData.deleteRoutine(deleteConfirmation.routineId);
       if (success) {
-        addNotification(
-          `Rutina "${deleteConfirmation.routineName}" eliminada correctamente`,
-          'success'
-        );
         setDeletedRoutinesCount(prev => prev + 1);
         await routineData.loadRoutines(searchQuery, routineData.page);
-      } else {
-        addNotification(
-          'Error al eliminar la rutina',
-          'error'
-        );
       }
     }
     setDeleteConfirmation({
@@ -341,8 +332,6 @@ export const RoutineManager: React.FC = () => {
                       loading={routineData.loading}
                       onSelectRoutine={handleSelectRoutine}
                       onDeleteRoutine={handleDeleteClick}
-                      onCreateNew={routineUI.openCreateForm}
-                      hideCreateButton={true}
                     />
                   ) : (
                     <div className="routine-manager-deleted-routines">
@@ -535,10 +524,8 @@ export const RoutineManager: React.FC = () => {
       <ExerciseSearch
         isOpen={routineUI.showExerciseSearch}
         onAddExercise={async (exercise: Exercise, groupNumber: number) => {
-          console.log('DEBUG: RoutineManager onAddExercise called with:', { exerciseId: exercise.id, groupNumber });
           try {
             const nextOrderIndex = routineExercises.exercises.length;
-            console.log('DEBUG: About to call routineExercises.addExercise');
             await routineExercises.addExercise(
               exercise.id!,
               nextOrderIndex,
@@ -548,9 +535,8 @@ export const RoutineManager: React.FC = () => {
               undefined, // notes - no usado por el momento
               groupNumber // group_number - selected group
             );
-            console.log('DEBUG: routineExercises.addExercise completed successfully');
           } catch (error) {
-            console.error('DEBUG: Error in RoutineManager onAddExercise:', error);
+            console.error('Error adding exercise from routine manager:', error);
             // El error ya se maneja en useRoutineExercises, no necesitamos hacer nada más aquí
           }
         }}

@@ -54,3 +54,24 @@ test('ofrece registrar el primer pago sin salir del historial y conserva la pers
   expect(screen.getByRole('heading', { name: 'Registrar pago' })).toBeInTheDocument();
   expect(invoke).toHaveBeenCalledWith('get_payment_quote', expect.objectContaining({ personId: 1 }));
 });
+
+test('revierte un pago con motivo y actualiza el historial', async () => {
+  let historyCalls = 0;
+  invoke.mockImplementation((command: string) => {
+    if (command === 'get_person_payment_history') {
+      historyCalls += 1;
+      return Promise.resolve({ items: [{ item_type: 'monthly', obligation_id: 8, payment_id: 20, period: '2026-11', plan_id: 2, plan_name: 'Mensual', amount_cents: 40000, status: 'paid' }], total: 1, page: 1, page_size: 20, total_pages: 1 });
+    }
+    if (command === 'reverse_payment') return Promise.resolve();
+    return Promise.resolve([]);
+  });
+  const user = userEvent.setup();
+  const onChanged = vi.fn();
+  render(<ToastProvider><PersonPaymentProfile person={{ id: 1, name: 'Ana', last_name: 'Test', phone: '1' }} onClose={vi.fn()} onChanged={onChanged} /></ToastProvider>);
+  await user.click(await screen.findByRole('button', { name: 'Ver pago' }));
+  await user.type(screen.getByLabelText('Motivo de reversión'), 'Cobro duplicado');
+  await user.click(screen.getByRole('button', { name: 'Revertir pago' }));
+  expect(invoke).toHaveBeenCalledWith('reverse_payment', { id: 20, reason: 'Cobro duplicado' });
+  expect(historyCalls).toBeGreaterThan(1);
+  expect(onChanged).toHaveBeenCalled();
+});
