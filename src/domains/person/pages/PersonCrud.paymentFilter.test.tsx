@@ -16,8 +16,25 @@ beforeEach(() => {
     if (command === 'get_payment_status_counts') return counts;
     if (command === 'get_persons_payment_page') return { persons: [person], total: args?.paymentStatus === 'all' ? 77 : counts[args?.paymentStatus as keyof typeof counts], page: args?.page, page_size: 10, total_pages: 1 };
     if (command === 'get_deleted_people_paginated') return { persons: [], total: 2, page: 1, page_size: 10, total_pages: 1 };
+    if (command === 'get_person_by_id') return person;
+    if (command === 'get_person_payment_statuses') return [{ person_id: 1, status: 'overdue' }];
     throw new Error(`Comando no previsto: ${command}`);
   });
+});
+
+test('la navegación por personId muestra solo esa persona con todas sus acciones', async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={['/personas?personId=1']}><PersonCrud /></MemoryRouter>);
+
+  expect(await screen.findByText('Ana Test')).toBeInTheDocument();
+  expect(invoke).toHaveBeenCalledWith('get_person_by_id', { id: 1 });
+  expect(screen.getByRole('button', { name: 'Pagos' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Editar/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Eliminar/ })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Ver todas las personas' }));
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('get_persons_payment_page', expect.objectContaining({ page: 1 })));
 });
 
 test('muestra conteos, combina estado y búsqueda, conserva el filtro al paginar y permite quitarlo', async () => {

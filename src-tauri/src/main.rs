@@ -10,7 +10,9 @@ use models::billing::{
     DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest,
     PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
-use models::dashboard::{DashboardSummary, PlanDistributionPoint, RevenuePoint, StudentsTrend};
+use models::dashboard::{
+    DashboardSummary, InactiveStudentsPage, PlanDistributionPoint, RevenuePoint, StudentsTrend,
+};
 use models::exercise::Exercise;
 use models::person::Person;
 use models::routine::Routine;
@@ -37,6 +39,12 @@ fn create_person(service: State<'_, PersonService>, person: Person) -> Result<()
 fn get_persons(service: State<'_, PersonService>) -> Result<Vec<Person>, String> {
     let _operation = OperationGuard::begin()?;
     service.list_people()
+}
+
+#[tauri::command]
+fn get_person_by_id(service: State<'_, PersonService>, id: i32) -> Result<Option<Person>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.get_person(id)
 }
 
 #[tauri::command]
@@ -796,6 +804,17 @@ fn get_dashboard_plan_distribution(
     service.plan_distribution(&period)
 }
 
+#[tauri::command]
+fn get_dashboard_inactive_students(
+    service: State<'_, DashboardService>,
+    threshold_days: i64,
+    page: i64,
+    page_size: i64,
+) -> Result<InactiveStudentsPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.inactive_students(threshold_days, page, page_size)
+}
+
 fn main() {
     // Load environment variables from .env file
     dotenv::dotenv().ok();
@@ -831,6 +850,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             // Person commands
             create_person,
+            get_person_by_id,
             get_persons,
             get_persons_paginated,
             get_persons_paginated_response,
@@ -919,7 +939,8 @@ fn main() {
             get_dashboard_summary,
             get_dashboard_revenue_trend,
             get_dashboard_students_trend,
-            get_dashboard_plan_distribution
+            get_dashboard_plan_distribution,
+            get_dashboard_inactive_students
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

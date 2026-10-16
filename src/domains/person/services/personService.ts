@@ -4,6 +4,7 @@ import { DeletedPerson, PaginatedDeletedPersonResponse, Person, PaginatedPersonR
 const requestNames = {
   createPerson: "create_person",
   getPersons: "get_persons",
+  getPersonById: "get_person_by_id",
   getPersonsPaginated: "get_persons_paginated",
   getPersonsPaginatedResponse: "get_persons_paginated_response",
   searchPersonsPaginated: "search_persons_paginated",
@@ -19,6 +20,15 @@ const requestNames = {
 };
 
 export class PersonService {
+  static async getPersonById(id: number): Promise<Person | null> {
+    try {
+      return await invoke(requestNames.getPersonById, { id }) as Person | null;
+    } catch (error) {
+      console.error("Error getting person:", error);
+      throw new Error(`Error al obtener la persona: ${error}`);
+    }
+  }
+
   /**
    * Crea una nueva persona
    */

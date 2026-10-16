@@ -54,6 +54,13 @@ impl PersonService {
         self.repository.list_all()
     }
 
+    pub fn get_person(&self, id: i32) -> Result<Option<Person>, String> {
+        if id < 1 {
+            return Err("Person id is required".to_string());
+        }
+        self.repository.get_by_id(id)
+    }
+
     pub fn list_people_paginated(&self, page: i32, page_size: i32) -> Result<Vec<Person>, String> {
         Self::validate_pagination(page, page_size)?;
         self.repository.list_paginated(page, page_size)

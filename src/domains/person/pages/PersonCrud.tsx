@@ -57,6 +57,7 @@ export default function PersonCrud() {
   const [countsLoading, setCountsLoading] = useState(false);
   const [countsError, setCountsError] = useState(false);
   const [profilePerson, setProfilePerson] = useState<Person | null>(null);
+  const requestedPersonId = searchParams.get('personId');
 
   const loadStatusCounts = async () => {
     const id = ++countsRequestId.current;
@@ -85,11 +86,12 @@ export default function PersonCrud() {
   // Load the selected catalog after the shared debounce.
   useEffect(() => {
     if (activeTab === 'active') {
-      void loadPersons(1, searchQuery);
+      if (requestedPersonId) void loadRequestedPerson(requestedPersonId);
+      else void loadPersons(1, searchQuery);
     } else {
       void loadDeletedPersons(1, searchQuery);
     }
-  }, [activeTab, searchQuery, paymentStatusFilter, selectedPaymentPeriod]);
+  }, [activeTab, searchQuery, paymentStatusFilter, selectedPaymentPeriod, requestedPersonId]);
 
   useEffect(() => {
     const requested = searchParams.get('paymentStatus');
@@ -98,6 +100,16 @@ export default function PersonCrud() {
     if (requested) setActiveTab('active');
     setCurrentPage(1);
   }, [searchParams]);
+
+  const closeProfile = () => {
+    setProfilePerson(null);
+  };
+
+  const clearPersonFilter = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('personId');
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const loadDeletedPersonsCount = async () => {
     try {
@@ -167,6 +179,42 @@ export default function PersonCrud() {
     } catch (error) {
       console.error("Error loading persons:", error);
       setError("No se pudieron cargar las personas.");
+    } finally {
+      if (id === requestId.current) setLoading(false);
+    }
+  };
+
+  const loadRequestedPerson = async (rawId: string) => {
+    const id = ++requestId.current;
+    const personId = Number(rawId);
+    setLoading(true);
+    setError(null);
+    if (!Number.isInteger(personId) || personId < 1) {
+      setPersons([]);
+      setTotalPersons(0);
+      setError('La persona solicitada no es válida.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const person = await PersonService.getPersonById(personId);
+      if (id !== requestId.current) return;
+      if (!person) {
+        setPersons([]);
+        setTotalPersons(0);
+        setError('No se encontró la persona solicitada.');
+        return;
+      }
+      const statuses = await BillingService.personStatuses([personId]);
+      if (id !== requestId.current) return;
+      setPersons([person]);
+      setPaymentStatuses(Object.fromEntries(statuses.map(item => [item.person_id, item.status])));
+      setTotalPersons(1);
+      setCurrentPage(1);
+      setActiveTab('active');
+    } catch (loadError) {
+      console.error('Error loading requested person:', loadError);
+      if (id === requestId.current) setError('No se pudo cargar la persona solicitada.');
     } finally {
       if (id === requestId.current) setLoading(false);
     }
@@ -369,6 +417,13 @@ export default function PersonCrud() {
                 </div>
               )}
 
+              {requestedPersonId && activeTab === 'active' && (
+                <div className="person-direct-filter">
+                  <span>Mostrando únicamente la persona seleccionada.</span>
+                  <Button variant="secondary" size="sm" onClick={clearPersonFilter}>Ver todas las personas</Button>
+                </div>
+              )}
+
               {loading ? (
                 <div className="person-loading-state">
                   <div className="person-loading-icon">⏳</div>
@@ -515,7 +570,7 @@ export default function PersonCrud() {
       {profilePerson && (
         <PersonPaymentProfile
           person={profilePerson}
-          onClose={() => setProfilePerson(null)}
+          onClose={closeProfile}
           onChanged={() => { void loadPersons(currentPage, searchQuery); void loadStatusCounts(); }}
         />
       )}

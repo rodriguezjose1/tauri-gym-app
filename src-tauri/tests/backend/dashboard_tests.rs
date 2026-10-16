@@ -97,6 +97,9 @@ fn dashboard_validates_period_and_month_limits() {
     assert!(service.summary("2026-13").is_err());
     assert!(service.revenue_trend("2026-01", 0).is_err());
     assert!(service.students_trend("2026-01", 25).is_err());
+    assert!(service.inactive_students(8, 1, 10).is_err());
+    assert!(service.inactive_students(7, 0, 10).is_err());
+    assert!(service.inactive_students(7, 1, 101).is_err());
 }
 
 #[test]
@@ -160,4 +163,63 @@ fn dashboard_separates_pending_overdue_and_counts_unique_sessions() {
             .collect::<Vec<_>>(),
         vec![0, 0, 0, 2, 2, 2]
     );
+}
+
+#[test]
+fn inactive_students_use_latest_valid_session_and_current_active_people() {
+    let (_directory, path, service) = fixture();
+    let connection = Connection::open(path).unwrap();
+    for name in [
+        "Exacta", "Reciente", "Nunca", "Inactiva", "Futura", "Antigua",
+    ] {
+        connection
+            .execute(
+                "INSERT INTO people(name,last_name,phone) VALUES(?1,'Test','1')",
+                [name],
+            )
+            .unwrap();
+    }
+    connection
+        .execute("UPDATE people SET is_active=0 WHERE id=4", [])
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO exercise(name,code,is_active) VALUES('Press','PRESS',1)",
+            [],
+        )
+        .unwrap();
+    for (person, modifier) in [
+        (1, "-7 days"),
+        (1, "-20 days"),
+        (2, "-6 days"),
+        (4, "-30 days"),
+        (5, "+2 days"),
+        (6, "-30 days"),
+    ] {
+        connection.execute(
+            "INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(?1,1,date('now','localtime',?2))",
+            params![person, modifier],
+        ).unwrap();
+    }
+    // Varios ejercicios el mismo día siguen representando una única última sesión.
+    connection
+        .execute(
+            "INSERT INTO exercise(name,code,is_active) VALUES('Remo','REMO',1)",
+            [],
+        )
+        .unwrap();
+    connection.execute("INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(1,2,date('now','localtime','-7 days'))", []).unwrap();
+    drop(connection);
+
+    let result = service.inactive_students(7, 1, 1).unwrap();
+    assert_eq!(result.inactive_students_count, 2);
+    assert_eq!(result.total_pages, 2);
+    assert_eq!(result.max_days_inactive, Some(30));
+    assert_eq!(result.items[0].person_name, "Antigua Test");
+    assert_eq!(result.items[0].days_inactive, 30);
+
+    let second_page = service.inactive_students(7, 2, 1).unwrap();
+    assert_eq!(second_page.items[0].person_name, "Exacta Test");
+    assert_eq!(second_page.items[0].days_inactive, 7);
+    assert!(second_page.has_session_data);
 }

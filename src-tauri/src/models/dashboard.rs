@@ -34,3 +34,22 @@ pub struct PlanDistributionPoint {
     pub plan_name: String,
     pub count: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InactiveStudent {
+    pub person_id: i64,
+    pub person_name: String,
+    pub last_session_date: String,
+    pub days_inactive: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InactiveStudentsPage {
+    pub inactive_students_count: i64,
+    pub max_days_inactive: Option<i64>,
+    pub has_session_data: bool,
+    pub items: Vec<InactiveStudent>,
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
+}

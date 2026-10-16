@@ -23,4 +23,6 @@
 - Pagos pendientes cuenta alumnos activos con obligación del período, impaga y no excluida; no confunde pendiente con vencido.
 - Distribución por plan resuelve primero la obligación del período y luego el último pago mensual previo, solo si el plan continúa activo. Las personas sin relación vigente quedan en “Sin plan asignado”.
 - Sesiones registradas cuenta pares únicos persona-fecha en `workout_entries`; varios ejercicios del mismo día forman una sola sesión y una rutina no guardada no cuenta.
+- La detección de inactividad usa la última fecha válida de `workout_entries` por persona, hasta la fecha local actual. Es independiente del período mensual, excluye personas inactivas/eliminadas, personas sin ninguna sesión y sesiones futuras; varios ejercicios del mismo día no alteran el resultado.
+- El umbral de inactividad admite únicamente 7, 10, 14, 21 o 30 días. El listado y sus totales se calculan en consultas agregadas paginadas, sin consultas por alumno.
 - No hay autenticación/autorización en los comandos existentes; los nuevos comandos mantienen el mismo límite de confianza local y el mismo `OperationGuard`.

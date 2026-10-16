@@ -1,5 +1,6 @@
 use crate::models::dashboard::{
-    DashboardSummary, PlanDistributionPoint, RevenuePoint, StudentPoint, StudentsTrend,
+    DashboardSummary, InactiveStudent, InactiveStudentsPage, PlanDistributionPoint, RevenuePoint,
+    StudentPoint, StudentsTrend,
 };
 use crate::services::billing_service::BillingService;
 use rusqlite::{params, Connection};
@@ -183,5 +184,90 @@ impl DashboardService {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
         Ok(result)
+    }
+
+    pub fn inactive_students(
+        &self,
+        threshold_days: i64,
+        page: i64,
+        page_size: i64,
+    ) -> Result<InactiveStudentsPage, String> {
+        if ![7, 10, 14, 21, 30].contains(&threshold_days) {
+            return Err("El umbral debe ser 7, 10, 14, 21 o 30 días".into());
+        }
+        if page < 1 {
+            return Err("La página debe ser mayor o igual a 1".into());
+        }
+        if !(1..=100).contains(&page_size) {
+            return Err("El tamaño de página debe estar entre 1 y 100".into());
+        }
+
+        let connection = self.connection()?;
+        let cte = "WITH latest_sessions AS (
+              SELECT person_id, MAX(date(date)) last_session_date
+              FROM workout_entries
+              WHERE date(date) IS NOT NULL AND date(date) <= date('now','localtime')
+              GROUP BY person_id
+            ), inactive AS (
+              SELECT pe.id person_id,
+                     trim(pe.name || ' ' || pe.last_name) person_name,
+                     ls.last_session_date,
+                     CAST(julianday(date('now','localtime')) - julianday(ls.last_session_date) AS INTEGER) days_inactive
+              FROM people pe
+              JOIN latest_sessions ls ON ls.person_id=pe.id
+              WHERE (pe.deleted_at IS NULL OR pe.deleted_at='')
+                AND (pe.is_active=1 OR pe.is_active IS NULL)
+                AND CAST(julianday(date('now','localtime')) - julianday(ls.last_session_date) AS INTEGER) >= ?1
+            )";
+        let (total, max_days): (i64, Option<i64>) = connection
+            .query_row(
+                &format!("{cte} SELECT COUNT(*), MAX(days_inactive) FROM inactive"),
+                [threshold_days],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        let total_pages = (total + page_size - 1) / page_size;
+        let effective_page = if total_pages > 0 {
+            page.min(total_pages)
+        } else {
+            1
+        };
+        let offset = (effective_page - 1) * page_size;
+        let mut statement = connection
+            .prepare(&format!(
+                "{cte} SELECT person_id,person_name,last_session_date,days_inactive
+                 FROM inactive ORDER BY days_inactive DESC,lower(person_name),person_id
+                 LIMIT ?2 OFFSET ?3"
+            ))
+            .map_err(|e| e.to_string())?;
+        let items = statement
+            .query_map(params![threshold_days, page_size, offset], |row| {
+                Ok(InactiveStudent {
+                    person_id: row.get(0)?,
+                    person_name: row.get(1)?,
+                    last_session_date: row.get(2)?,
+                    days_inactive: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        let has_session_data = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM workout_entries WHERE date(date) IS NOT NULL AND date(date)<=date('now','localtime'))",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(|e| e.to_string())? != 0;
+
+        Ok(InactiveStudentsPage {
+            inactive_students_count: total,
+            max_days_inactive: max_days,
+            has_session_data,
+            items,
+            page: effective_page,
+            page_size,
+            total_pages,
+        })
     }
 }
