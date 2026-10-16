@@ -28,7 +28,9 @@ export default function PersonCrud() {
   const countsRequestId = useRef(0);
   const [form, setForm] = useState({ name: "", last_name: "", phone: "" });
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Start in a loading state so the empty state is not painted before the
+  // initial request (effects run after the first render).
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
@@ -107,6 +109,8 @@ export default function PersonCrud() {
   };
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
+    if (tab === activeTab) return;
+    setLoading(true);
     setActiveTab(tab);
     setSearchTerm("");
   };

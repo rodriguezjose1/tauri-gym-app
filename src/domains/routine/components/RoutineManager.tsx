@@ -120,6 +120,8 @@ export const RoutineManager: React.FC = () => {
   }, [activeTab, searchQuery]);
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
+    if (tab === activeTab) return;
+    if (tab === 'deleted') setDeletedLoading(true);
     setActiveTab(tab);
     setSearchTerm('');
   };
@@ -344,7 +346,12 @@ export const RoutineManager: React.FC = () => {
                     />
                   ) : (
                     <div className="routine-manager-deleted-routines">
-                      {deletedRoutines.length === 0 ? (
+                      {deletedLoading ? (
+                        <div className="routine-manager-loading">
+                          <div className="routine-manager-loading-icon">⏳</div>
+                          <p className="routine-manager-loading-text">Cargando rutinas eliminadas...</p>
+                        </div>
+                      ) : deletedRoutines.length === 0 ? (
                         <div className="routine-manager-empty-state">
                           <div className="routine-manager-empty-icon">🗑️</div>
                           <Title level={4} variant="secondary" align="center">

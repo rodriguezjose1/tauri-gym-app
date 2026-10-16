@@ -32,7 +32,9 @@ export const useRoutineData = (): UseRoutineDataReturn => {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  // The first fetch starts in an effect owned by RoutineManager. Keeping this
+  // true prevents the list from briefly showing its empty state first.
+  const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);

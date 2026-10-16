@@ -21,7 +21,9 @@ export default function ExerciseCrud() {
   const requestId = useRef(0);
   const [form, setForm] = useState({ name: "", code: "" });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Avoid rendering the empty state during the frame before the first effect
+  // starts loading the catalog.
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalExercises, setTotalExercises] = useState(0);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -77,6 +79,8 @@ export default function ExerciseCrud() {
   };
 
   const handleTabChange = (tab: 'active' | 'deleted') => {
+    if (tab === activeTab) return;
+    setLoading(true);
     setActiveTab(tab);
     setSearchTerm("");
   };
