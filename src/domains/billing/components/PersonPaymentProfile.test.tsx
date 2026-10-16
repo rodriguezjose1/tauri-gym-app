@@ -39,3 +39,18 @@ test('mantiene el encabezado descriptivo fuera del scroll de la tabla', async ()
   expect(scrollArea).not.toContainElement(historyTitle);
   expect(historyTitle.closest('.person-payment-profile-heading')).not.toBeNull();
 });
+
+test('ofrece registrar el primer pago sin salir del historial y conserva la persona', async () => {
+  invoke.mockImplementation((command: string) => {
+    if (command === 'get_person_payment_history') return Promise.resolve({ items: [], total: 0, page: 1, page_size: 20, total_pages: 0 });
+    if (command === 'list_plans') return Promise.resolve([]);
+    if (command === 'get_payment_quote') return Promise.resolve({ plan_id: null, amount_cents: null, already_paid: false });
+    return Promise.resolve();
+  });
+  const user = userEvent.setup();
+  render(<ToastProvider><PersonPaymentProfile person={{ id: 1, name: 'Ana', last_name: 'Test', phone: '1' }} onClose={vi.fn()} onChanged={vi.fn()} /></ToastProvider>);
+
+  await user.click(await screen.findByRole('button', { name: 'Registrar pago' }));
+  expect(screen.getByRole('heading', { name: 'Registrar pago' })).toBeInTheDocument();
+  expect(invoke).toHaveBeenCalledWith('get_payment_quote', expect.objectContaining({ personId: 1 }));
+});

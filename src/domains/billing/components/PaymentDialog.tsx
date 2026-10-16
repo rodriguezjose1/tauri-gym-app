@@ -17,9 +17,10 @@ interface PaymentDialogProps {
     planId: number;
     amountCents: number;
   };
+  initialPerson?: Person;
 }
 
-export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDialogProps) {
+export function PaymentDialog({ isOpen, onClose, onSuccess, initial, initialPerson }: PaymentDialogProps) {
   const [person, setPerson] = useState<Person | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [modality, setModality] = useState<Modality>('monthly');
@@ -44,9 +45,16 @@ export function PaymentDialog({ isOpen, onClose, onSuccess, initial }: PaymentDi
       setPeriod(initial.period);
       setPlanId(String(initial.planId));
       setAmount(String(initial.amountCents / 100));
+    } else if (initialPerson) {
+      setPerson(initialPerson);
+      setModality('monthly');
+      setPeriod(currentPeriod());
+      setPlanId('');
+      setAmount('');
+      setError(null);
     }
     BillingService.plans(true).then(setPlans).catch((loadError) => setError(String(loadError)));
-  }, [isOpen, initial]);
+  }, [isOpen, initial, initialPerson]);
 
   useEffect(() => {
     if (!person?.id || modality !== 'monthly' || !period) return;
