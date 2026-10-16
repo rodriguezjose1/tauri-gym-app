@@ -58,11 +58,10 @@ export function PersonPaymentProfile({ person, onClose, onChanged }: Props) {
     <>
       <Modal isOpen onClose={onClose} title={`${person.name} ${person.last_name}`} size="xl" className="person-payment-profile-modal">
         <div className="person-payment-profile">
-          <div className="person-payment-profile-scroll">
-            <div><Title level={2}>Historial de pagos</Title><p>Períodos mensuales y pagos particulares del alumno.</p></div>
-            {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
-            {loading ? <div className="billing-state">Cargando historial…</div> : data?.items.length === 0 ? <div className="billing-state">Todavía no hay pagos ni períodos mensuales.</div> : (
-              <div className="payment-table-wrap"><table className="payment-table"><thead><tr><th>Período</th><th>Plan</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+          <div className="person-payment-profile-heading"><Title level={2}>Historial de pagos</Title><p>Períodos mensuales y pagos particulares del alumno.</p></div>
+          {error && <div className="person-payment-profile-error"><ErrorMessage message={error} onDismiss={() => setError(null)} /></div>}
+          {loading ? <div className="billing-state person-payment-profile-state">Cargando historial…</div> : data?.items.length === 0 ? <div className="billing-state person-payment-profile-state">Todavía no hay pagos ni períodos mensuales.</div> : (
+              <div className="payment-table-wrap person-payment-profile-scroll"><table className="payment-table"><thead><tr><th>Período</th><th>Plan</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
               {data?.items.map((item, index) => <tr key={`${item.item_type}-${item.obligation_id ?? item.payment_id}-${index}`}>
                 <td>{item.item_type === 'particular' ? 'Pago particular' : item.period}</td><td>{item.plan_name}</td><td>{money.format(item.amount_cents / 100)}</td><td><span className={`payment-status ${item.status}`}>{statusLabels[item.status]}</span></td>
                 <td><div className="profile-payment-actions">
@@ -72,8 +71,7 @@ export function PersonPaymentProfile({ person, onClose, onChanged }: Props) {
                 </div></td>
               </tr>)}
               </tbody></table></div>
-            )}
-          </div>
+          )}
           <Pagination className="person-payment-profile-footer" total={data?.total ?? 0} page={data?.page ?? 1} totalPages={data?.total_pages ?? 0} singularLabel="registro" pluralLabel="registros" loading={loading} onPageChange={load} />
         </div>
       </Modal>

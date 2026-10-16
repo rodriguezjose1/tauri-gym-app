@@ -27,3 +27,15 @@ test('permite excluir un período vencido desde el historial del alumno', async 
   await user.click(screen.getByRole('button', { name: 'Confirmar' }));
   expect(invoke).toHaveBeenCalledWith('set_payment_period_excluded', { obligationId: 8, excluded: true });
 });
+
+test('mantiene el encabezado descriptivo fuera del scroll de la tabla', async () => {
+  render(<ToastProvider><PersonPaymentProfile person={{ id: 1, name: 'Ana', last_name: 'Test', phone: '1' }} onClose={vi.fn()} onChanged={vi.fn()} /></ToastProvider>);
+
+  const historyTitle = screen.getByRole('heading', { name: 'Historial de pagos' });
+  const table = await screen.findByRole('table');
+  const scrollArea = table.closest('.person-payment-profile-scroll');
+
+  expect(scrollArea).not.toBeNull();
+  expect(scrollArea).not.toContainElement(historyTitle);
+  expect(historyTitle.closest('.person-payment-profile-heading')).not.toBeNull();
+});
