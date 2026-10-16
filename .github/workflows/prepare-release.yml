@@ -23,17 +23,22 @@ concurrency:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+      - name: Restore backend Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: linux-backend-tests
+          workspaces: src-tauri/tests/backend -> target
       - run: npm ci
       - name: Calculate next version
         id: version
@@ -47,14 +52,18 @@ jobs:
           echo "branch=chore/release-v$next" >> "$GITHUB_OUTPUT"
       - name: Update synchronized version files
         run: npm run release:version -- ${{ steps.version.outputs.version }}
-      - name: Validate release candidate
-        run: |
-          npm run release:version -- --check
-          npm run lint
-          npm run test:all
-          npm run build
-          node --test scripts/update-manifest.test.mjs
-          cargo check --manifest-path src-tauri/Cargo.toml --locked
+      - name: Validate synchronized versions
+        run: npm run release:version -- --check
+      - name: Lint frontend
+        run: npm run lint
+      - name: Test frontend
+        run: npm run test:run
+      - name: Test backend
+        run: npm run test:backend
+      - name: Build frontend
+        run: npm run build
+      - name: Test updater manifest generation
+        run: node --test scripts/update-manifest.test.mjs
       - name: Create release pull request
         env:
           GH_TOKEN: ${{ github.token }}
