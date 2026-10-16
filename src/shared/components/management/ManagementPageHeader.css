@@ -2,18 +2,18 @@
   box-sizing: border-box;
   width: 100%;
   min-height: calc(100vh - var(--layout-nav-height, 80px));
-  padding: 12px;
+  padding: 8px;
   background: var(--bg-primary);
 }
 
-.management-page-card.ui-card { width: 100%; padding: 16px; }
+.management-page-card.ui-card { width: 100%; padding: 12px; }
 
 .management-page-controls {
   position: relative;
   display: grid;
   gap: 12px;
-  margin: 0 0 16px;
-  padding: 0 0 12px;
+  margin: 0 0 12px;
+  padding: 0 0 8px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
 }
@@ -29,7 +29,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 52px;
+  min-height: 48px;
   min-width: 0;
 }
 
