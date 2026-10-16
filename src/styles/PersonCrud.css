@@ -82,8 +82,8 @@
 /* Person List - Vertical Layout */
 .person-list-grid {
   display: grid;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 12px;
   flex: 1;
 }
 
@@ -96,7 +96,7 @@
   transition: all 0.2s ease;
   cursor: pointer;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .person-card:hover {

@@ -355,15 +355,15 @@
 .routine-manager-routines-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .routine-manager-routine-item {
   padding: 16px;
   background-color: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border-color);
-  margin-bottom: 12px;
+  margin-bottom: 0;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
