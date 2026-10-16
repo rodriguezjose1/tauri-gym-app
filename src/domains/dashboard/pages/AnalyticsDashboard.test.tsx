@@ -13,6 +13,7 @@ beforeEach(() => {
     if (command === 'get_dashboard_students_trend') return Promise.resolve({ available: true, points: [{ period: '2026-09', count: 10 }, { period: '2026-10', count: 12 }] });
     if (command === 'get_dashboard_plan_distribution') return Promise.resolve([{ plan_id: 1, plan_name: 'Tres días', count: 8 }, { plan_id: null, plan_name: 'Sin plan asignado', count: 4 }]);
     if (command === 'get_dashboard_inactive_students') return Promise.resolve({ inactive_students_count: 2, max_days_inactive: 15, has_session_data: true, items: [{ person_id: 4, person_name: 'Ana Test', last_session_date: '2026-10-01', days_inactive: 15 }], page: 1, page_size: 10, total_pages: 1 });
+    if (command === 'get_dashboard_attendance_ranking') return Promise.resolve([{ person_id: 8, person_name: 'Beto Test', sessions_count: 5 }, { person_id: 4, person_name: 'Ana Test', sessions_count: 3 }]);
     return Promise.reject(new Error(`unexpected ${command}`));
   });
 });
@@ -20,7 +21,7 @@ beforeEach(() => {
 test('renderiza los cinco indicadores y gráficos con tooltips accesibles', async () => {
   render(<MemoryRouter><AnalyticsDashboard /></MemoryRouter>);
   expect(await screen.findByText('12')).toBeInTheDocument();
-  expect(screen.getByText('3')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Pagos pendientes.*3/ })).toBeInTheDocument();
   expect(screen.getByText('Sesiones registradas')).toBeInTheDocument();
   expect(screen.getByText('7')).toBeInTheDocument();
   expect(screen.getByRole('img', { name: 'Evolución de recaudación' })).toBeInTheDocument();
@@ -30,6 +31,17 @@ test('renderiza los cinco indicadores y gráficos con tooltips accesibles', asyn
   expect(screen.getByLabelText(/octubre de 2026: 12 alumnos/)).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Alumnos sin asistir' })).toBeInTheDocument();
   expect(await screen.findByRole('button', { name: 'Ana Test' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Alumnos con más asistencias' })).toBeInTheDocument();
+  expect(screen.getByLabelText(/Beto Test.*5 sesiones/)).toBeInTheDocument();
+});
+
+test('el ranking usa el período global y navega con el mismo filtro de persona', async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={['/dashboard']}><Routes><Route path="*" element={<><AnalyticsDashboard /><Location /></>} /></Routes></MemoryRouter>);
+  const row = await screen.findByLabelText(/Beto Test.*5 sesiones/);
+  expect(global.mockInvoke).toHaveBeenCalledWith('get_dashboard_attendance_ranking', expect.objectContaining({ limit: 10 }));
+  await user.click(row);
+  await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/?personId=8'));
 });
 
 test('cambia el umbral sin depender del período y abre la ficha del alumno', async () => {
@@ -64,6 +76,7 @@ test('un error de un gráfico no oculta los demás indicadores', async () => {
     if (command === 'get_dashboard_revenue_trend') return Promise.reject(new Error('falló tendencia'));
     if (command === 'get_dashboard_students_trend') return Promise.resolve({ available: false, points: [] });
     if (command === 'get_dashboard_inactive_students') return Promise.resolve({ inactive_students_count: 0, max_days_inactive: null, has_session_data: false, items: [], page: 1, page_size: 10, total_pages: 0 });
+    if (command === 'get_dashboard_attendance_ranking') return Promise.resolve([]);
     return Promise.resolve([]);
   });
   render(<MemoryRouter><AnalyticsDashboard /></MemoryRouter>);

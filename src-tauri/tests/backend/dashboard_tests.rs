@@ -100,6 +100,80 @@ fn dashboard_validates_period_and_month_limits() {
     assert!(service.inactive_students(8, 1, 10).is_err());
     assert!(service.inactive_students(7, 0, 10).is_err());
     assert!(service.inactive_students(7, 1, 101).is_err());
+    assert!(service.attendance_ranking("2026-13", 10).is_err());
+    assert!(service.attendance_ranking("2026-10", 0).is_err());
+}
+
+#[test]
+fn attendance_ranking_counts_unique_days_in_period_and_keeps_historical_people() {
+    let (_directory, path, service) = fixture();
+    let connection = Connection::open(path).unwrap();
+    for name in ["Ana", "Beto", "Caro", "Sin sesiones"] {
+        connection
+            .execute(
+                "INSERT INTO people(name,last_name,phone) VALUES(?1,'Test','1')",
+                [name],
+            )
+            .unwrap();
+    }
+    connection
+        .execute("UPDATE people SET is_active=0 WHERE id=1", [])
+        .unwrap();
+    connection
+        .execute("UPDATE people SET deleted_at='2026-11-01' WHERE id=2", [])
+        .unwrap();
+    for index in 1..=15 {
+        connection
+            .execute(
+                "INSERT INTO exercise(name,code,is_active) VALUES(?1,?2,1)",
+                params![format!("Ejercicio {index}"), format!("E{index}")],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(1,?1,'2026-09-03')",
+                [index],
+            )
+            .unwrap();
+    }
+    for date in ["2026-09-01", "2026-09-05", "2026-09-20"] {
+        connection
+            .execute(
+                "INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(2,1,?1)",
+                [date],
+            )
+            .unwrap();
+    }
+    for (person, date) in [
+        (1, "2026-09-04"),
+        (3, "2026-09-02"),
+        (3, "2026-09-04"),
+        (2, "2026-08-30"),
+        (3, "2026-10-01"),
+    ] {
+        connection
+            .execute(
+                "INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(?1,1,?2)",
+                params![person, date],
+            )
+            .unwrap();
+    }
+    drop(connection);
+
+    let ranking = service.attendance_ranking("2026-09", 10).unwrap();
+    assert_eq!(
+        ranking
+            .iter()
+            .map(|item| (item.person_name.as_str(), item.sessions_count))
+            .collect::<Vec<_>>(),
+        vec![("Beto Test", 3), ("Ana Test", 2), ("Caro Test", 2)]
+    );
+    assert_eq!(service.summary("2026-09").unwrap().registered_sessions, 7);
+    assert_eq!(service.attendance_ranking("2026-09", 2).unwrap().len(), 2);
+    assert!(service
+        .attendance_ranking("2027-01", 10)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]

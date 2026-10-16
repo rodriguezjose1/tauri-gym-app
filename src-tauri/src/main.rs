@@ -11,7 +11,8 @@ use models::billing::{
     PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
 use models::dashboard::{
-    DashboardSummary, InactiveStudentsPage, PlanDistributionPoint, RevenuePoint, StudentsTrend,
+    AttendanceRankingEntry, DashboardSummary, InactiveStudentsPage, PlanDistributionPoint,
+    RevenuePoint, StudentsTrend,
 };
 use models::exercise::Exercise;
 use models::person::Person;
@@ -815,6 +816,16 @@ fn get_dashboard_inactive_students(
     service.inactive_students(threshold_days, page, page_size)
 }
 
+#[tauri::command]
+fn get_dashboard_attendance_ranking(
+    service: State<'_, DashboardService>,
+    period: String,
+    limit: i64,
+) -> Result<Vec<AttendanceRankingEntry>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.attendance_ranking(&period, limit)
+}
+
 fn main() {
     // Load environment variables from .env file
     dotenv::dotenv().ok();
@@ -940,7 +951,8 @@ fn main() {
             get_dashboard_revenue_trend,
             get_dashboard_students_trend,
             get_dashboard_plan_distribution,
-            get_dashboard_inactive_students
+            get_dashboard_inactive_students,
+            get_dashboard_attendance_ranking
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

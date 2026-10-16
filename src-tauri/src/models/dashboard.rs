@@ -53,3 +53,10 @@ pub struct InactiveStudentsPage {
     pub page_size: i64,
     pub total_pages: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AttendanceRankingEntry {
+    pub person_id: i64,
+    pub person_name: String,
+    pub sessions_count: i64,
+}

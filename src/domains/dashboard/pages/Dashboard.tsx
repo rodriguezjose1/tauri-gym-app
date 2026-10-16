@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card } from '../../../shared/components/base';
 import { ManagementPageHeader } from '../../../shared/components/management';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
@@ -7,9 +8,12 @@ import { WorkoutModals } from '../../workout';
 import { ConfirmationModal } from '../../../shared/components/modals/ConfirmationModal';
 import { useDashboardController } from '../hooks/useDashboardController';
 import { useConfig } from '../../../shared/contexts/ConfigContext';
+import { PersonService } from '../../person/services/personService';
 import '../../../styles/Dashboard.css';
 
 export default function DashboardRefactored() {
+  const [searchParams] = useSearchParams();
+  const requestedPersonId = searchParams.get('personId');
   const { storageWarning } = useConfig();
   // Single controller hook that orchestrates everything
   const {
@@ -19,6 +23,26 @@ export default function DashboardRefactored() {
     handlers
   } = useDashboardController();
   const [personSearchFocusRequest, setPersonSearchFocusRequest] = useState(0);
+  const [requestedPersonError, setRequestedPersonError] = useState(false);
+
+  useEffect(() => {
+    if (!requestedPersonId) return;
+    const personId = Number(requestedPersonId);
+    if (!Number.isInteger(personId) || personId < 1) {
+      setRequestedPersonError(true);
+      return;
+    }
+    let active = true;
+    setRequestedPersonError(false);
+    void PersonService.getPersonById(personId)
+      .then(person => {
+        if (!active) return;
+        if (person) data.setSelectedPerson(person);
+        else setRequestedPersonError(true);
+      })
+      .catch(() => { if (active) setRequestedPersonError(true); });
+    return () => { active = false; };
+  }, [requestedPersonId]);
 
   useEffect(() => {
     const focusPersonSearch = (event: KeyboardEvent) => {
@@ -39,6 +63,7 @@ export default function DashboardRefactored() {
     <div className="dashboard-container management-page-frame">
       <div className="dashboard-wrapper">
         {storageWarning && <p role="alert" className="dashboard-persistence-warning">{storageWarning}</p>}
+        {requestedPersonError && <p role="alert" className="dashboard-persistence-warning">No se pudo seleccionar la persona solicitada.</p>}
         {data.error && (
           <p role="alert" className="dashboard-persistence-warning">
             No se pudieron cargar algunos datos del calendario. Intentá seleccionar la persona nuevamente.

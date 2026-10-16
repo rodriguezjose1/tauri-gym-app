@@ -22,6 +22,7 @@ export interface InactiveStudentsPage {
   page_size: number;
   total_pages: number;
 }
+export interface AttendanceRankingEntry { person_id: number; person_name: string; sessions_count: number }
 
 export const DashboardService = {
   summary: (period: string) => invoke<DashboardSummary>('get_dashboard_summary', { period }),
@@ -29,4 +30,5 @@ export const DashboardService = {
   studentsTrend: (period: string, months = 6) => invoke<StudentsTrend>('get_dashboard_students_trend', { period, months }),
   planDistribution: (period: string) => invoke<PlanDistributionPoint[]>('get_dashboard_plan_distribution', { period }),
   inactiveStudents: (thresholdDays: number, page = 1, pageSize = 10) => invoke<InactiveStudentsPage>('get_dashboard_inactive_students', { thresholdDays, page, pageSize }),
+  attendanceRanking: (period: string, limit = 10) => invoke<AttendanceRankingEntry[]>('get_dashboard_attendance_ranking', { period, limit }),
 };

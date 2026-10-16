@@ -4,7 +4,7 @@ import { Button, Card, ErrorMessage, Pagination, Select, Title } from '../../../
 import { ManagementPageHeader } from '../../../shared/components/management';
 import { PeriodSelect } from '../../billing/components/PeriodSelect';
 import { currentPeriod } from '../../billing/utils/periodOptions';
-import { DashboardService, type DashboardSummary, type InactiveStudentsPage, type PlanDistributionPoint, type RevenuePoint, type StudentsTrend } from '../services/dashboardService';
+import { DashboardService, type AttendanceRankingEntry, type DashboardSummary, type InactiveStudentsPage, type PlanDistributionPoint, type RevenuePoint, type StudentsTrend } from '../services/dashboardService';
 import '../../../styles/AnalyticsDashboard.css';
 
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -50,12 +50,17 @@ export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState<Record<string, boolean>>({ summary: true, revenue: true, students: true, plans: true });
   const requestId = useRef(0);
   const inactiveRequestId = useRef(0);
+  const rankingRequestId = useRef(0);
   const [inactiveThreshold, setInactiveThreshold] = useState(7);
   const [inactivePage, setInactivePage] = useState(1);
   const [inactiveData, setInactiveData] = useState<InactiveStudentsPage | null>(null);
   const [inactiveLoading, setInactiveLoading] = useState(true);
   const [inactiveError, setInactiveError] = useState('');
   const [inactiveRetry, setInactiveRetry] = useState(0);
+  const [ranking, setRanking] = useState<AttendanceRankingEntry[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [rankingError, setRankingError] = useState('');
+  const [rankingRetry, setRankingRetry] = useState(0);
 
   useEffect(() => {
     const id = ++requestId.current;
@@ -81,6 +86,16 @@ export default function AnalyticsDashboard() {
       .finally(() => { if (id === inactiveRequestId.current) setInactiveLoading(false); });
   }, [inactiveThreshold, inactivePage, inactiveRetry]);
 
+  useEffect(() => {
+    const id = ++rankingRequestId.current;
+    setRankingLoading(true);
+    setRankingError('');
+    void DashboardService.attendanceRanking(period)
+      .then(value => { if (id === rankingRequestId.current) setRanking(value); })
+      .catch(error => { if (id === rankingRequestId.current) setRankingError(String(error)); })
+      .finally(() => { if (id === rankingRequestId.current) setRankingLoading(false); });
+  }, [period, rankingRetry]);
+
   const maxPlan = Math.max(1, ...plans.map(plan => plan.count));
   return <div className="analytics-page management-page-frame"><Card variant="elevated" padding="md" className="management-page-card analytics-main">
     <div className="analytics-header"><ManagementPageHeader title="Dashboard" /><PeriodSelect value={period} onChange={value => setPeriod(String(value))} /></div>
@@ -96,6 +111,14 @@ export default function AnalyticsDashboard() {
       <ChartCard title="Evolución de alumnos activos" loading={loading.students} error={errors.students}>{students && <Line trend={students} />}</ChartCard>
       <ChartCard title="Distribución por plan" loading={loading.plans} error={errors.plans}><div className="analytics-plan-list">{plans.length ? plans.map(plan => <div key={plan.plan_id ?? 'none'} title={`${plan.plan_name}: ${plan.count}`}><span>{plan.plan_name}</span><div><i style={{ width: `${plan.count / maxPlan * 100}%` }} /></div><strong>{plan.count}</strong></div>) : <div className="analytics-state">No hay alumnos activos para distribuir.</div>}</div></ChartCard>
     </div>
+    <Card variant="default" padding="md" className="analytics-ranking-card">
+      <Title level={3}>Alumnos con más asistencias</Title>
+      {rankingLoading ? <div className="analytics-ranking-state">Cargando ranking…</div> : rankingError ? <div className="analytics-ranking-state"><ErrorMessage message={rankingError} /><Button size="sm" variant="secondary" onClick={() => setRankingRetry(value => value + 1)}>Reintentar</Button></div> : ranking.length ? <div className="analytics-ranking-list">{ranking.map(student => {
+        const maxSessions = Math.max(1, ranking[0].sessions_count);
+        const tooltip = `${student.person_name} · ${monthYearLabel(period)} · ${student.sessions_count} ${student.sessions_count === 1 ? 'sesión' : 'sesiones'}`;
+        return <button type="button" key={student.person_id} className="analytics-ranking-row analytics-tooltip-target" data-tooltip={tooltip} aria-label={tooltip} onClick={() => navigate(`/?personId=${student.person_id}`)}><span>{student.person_name}</span><i><b style={{ width: `${student.sessions_count / maxSessions * 100}%` }} /></i><strong>{student.sessions_count}</strong></button>;
+      })}</div> : <div className="analytics-ranking-state">No hay sesiones registradas en este período.</div>}
+    </Card>
     <Card variant="default" padding="md" className="analytics-inactive">
       <div className="analytics-inactive-header">
         <div><Title level={3}>Alumnos sin asistir</Title><p>Según la última sesión registrada hasta hoy.</p></div>

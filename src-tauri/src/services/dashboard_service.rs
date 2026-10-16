@@ -1,6 +1,6 @@
 use crate::models::dashboard::{
-    DashboardSummary, InactiveStudent, InactiveStudentsPage, PlanDistributionPoint, RevenuePoint,
-    StudentPoint, StudentsTrend,
+    AttendanceRankingEntry, DashboardSummary, InactiveStudent, InactiveStudentsPage,
+    PlanDistributionPoint, RevenuePoint, StudentPoint, StudentsTrend,
 };
 use crate::services::billing_service::BillingService;
 use rusqlite::{params, Connection};
@@ -79,7 +79,14 @@ impl DashboardService {
             .query_row(&outstanding_sql(true), [period], |row| row.get(0))
             .map_err(|e| e.to_string())?;
         let registered_sessions = connection.query_row(
-            "SELECT COUNT(*) FROM (SELECT DISTINCT person_id,date(date) FROM workout_entries WHERE substr(date,1,7)=?1)",
+            "SELECT COUNT(*) FROM (
+               SELECT person_id,date(date) FROM workout_entries
+               WHERE date(date) IS NOT NULL
+                 AND date(date)>=date(?1 || '-01')
+                 AND date(date)<date(?1 || '-01','+1 month')
+                 AND (?1<>strftime('%Y-%m','now','localtime') OR date(date)<=date('now','localtime'))
+               GROUP BY person_id,date(date)
+             )",
             [period], |row| row.get(0)).map_err(|e| e.to_string())?;
         Ok(DashboardSummary {
             period: period.into(),
@@ -269,5 +276,48 @@ impl DashboardService {
             page_size,
             total_pages,
         })
+    }
+
+    pub fn attendance_ranking(
+        &self,
+        period: &str,
+        limit: i64,
+    ) -> Result<Vec<AttendanceRankingEntry>, String> {
+        Self::validate(period, None)?;
+        if !(1..=100).contains(&limit) {
+            return Err("El límite debe estar entre 1 y 100".into());
+        }
+        let connection = self.connection()?;
+        let mut statement = connection
+            .prepare(
+                "WITH unique_sessions AS (
+                   SELECT person_id,date(date) session_date
+                   FROM workout_entries
+                   WHERE date(date) IS NOT NULL
+                     AND date(date)>=date(?1 || '-01')
+                     AND date(date)<date(?1 || '-01','+1 month')
+                     AND (?1<>strftime('%Y-%m','now','localtime') OR date(date)<=date('now','localtime'))
+                   GROUP BY person_id,date(date)
+                 )
+                 SELECT pe.id,trim(pe.name || ' ' || pe.last_name),COUNT(*) sessions_count
+                 FROM unique_sessions sessions
+                 JOIN people pe ON pe.id=sessions.person_id
+                 GROUP BY pe.id,pe.name,pe.last_name
+                 ORDER BY sessions_count DESC,lower(trim(pe.name || ' ' || pe.last_name)),pe.id
+                 LIMIT ?2",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = statement
+            .query_map(params![period, limit], |row| {
+                Ok(AttendanceRankingEntry {
+                    person_id: row.get(0)?,
+                    person_name: row.get(1)?,
+                    sessions_count: row.get(2)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(result)
     }
 }

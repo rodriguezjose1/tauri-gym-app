@@ -15,8 +15,9 @@ beforeEach(() => {
   sessionStorage.clear()
   unexpected = []
   vi.mocked(invoke).mockReset()
-  vi.mocked(invoke).mockImplementation(async command => {
+  vi.mocked(invoke).mockImplementation(async (command, args) => {
     switch (command) {
+      case 'get_person_by_id': return args.id === person.id ? person : null
       case 'get_persons_paginated':
       case 'search_persons_paginated': return [person]
       case 'list_routines_paginated':
@@ -33,6 +34,7 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   sessionStorage.clear()
+  window.history.replaceState({}, '', '/')
   expect(unexpected).toEqual([])
 })
 
@@ -56,6 +58,14 @@ async function selectPerson(user) {
 }
 
 describe('Dashboard: recuperación de selección desde la pantalla real', () => {
+  it('selecciona por personId al llegar desde el ranking de asistencias', async () => {
+    window.history.replaceState({}, '', '/?personId=1')
+    await mount()
+    expect(await screen.findByText('Ana Perez')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cambiar' })).toBeInTheDocument()
+    expect(JSON.parse(sessionStorage.getItem(key))).toEqual(person)
+  })
+
   it.each(['{invalid', JSON.stringify({ id: 1 })])('descarta %s y permite buscar y seleccionar', async value => {
     sessionStorage.setItem(key, value)
     await mount()
