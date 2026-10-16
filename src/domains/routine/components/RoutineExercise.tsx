@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Button, Select, Card, Title } from '../../../shared/components/base';
+import { Button, Select, Card, ErrorMessage, Title } from '../../../shared/components/base';
 import { DeleteConfirmationModal } from '../../../shared/components/modals';
 import { RoutineExerciseWithDetails } from '../../../shared/types/dashboard';
 
@@ -16,16 +16,26 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     group_number: exercise.group_number || 1
   });
 
   const handleSave = async () => {
-    const updates = {
-      group_number: editForm.group_number
-    };
-    await onUpdate(exercise.id!, updates);
-    setIsEditing(false);
+    if (saving) return;
+    try {
+      setSaving(true);
+      setError(null);
+      await onUpdate(exercise.id!, { group_number: editForm.group_number });
+      setIsEditing(false);
+    } catch (saveError) {
+      console.error('Error updating routine exercise:', saveError);
+      setError('No se pudo actualizar el ejercicio');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -36,25 +46,40 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
   };
 
   const handleDeleteClick = () => {
-    console.log('Delete button clicked for exercise:', exercise);
+    setError(null);
     setShowDeleteConfirm(true);
   };
 
   const handleDeleteConfirm = async () => {
-    console.log('User confirmed deletion, calling onDelete with exercise.id:', exercise.id);
-    await onDelete(exercise.id!);
-    setShowDeleteConfirm(false);
+    if (deleting) return;
+    try {
+      setDeleting(true);
+      setError(null);
+      await onDelete(exercise.id!);
+      setShowDeleteConfirm(false);
+    } catch (deleteError) {
+      console.error('Error deleting routine exercise:', deleteError);
+      setError('No se pudo eliminar el ejercicio');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleDeleteCancel = () => {
-    console.log('User cancelled deletion');
     setShowDeleteConfirm(false);
+  };
+
+  const handleEdit = () => {
+    setEditForm({ group_number: exercise.group_number || 1 });
+    setError(null);
+    setIsEditing(true);
   };
 
   if (isEditing) {
     return (
       <Card variant="default" padding="md" className="routine-exercise-edit-card">
         <div className="routine-exercise-edit-form">
+          {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
           <div className="routine-exercise-group-selection">
             <Select
               label="Grupo"
@@ -71,10 +96,10 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
             />
           </div>
           <div className="routine-exercise-form-actions">
-            <Button onClick={handleSave} variant="primary" size="sm">
-              Guardar
+            <Button onClick={handleSave} variant="primary" size="sm" disabled={saving}>
+              {saving ? 'Guardando...' : 'Guardar'}
             </Button>
-            <Button onClick={handleCancel} variant="secondary" size="sm">
+            <Button onClick={handleCancel} variant="secondary" size="sm" disabled={saving}>
               Cancelar
             </Button>
           </div>
@@ -90,6 +115,7 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
         padding="md"
         className="routine-exercise-card"
       >
+        {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
         <div className="routine-exercise-info">
           <Title level={4} variant="default" className="routine-exercise-name">
             {exercise.exercise_name}
@@ -101,7 +127,7 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
         
         <div className="routine-exercise-actions">
           <Button
-            onClick={() => setIsEditing(true)}
+            onClick={handleEdit}
             variant="secondary"
             size="sm"
           >
@@ -125,7 +151,8 @@ export const RoutineExercise: React.FC<RoutineExerciseProps> = ({
         message={`¿Estás seguro de que deseas eliminar el ejercicio "${exercise.exercise_name}"?`}
         confirmText="Eliminar"
         cancelText="Cancelar"
+        isDeleting={deleting}
       />
     </>
   );
-}; 
+};

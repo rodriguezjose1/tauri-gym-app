@@ -5,7 +5,7 @@ import Dashboard from './domains/dashboard/pages/Dashboard';
 import AnalyticsDashboard from './domains/dashboard/pages/AnalyticsDashboard';
 import PersonCrud from './domains/person/pages/PersonCrud';
 import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
-import { RoutineManager } from './domains/routine/components/RoutineManager';
+import { RoutineManager } from './domains/routine';
 import ConfiguracionesPage from './domains/settings/pages/ConfiguracionesPage';
 import BillingPage from './domains/billing/pages/BillingPage';
 import { ConfigProvider } from './shared/contexts';
