@@ -114,13 +114,13 @@ fn active_people_payment_filters_counts_search_and_paginate_consistently() {
     let counts = service.payment_status_counts().unwrap();
     assert_eq!((counts.all, counts.overdue, counts.pending, counts.current, counts.no_plan), (5, 2, 1, 1, 1));
     for (status, expected) in [("overdue", 2), ("pending", 1), ("current", 1), ("no_plan", 1)] {
-        let page = service.persons_payment_page("", status, 1, 10).unwrap();
+        let page = service.persons_payment_page("", status, 1, 10, None).unwrap();
         assert_eq!(page.total, expected);
         assert!(page.persons.iter().all(|person| person.payment_status == status));
     }
-    let searched = service.persons_payment_page("dos", "overdue", 1, 10).unwrap();
+    let searched = service.persons_payment_page("dos", "overdue", 1, 10, None).unwrap();
     assert_eq!((searched.total, searched.persons[0].person.name.as_str()), (1, "Vencido Dos"));
-    let second = service.persons_payment_page("", "overdue", 2, 1).unwrap();
+    let second = service.persons_payment_page("", "overdue", 2, 1, None).unwrap();
     assert_eq!((second.total, second.total_pages, second.page, second.persons.len()), (2, 2, 2, 1));
 }
 

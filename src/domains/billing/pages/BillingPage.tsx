@@ -14,7 +14,8 @@ const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS
 const date = (value: string) => new Date(value.replace(' ', 'T')).toLocaleString('es-AR');
 
 export default function BillingPage() {
-  const [month, setMonth] = useState(currentPeriod());
+  const requestedPeriod = new URLSearchParams(window.location.search).get('period');
+  const [month, setMonth] = useState(() => /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedPeriod || '') ? requestedPeriod! : currentPeriod());
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaymentPage | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,19 +24,12 @@ export default function BillingPage() {
   const [reversing, setReversing] = useState<Payment | null>(null);
   const [reason, setReason] = useState('');
   const [mutating, setMutating] = useState(false);
-  const [compactHeader, setCompactHeader] = useState(false);
   const [personSearch, setPersonSearch] = useState('');
   const debouncedPersonSearch = useDebouncedValue(personSearch.trim(), 300);
   const personQuery = personSearch.trim() ? debouncedPersonSearch : '';
   const requestId = useRef(0);
   const historyScrollRef = useRef<HTMLDivElement>(null);
-  const paginationInProgress = useRef(false);
   const { addNotification } = useToast();
-
-  const setHeaderMode = (compact: boolean) => {
-    if (compact === compactHeader) return;
-    setCompactHeader(compact);
-  };
 
   const load = useCallback(async (target: number) => {
     const id = ++requestId.current;
@@ -67,16 +61,15 @@ export default function BillingPage() {
     return () => document.removeEventListener('keydown', openPaymentDialog);
   }, [showPayment, reversing]);
   const changeMonth = (value: string | number) => {
-    setMonth(String(value));
+    const next = String(value);
+    setMonth(next);
+    const params = new URLSearchParams(window.location.search);
+    params.set('period', next);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params}`);
     if (historyScrollRef.current) historyScrollRef.current.scrollTop = 0;
   };
   const changePage = (target: number) => {
-    paginationInProgress.current = true;
-    void load(target).finally(() => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => { paginationInProgress.current = false; });
-      });
-    });
+    void load(target);
   };
   const clearPersonSearch = () => {
     setPersonSearch('');
@@ -97,15 +90,9 @@ export default function BillingPage() {
   return (
     <div className="billing-page management-page-frame">
       <div className="billing-page-content">
-        <Card variant="elevated" padding="md" className={`billing-main-card management-page-card${compactHeader ? ' is-compact' : ''}`}>
+        <Card variant="elevated" padding="md" className="billing-main-card management-page-card">
           <div className="billing-toolbar management-page-controls">
-            <div className="billing-heading"><ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-register-action"><Button onClick={() => setShowPayment(true)} title="Atajo: Ctrl+P">{billingTexts.page.register}</Button></div>} /></div>
-            <div className="billing-summary">
-            <PeriodSelect value={month} onChange={changeMonth} fullWidth />
-            <div className="billing-metric"><span>Recaudado en el mes</span><strong>{loading ? '—' : money.format((data?.collected_cents || 0) / 100)}</strong></div>
-            <div className="billing-metric"><span>Pagado del período</span><strong>{loading ? '—' : money.format((data?.period_paid_cents || 0) / 100)}</strong></div>
-            <div className="billing-metric"><span>Pagos registrados en el mes</span><strong>{loading ? '—' : data?.payment_count || 0}</strong></div>
-            </div>
+            <ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-header-actions"><div className="billing-period"><PeriodSelect value={month} onChange={changeMonth} fullWidth /></div><Button onClick={() => setShowPayment(true)} title="Atajo: Ctrl+P">{billingTexts.page.register}</Button></div>} />
           </div>
           <section className="billing-history">
             <div className="billing-history-header">
@@ -120,7 +107,7 @@ export default function BillingPage() {
                   clearLabel={billingTexts.page.clearSearch}
               />
             </div>
-            <div className="billing-history-scroll" ref={historyScrollRef} onScroll={(event) => { if (!paginationInProgress.current && event.currentTarget.scrollTop > 24) setHeaderMode(true); }} data-testid="billing-history-scroll">
+            <div className="billing-history-scroll" ref={historyScrollRef} data-testid="billing-history-scroll">
               {error && <div className="billing-error"><ErrorMessage message={error} onDismiss={() => setError(null)} /><Button variant="secondary" onClick={() => load(page)}>Reintentar</Button></div>}
               {loading && !data ? <div className="billing-state">Cargando pagos…</div> : data?.payments.length === 0 ? <div className="billing-state">{personQuery ? billingTexts.page.emptySearch(personQuery) : billingTexts.page.empty}</div> : (
                 <div className="payment-table-wrap"><table className="payment-table"><thead><tr><th>Alumno</th><th>Plan o concepto</th><th>Período</th><th>{billingTexts.table.paymentDate}</th><th>Importe</th><th>Estado</th><th>Acción</th></tr></thead><tbody>{data?.payments.map((payment) => (

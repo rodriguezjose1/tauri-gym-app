@@ -4,6 +4,7 @@ use crate::repository::sqlite_person_repository::SqlitePersonRepository;
 use crate::repository::sqlite_routine_repository::SqliteRoutineRepository;
 use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
 use crate::services::billing_service::BillingService;
+use crate::services::dashboard_service::DashboardService;
 use crate::services::exercise_service::ExerciseService;
 use crate::services::person_service::PersonService;
 use crate::services::routine_service::RoutineService;
@@ -19,6 +20,7 @@ pub fn setup_services() -> Result<
         WorkoutEntryService,
         RoutineService,
         BillingService,
+        DashboardService,
     ),
     String,
 > {
@@ -46,6 +48,7 @@ pub fn setup_services() -> Result<
     let workout_entry_service = WorkoutEntryService::new(workout_entry_repository);
     let routine_service = RoutineService::new(routine_repository);
     let billing_service = BillingService::new(db_path_str);
+    let dashboard_service = DashboardService::new(db_path_str);
 
     Ok((
         person_service,
@@ -53,6 +56,7 @@ pub fn setup_services() -> Result<
         workout_entry_service,
         routine_service,
         billing_service,
+        dashboard_service,
     ))
 }
 

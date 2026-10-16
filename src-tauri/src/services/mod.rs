@@ -1,5 +1,6 @@
 pub mod backup_service;
 pub mod billing_service;
+pub mod dashboard_service;
 pub mod exercise_service;
 pub mod person_service;
 pub mod routine_service;

@@ -32,6 +32,12 @@ impl BillingService {
             && m.parse::<u8>().is_ok_and(|v| (1..=12).contains(&v)))
     }
 
+    /// Shared business policy: monthly obligations expire on day 10, moved
+    /// from weekends to Monday, and become overdue the following day.
+    pub fn obligation_overdue_predicate(alias: &str) -> String {
+        format!("date('now','localtime') > date({alias}.period||'-10',CASE strftime('%w',{alias}.period||'-10') WHEN '6' THEN '+2 days' WHEN '0' THEN '+1 day' ELSE '+0 days' END)")
+    }
+
     fn next_period(period: &str) -> Result<String, String> {
         if !Self::valid_period(period) {
             return Err("El período debe tener formato AAAA-MM".into());
@@ -570,10 +576,12 @@ impl BillingService {
         payment_status: &str,
         page: i64,
         page_size: i64,
+        period: Option<&str>,
     ) -> Result<PersonPaymentPage, String> {
         if page < 1
             || !(1..=100).contains(&page_size)
             || !valid_payment_status_filter(payment_status)
+            || period.is_some_and(|value| !Self::valid_period(value))
         {
             return Err("Parámetros de consulta de personas inválidos".into());
         }
@@ -584,12 +592,23 @@ impl BillingService {
             .replace('%', "\\%")
             .replace('_', "\\_");
         let search_pattern = format!("%{escaped_query}%");
-        let classified = format!("SELECT pe.id,pe.name,pe.last_name,pe.phone,{PERSON_PAYMENT_STATUS_SQL} AS payment_status FROM people pe WHERE (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL)");
+        let classified = if period.is_some() {
+            let overdue = Self::obligation_overdue_predicate("o");
+            format!("SELECT pe.id,pe.name,pe.last_name,pe.phone,CASE
+              WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.period=?4 AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL) AND {overdue}) THEN 'overdue'
+              WHEN EXISTS(SELECT 1 FROM obligations o WHERE o.person_id=pe.id AND o.period=?4 AND o.excluded_at IS NULL AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.obligation_id=o.id AND p.reversed_at IS NULL)) THEN 'pending'
+              WHEN EXISTS(SELECT 1 FROM payments p WHERE p.person_id=pe.id AND p.modality='monthly' AND p.reversed_at IS NULL AND p.period<=?4) THEN 'current'
+              ELSE 'no_plan' END AS payment_status FROM people pe
+              WHERE (?4=strftime('%Y-%m','now','localtime') AND (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL))
+                 OR (?4<>strftime('%Y-%m','now','localtime') AND EXISTS(SELECT 1 FROM person_activity_periods a WHERE a.person_id=pe.id AND a.active_from<=?4 AND (a.inactive_from IS NULL OR a.inactive_from>?4)))")
+        } else {
+            format!("SELECT pe.id,pe.name,pe.last_name,pe.phone,{PERSON_PAYMENT_STATUS_SQL} AS payment_status FROM people pe WHERE (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL) AND ?4 IS NULL")
+        };
         let total_sql = format!("WITH classified AS ({classified}) SELECT COUNT(*) FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\')");
         let total: i64 = connection
             .query_row(
                 &total_sql,
-                params![payment_status, normalized_query, search_pattern],
+                params![payment_status, normalized_query, search_pattern, period],
                 |row| row.get(0),
             )
             .map_err(|e| e.to_string())?;
@@ -603,7 +622,7 @@ impl BillingService {
         } else {
             1
         };
-        let page_sql = format!("WITH classified AS ({classified}) SELECT id,name,last_name,phone,payment_status FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\') ORDER BY name,last_name LIMIT ?4 OFFSET ?5");
+        let page_sql = format!("WITH classified AS ({classified}) SELECT id,name,last_name,phone,payment_status FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\') ORDER BY name,last_name LIMIT ?5 OFFSET ?6");
         let mut statement = connection.prepare(&page_sql).map_err(|e| e.to_string())?;
         let persons = statement
             .query_map(
@@ -611,6 +630,7 @@ impl BillingService {
                     payment_status,
                     normalized_query,
                     search_pattern,
+                    period,
                     page_size,
                     (effective_page - 1) * page_size
                 ],

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import BillingPage from './BillingPage';
@@ -43,7 +43,7 @@ beforeEach(() => {
   });
 });
 
-test('muestra las métricas independientes del mes y del período', async () => {
+test('prioriza el historial y no duplica las métricas del Dashboard', async () => {
   render(
     <ToastProvider>
       <BillingPage />
@@ -51,12 +51,9 @@ test('muestra las métricas independientes del mes y del período', async () => 
   );
 
   expect(await screen.findByText('Ana Test')).toBeInTheDocument();
-  const collectedMetric = screen.getByText('Recaudado en el mes').closest('.billing-metric');
-  const periodMetric = screen.getByText('Pagado del período').closest('.billing-metric');
-
-  expect(collectedMetric).toHaveTextContent('$ 100,00');
-  expect(periodMetric).toHaveTextContent('$ 80,00');
-  expect(screen.getByText('Pagos registrados en el mes')).toBeInTheDocument();
+  expect(screen.queryByText('Recaudado en el mes')).not.toBeInTheDocument();
+  expect(screen.queryByText('Pagado del período')).not.toBeInTheDocument();
+  expect(screen.queryByText('Pagos registrados en el mes')).not.toBeInTheDocument();
 });
 
 test('muestra pantalla informativa y revierte con confirmación y motivo', async () => {
@@ -86,7 +83,7 @@ test('muestra pantalla informativa y revierte con confirmación y motivo', async
   );
 });
 
-test('mantiene el encabezado compacto al volver arriba mientras continúa en Pagos', async () => {
+test('mantiene período y registro de pago en un encabezado fijo y compacto', async () => {
   render(
     <ToastProvider>
       <BillingPage />
@@ -94,64 +91,9 @@ test('mantiene el encabezado compacto al volver arriba mientras continúa en Pag
   );
 
   expect(await screen.findByText('Ana Test')).toBeInTheDocument();
-  const scrollArea = screen.getByTestId('billing-history-scroll');
-  const card = scrollArea.closest('.billing-main-card');
-  const historyHeading = screen.getByRole('heading', { name: 'Historial' });
-
-  expect(scrollArea).not.toContainElement(historyHeading);
-  expect(historyHeading.closest('.billing-history-header')).toContainElement(
-    screen.getByRole('textbox', { name: 'Buscar pagos por persona' }),
-  );
-  expect(card).not.toHaveClass('is-compact');
-  fireEvent.scroll(scrollArea, { target: { scrollTop: 40 } });
-  expect(card).toHaveClass('is-compact');
-  fireEvent.scroll(scrollArea, { target: { scrollTop: 0 } });
-  expect(card).toHaveClass('is-compact');
-});
-
-test('mantiene el encabezado compacto al avanzar y retroceder con la paginación', async () => {
-  const user = userEvent.setup();
-  render(
-    <ToastProvider>
-      <BillingPage />
-    </ToastProvider>,
-  );
-
-  expect(await screen.findByText('Ana Test')).toBeInTheDocument();
-  const scrollArea = screen.getByTestId('billing-history-scroll');
-  const card = scrollArea.closest('.billing-main-card');
-  fireEvent.scroll(scrollArea, { target: { scrollTop: 40 } });
-  expect(card).toHaveClass('is-compact');
-
-  await user.click(screen.getByRole('button', { name: 'Siguiente' }));
-  await waitFor(() => expect(screen.getByText(/Página 2 de 2/)).toBeInTheDocument());
-  expect(card).toHaveClass('is-compact');
-
-  await user.click(screen.getByRole('button', { name: 'Anterior' }));
-  await waitFor(() => expect(screen.getByText(/Página 1 de 2/)).toBeInTheDocument());
-  expect(card).toHaveClass('is-compact');
-});
-
-test('restaura el encabezado normal al salir de Pagos y volver a ingresar', async () => {
-  const firstVisit = render(
-    <ToastProvider>
-      <BillingPage />
-    </ToastProvider>,
-  );
-
-  expect(await screen.findByText('Ana Test')).toBeInTheDocument();
-  const scrollArea = screen.getByTestId('billing-history-scroll');
-  fireEvent.scroll(scrollArea, { target: { scrollTop: 40 } });
-  expect(scrollArea.closest('.billing-main-card')).toHaveClass('is-compact');
-
-  firstVisit.unmount();
-  render(
-    <ToastProvider>
-      <BillingPage />
-    </ToastProvider>,
-  );
-
-  expect(await screen.findByText('Ana Test')).toBeInTheDocument();
+  const header = screen.getByRole('heading', { name: 'Pagos' }).closest('.management-page-header');
+  expect(header).toContainElement(screen.getByRole('combobox'));
+  expect(header).toContainElement(screen.getByRole('button', { name: 'Registrar pago' }));
   expect(screen.getByTestId('billing-history-scroll').closest('.billing-main-card')).not.toHaveClass('is-compact');
 });
 

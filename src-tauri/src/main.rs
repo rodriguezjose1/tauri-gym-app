@@ -10,6 +10,7 @@ use models::billing::{
     DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote, PaymentRequest,
     PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
+use models::dashboard::{DashboardSummary, PlanDistributionPoint, RevenuePoint, StudentsTrend};
 use models::exercise::Exercise;
 use models::person::Person;
 use models::routine::Routine;
@@ -17,6 +18,7 @@ use models::routine_exercise::RoutineExercise;
 use models::workout_entry::WorkoutEntry;
 use services::backup_service::BackupService;
 use services::billing_service::BillingService;
+use services::dashboard_service::DashboardService;
 use services::exercise_service::ExerciseService;
 use services::person_service::PersonService;
 use services::routine_service::RoutineService;
@@ -723,9 +725,10 @@ fn get_persons_payment_page(
     payment_status: String,
     page: i64,
     page_size: i64,
+    period: Option<String>,
 ) -> Result<models::billing::PersonPaymentPage, String> {
     let _operation = OperationGuard::begin()?;
-    service.persons_payment_page(&query, &payment_status, page, page_size)
+    service.persons_payment_page(&query, &payment_status, page, page_size, period.as_deref())
 }
 
 #[tauri::command]
@@ -755,6 +758,44 @@ fn set_payment_period_excluded(
     service.set_period_excluded(obligation_id, excluded)
 }
 
+#[tauri::command]
+fn get_dashboard_summary(
+    service: State<'_, DashboardService>,
+    period: String,
+) -> Result<DashboardSummary, String> {
+    let _operation = OperationGuard::begin()?;
+    service.summary(&period)
+}
+
+#[tauri::command]
+fn get_dashboard_revenue_trend(
+    service: State<'_, DashboardService>,
+    period: String,
+    months: i64,
+) -> Result<Vec<RevenuePoint>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.revenue_trend(&period, months)
+}
+
+#[tauri::command]
+fn get_dashboard_students_trend(
+    service: State<'_, DashboardService>,
+    period: String,
+    months: i64,
+) -> Result<StudentsTrend, String> {
+    let _operation = OperationGuard::begin()?;
+    service.students_trend(&period, months)
+}
+
+#[tauri::command]
+fn get_dashboard_plan_distribution(
+    service: State<'_, DashboardService>,
+    period: String,
+) -> Result<Vec<PlanDistributionPoint>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.plan_distribution(&period)
+}
+
 fn main() {
     // Load environment variables from .env file
     dotenv::dotenv().ok();
@@ -770,6 +811,7 @@ fn main() {
                 workout_entry_service,
                 routine_service,
                 billing_service,
+                dashboard_service,
             ) = setup_services().map_err(std::io::Error::other)?;
             let backup_service = BackupService::new();
 
@@ -781,6 +823,7 @@ fn main() {
                 log::error!("No se pudieron reconciliar los períodos de pago: {error}");
             }
             app.manage(billing_service);
+            app.manage(dashboard_service);
             app.manage(backup_service);
 
             Ok(())
@@ -872,7 +915,11 @@ fn main() {
             get_persons_payment_page,
             get_payment_status_counts,
             get_person_payment_history,
-            set_payment_period_excluded
+            set_payment_period_excluded,
+            get_dashboard_summary,
+            get_dashboard_revenue_trend,
+            get_dashboard_students_trend,
+            get_dashboard_plan_distribution
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

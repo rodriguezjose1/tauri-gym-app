@@ -52,6 +52,7 @@ export default function PersonCrud() {
     const value = new URLSearchParams(window.location.search).get('paymentStatus');
     return isPaymentStatusFilter(value) ? value : 'all';
   });
+  const selectedPaymentPeriod = searchParams.get('period') || undefined;
   const [statusCounts, setStatusCounts] = useState<PaymentStatusCounts | null>(null);
   const [countsLoading, setCountsLoading] = useState(false);
   const [countsError, setCountsError] = useState(false);
@@ -88,7 +89,7 @@ export default function PersonCrud() {
     } else {
       void loadDeletedPersons(1, searchQuery);
     }
-  }, [activeTab, searchQuery, paymentStatusFilter]);
+  }, [activeTab, searchQuery, paymentStatusFilter, selectedPaymentPeriod]);
 
   useEffect(() => {
     const requested = searchParams.get('paymentStatus');
@@ -120,7 +121,10 @@ export default function PersonCrud() {
     setPaymentStatusFilter(nextFilter);
     setCurrentPage(1);
     const nextParams = new URLSearchParams(searchParams);
-    if (nextFilter === 'all') nextParams.delete('paymentStatus');
+    if (nextFilter === 'all') {
+      nextParams.delete('paymentStatus');
+      nextParams.delete('period');
+    }
     else nextParams.set('paymentStatus', nextFilter);
     setSearchParams(nextParams, { replace: true });
   };
@@ -152,7 +156,7 @@ export default function PersonCrud() {
     try {
       setLoading(true);
       setError(null);
-      const response = await BillingService.personsPaymentPage(query, paymentStatusFilter, page, ITEMS_PER_PAGE);
+      const response = await BillingService.personsPaymentPage(query, paymentStatusFilter, page, ITEMS_PER_PAGE, selectedPaymentPeriod);
       if (id !== requestId.current) return;
       
       setPersons(response.persons);

@@ -1,4 +1,5 @@
 pub mod billing;
+pub mod dashboard;
 pub mod exercise;
 pub mod person;
 pub mod routine;

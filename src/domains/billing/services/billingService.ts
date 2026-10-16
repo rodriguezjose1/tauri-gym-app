@@ -125,8 +125,8 @@ export const BillingService = {
   reverse: (id: number, reason: string) => invoke<void>('reverse_payment', { id, reason }),
   reconcile: () => invoke<number>('reconcile_payment_periods'),
   personStatuses: (personIds: number[]) => invoke<PersonPaymentStatus[]>('get_person_payment_statuses', { personIds }),
-  personsPaymentPage: (query: string, paymentStatus: PaymentStatus | 'all', page: number, pageSize = 10) =>
-    invoke<PersonPaymentPage>('get_persons_payment_page', { query, paymentStatus, page, pageSize }),
+  personsPaymentPage: (query: string, paymentStatus: PaymentStatus | 'all', page: number, pageSize = 10, period?: string) =>
+    invoke<PersonPaymentPage>('get_persons_payment_page', { query, paymentStatus, page, pageSize, ...(period ? { period } : {}) }),
   paymentStatusCounts: () => invoke<PaymentStatusCounts>('get_payment_status_counts'),
   personHistory: (personId: number, page: number, pageSize = 20) => invoke<PersonPaymentHistoryPage>('get_person_payment_history', { personId, page, pageSize }),
   setPeriodExcluded: (obligationId: number, excluded: boolean) => invoke<void>('set_payment_period_excluded', { obligationId, excluded }),

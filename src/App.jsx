@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import Dashboard from './domains/dashboard/pages/Dashboard';
+import AnalyticsDashboard from './domains/dashboard/pages/AnalyticsDashboard';
 import PersonCrud from './domains/person/pages/PersonCrud';
 import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
 import { RoutineManager } from './domains/routine/components/RoutineManager';
@@ -26,6 +27,12 @@ function Navigation() {
         </Link>
 
         <ul className="nav-links">
+          <li>
+            <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active calendar' : ''}`}>
+              <span className="nav-link-icon">📊</span>
+              Dashboard
+            </Link>
+          </li>
           <li>
             <Link to="/pagos" className={`nav-link ${location.pathname === '/pagos' ? 'active payments' : ''}`}>
               <span className="nav-link-icon">💳</span>
@@ -123,6 +130,7 @@ function App() {
             <main className="app-content">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<AnalyticsDashboard />} />
                 <Route path="/personas" element={<PersonCrud />} />
                 <Route path="/exercises" element={<ExerciseCrud />} />
                 <Route path="/routines" element={<RoutineManager />} />
