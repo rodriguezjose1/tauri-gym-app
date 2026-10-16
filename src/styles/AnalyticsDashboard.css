@@ -34,6 +34,12 @@
 .analytics-plan-list div div { height: 18px; border-radius: 5px; background: var(--bg-secondary); overflow: hidden; }
 .analytics-plan-list i { display: block; height: 100%; background: var(--accent-primary); border-radius: inherit; }
 .analytics-ranking-card { display: flex; flex-direction: column; gap: 16px; overflow: visible; }
+.analytics-ranking-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.analytics-ranking-header p { margin: 5px 0 0; color: var(--text-secondary); font-size: 13px; text-transform: capitalize; }
+.analytics-ranking-modes { display: inline-flex; flex: 0 0 auto; padding: 3px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-secondary); }
+.analytics-ranking-modes button { padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
+.analytics-ranking-modes button:hover { color: var(--text-primary); }
+.analytics-ranking-modes button.active { background: var(--accent-primary); color: #fff; }
 .analytics-ranking-list { display: grid; gap: 7px; overflow: visible; }
 .analytics-ranking-row { display: grid; grid-template-columns: minmax(130px, 240px) 1fr 42px; align-items: center; gap: 12px; width: 100%; padding: 7px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
 .analytics-ranking-row:hover { background: var(--bg-secondary); }
@@ -61,4 +67,4 @@
 .analytics-inactive-state { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-secondary); text-align: center; }
 @media (max-width: 1100px) { .analytics-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 780px) { .analytics-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 680px) { .analytics-header, .analytics-inactive-header { align-items: stretch; flex-direction: column; } .analytics-inactive-header .ui-select-container { width: 100%; } .analytics-inactive-summary { grid-template-columns: 1fr 1fr; } .analytics-stats, .analytics-grid { grid-template-columns: 1fr; } .analytics-chart-card:last-child { grid-column: auto; } .analytics-plan-list > div { grid-template-columns: 110px 1fr 32px; } .analytics-ranking-row { grid-template-columns: minmax(95px, 35%) 1fr 30px; gap: 8px; } }
+@media (max-width: 680px) { .analytics-header, .analytics-inactive-header, .analytics-ranking-header { align-items: stretch; flex-direction: column; } .analytics-ranking-modes { align-self: stretch; } .analytics-ranking-modes button { flex: 1; } .analytics-inactive-header .ui-select-container { width: 100%; } .analytics-inactive-summary { grid-template-columns: 1fr 1fr; } .analytics-stats, .analytics-grid { grid-template-columns: 1fr; } .analytics-chart-card:last-child { grid-column: auto; } .analytics-plan-list > div { grid-template-columns: 110px 1fr 32px; } .analytics-ranking-row { grid-template-columns: minmax(95px, 35%) 1fr 30px; gap: 8px; } }

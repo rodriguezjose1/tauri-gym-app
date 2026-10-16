@@ -4,7 +4,7 @@ import { Button, Card, ErrorMessage, Pagination, Select, Title } from '../../../
 import { ManagementPageHeader } from '../../../shared/components/management';
 import { PeriodSelect } from '../../billing/components/PeriodSelect';
 import { currentPeriod } from '../../billing/utils/periodOptions';
-import { DashboardService, type AttendanceRankingEntry, type DashboardSummary, type InactiveStudentsPage, type PlanDistributionPoint, type RevenuePoint, type StudentsTrend } from '../services/dashboardService';
+import { DashboardService, type AttendanceRankingMode, type AttendanceRankingResponse, type DashboardSummary, type InactiveStudentsPage, type PlanDistributionPoint, type RevenuePoint, type StudentsTrend } from '../services/dashboardService';
 import '../../../styles/AnalyticsDashboard.css';
 
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -14,6 +14,17 @@ const monthYearLabel = (period: string) => new Intl.DateTimeFormat('es-AR', { mo
 const dateLabel = (date: string) => new Intl.DateTimeFormat('es-AR').format(new Date(`${date}T12:00:00`));
 const INACTIVE_THRESHOLDS = [7, 10, 14, 21, 30];
 const INACTIVE_PAGE_SIZE = 8;
+const rankingRangeLabel = (range: AttendanceRankingResponse, mode: AttendanceRankingMode) => {
+  const start = new Date(`${range.range_start}T12:00:00`);
+  const end = new Date(`${range.range_end_exclusive}T12:00:00`);
+  end.setDate(end.getDate() - 1);
+  const formatter = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' });
+  if (mode === 'month') return formatter.format(start);
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(start)} – ${formatter.format(end)}`;
+  }
+  return `${formatter.format(start)} – ${formatter.format(end)}`;
+};
 
 function StatCard({ label, value, hint, onClick, attention = false }: { label: string; value: string; hint?: string; onClick?: () => void; attention?: boolean }) {
   const content = <><span>{label}</span><strong>{value}</strong>{hint && <small>{hint}</small>}</>;
@@ -57,7 +68,8 @@ export default function AnalyticsDashboard() {
   const [inactiveLoading, setInactiveLoading] = useState(true);
   const [inactiveError, setInactiveError] = useState('');
   const [inactiveRetry, setInactiveRetry] = useState(0);
-  const [ranking, setRanking] = useState<AttendanceRankingEntry[]>([]);
+  const [rankingMode, setRankingMode] = useState<AttendanceRankingMode>('month');
+  const [rankingData, setRankingData] = useState<AttendanceRankingResponse | null>(null);
   const [rankingLoading, setRankingLoading] = useState(true);
   const [rankingError, setRankingError] = useState('');
   const [rankingRetry, setRankingRetry] = useState(0);
@@ -90,11 +102,12 @@ export default function AnalyticsDashboard() {
     const id = ++rankingRequestId.current;
     setRankingLoading(true);
     setRankingError('');
-    void DashboardService.attendanceRanking(period)
-      .then(value => { if (id === rankingRequestId.current) setRanking(value); })
+    setRankingData(null);
+    void DashboardService.attendanceRanking(period, rankingMode)
+      .then(value => { if (id === rankingRequestId.current) setRankingData(value); })
       .catch(error => { if (id === rankingRequestId.current) setRankingError(String(error)); })
       .finally(() => { if (id === rankingRequestId.current) setRankingLoading(false); });
-  }, [period, rankingRetry]);
+  }, [period, rankingMode, rankingRetry]);
 
   const maxPlan = Math.max(1, ...plans.map(plan => plan.count));
   return <div className="analytics-page management-page-frame"><Card variant="elevated" padding="md" className="management-page-card analytics-main">
@@ -112,10 +125,10 @@ export default function AnalyticsDashboard() {
       <ChartCard title="Distribución por plan" loading={loading.plans} error={errors.plans}><div className="analytics-plan-list">{plans.length ? plans.map(plan => <div key={plan.plan_id ?? 'none'} title={`${plan.plan_name}: ${plan.count}`}><span>{plan.plan_name}</span><div><i style={{ width: `${plan.count / maxPlan * 100}%` }} /></div><strong>{plan.count}</strong></div>) : <div className="analytics-state">No hay alumnos activos para distribuir.</div>}</div></ChartCard>
     </div>
     <Card variant="default" padding="md" className="analytics-ranking-card">
-      <Title level={3}>Alumnos con más asistencias</Title>
-      {rankingLoading ? <div className="analytics-ranking-state">Cargando ranking…</div> : rankingError ? <div className="analytics-ranking-state"><ErrorMessage message={rankingError} /><Button size="sm" variant="secondary" onClick={() => setRankingRetry(value => value + 1)}>Reintentar</Button></div> : ranking.length ? <div className="analytics-ranking-list">{ranking.map(student => {
-        const maxSessions = Math.max(1, ranking[0].sessions_count);
-        const tooltip = `${student.person_name} · ${monthYearLabel(period)} · ${student.sessions_count} ${student.sessions_count === 1 ? 'sesión' : 'sesiones'}`;
+      <div className="analytics-ranking-header"><div><Title level={3}>Alumnos con más asistencias</Title>{rankingData && <p>{rankingRangeLabel(rankingData, rankingMode)}</p>}</div><div className="analytics-ranking-modes" role="group" aria-label="Período del ranking">{([{ value: 'month', label: 'Mes' }, { value: 'year', label: 'Año' }, { value: 'rolling12', label: '12 meses' }] as { value: AttendanceRankingMode; label: string }[]).map(option => <button type="button" key={option.value} aria-pressed={rankingMode === option.value} className={rankingMode === option.value ? 'active' : ''} onClick={() => setRankingMode(option.value)}>{option.label}</button>)}</div></div>
+      {rankingLoading ? <div className="analytics-ranking-state">Cargando ranking…</div> : rankingError ? <div className="analytics-ranking-state"><ErrorMessage message={rankingError} /><Button size="sm" variant="secondary" onClick={() => setRankingRetry(value => value + 1)}>Reintentar</Button></div> : rankingData?.items.length ? <div className="analytics-ranking-list">{rankingData.items.map(student => {
+        const maxSessions = Math.max(1, rankingData.items[0].sessions_count);
+        const tooltip = `${student.person_name} · ${rankingRangeLabel(rankingData, rankingMode)} · ${student.sessions_count} ${student.sessions_count === 1 ? 'sesión' : 'sesiones'}`;
         return <button type="button" key={student.person_id} className="analytics-ranking-row analytics-tooltip-target" data-tooltip={tooltip} aria-label={tooltip} onClick={() => navigate(`/?personId=${student.person_id}`)}><span>{student.person_name}</span><i><b style={{ width: `${student.sessions_count / maxSessions * 100}%` }} /></i><strong>{student.sessions_count}</strong></button>;
       })}</div> : <div className="analytics-ranking-state">No hay sesiones registradas en este período.</div>}
     </Card>

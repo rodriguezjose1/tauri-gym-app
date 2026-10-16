@@ -60,3 +60,10 @@ pub struct AttendanceRankingEntry {
     pub person_name: String,
     pub sessions_count: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AttendanceRankingResponse {
+    pub range_start: String,
+    pub range_end_exclusive: String,
+    pub items: Vec<AttendanceRankingEntry>,
+}

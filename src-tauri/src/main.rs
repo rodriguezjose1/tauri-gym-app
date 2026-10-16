@@ -11,7 +11,7 @@ use models::billing::{
     PersonPaymentHistoryPage, PersonPaymentStatus, Plan,
 };
 use models::dashboard::{
-    AttendanceRankingEntry, DashboardSummary, InactiveStudentsPage, PlanDistributionPoint,
+    AttendanceRankingResponse, DashboardSummary, InactiveStudentsPage, PlanDistributionPoint,
     RevenuePoint, StudentsTrend,
 };
 use models::exercise::Exercise;
@@ -820,10 +820,11 @@ fn get_dashboard_inactive_students(
 fn get_dashboard_attendance_ranking(
     service: State<'_, DashboardService>,
     period: String,
+    mode: String,
     limit: i64,
-) -> Result<Vec<AttendanceRankingEntry>, String> {
+) -> Result<AttendanceRankingResponse, String> {
     let _operation = OperationGuard::begin()?;
-    service.attendance_ranking(&period, limit)
+    service.attendance_ranking(&period, &mode, limit)
 }
 
 fn main() {

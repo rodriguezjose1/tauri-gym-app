@@ -1,6 +1,6 @@
 use crate::models::dashboard::{
-    AttendanceRankingEntry, DashboardSummary, InactiveStudent, InactiveStudentsPage,
-    PlanDistributionPoint, RevenuePoint, StudentPoint, StudentsTrend,
+    AttendanceRankingEntry, AttendanceRankingResponse, DashboardSummary, InactiveStudent,
+    InactiveStudentsPage, PlanDistributionPoint, RevenuePoint, StudentPoint, StudentsTrend,
 };
 use crate::services::billing_service::BillingService;
 use rusqlite::{params, Connection};
@@ -80,12 +80,12 @@ impl DashboardService {
             .map_err(|e| e.to_string())?;
         let registered_sessions = connection.query_row(
             "SELECT COUNT(*) FROM (
-               SELECT person_id,date(date) FROM workout_entries
-               WHERE date(date) IS NOT NULL
-                 AND date(date)>=date(?1 || '-01')
-                 AND date(date)<date(?1 || '-01','+1 month')
-                 AND (?1<>strftime('%Y-%m','now','localtime') OR date(date)<=date('now','localtime'))
-               GROUP BY person_id,date(date)
+               SELECT person_id,date(date,'+0 days') FROM workout_entries
+               WHERE date(date,'+0 days')=substr(date,1,10)
+                 AND date(date,'+0 days')>=date(?1 || '-01')
+                 AND date(date,'+0 days')<date(?1 || '-01','+1 month')
+                 AND (?1<>strftime('%Y-%m','now','localtime') OR date(date,'+0 days')<=date('now','localtime'))
+               GROUP BY person_id,date(date,'+0 days')
              )",
             [period], |row| row.get(0)).map_err(|e| e.to_string())?;
         Ok(DashboardSummary {
@@ -211,9 +211,9 @@ impl DashboardService {
 
         let connection = self.connection()?;
         let cte = "WITH latest_sessions AS (
-              SELECT person_id, MAX(date(date)) last_session_date
+              SELECT person_id, MAX(date(date,'+0 days')) last_session_date
               FROM workout_entries
-              WHERE date(date) IS NOT NULL AND date(date) <= date('now','localtime')
+              WHERE date(date,'+0 days')=substr(date,1,10) AND date(date,'+0 days') <= date('now','localtime')
               GROUP BY person_id
             ), inactive AS (
               SELECT pe.id person_id,
@@ -261,7 +261,7 @@ impl DashboardService {
             .map_err(|e| e.to_string())?;
         let has_session_data = connection
             .query_row(
-                "SELECT EXISTS(SELECT 1 FROM workout_entries WHERE date(date) IS NOT NULL AND date(date)<=date('now','localtime'))",
+                "SELECT EXISTS(SELECT 1 FROM workout_entries WHERE date(date,'+0 days')=substr(date,1,10) AND date(date,'+0 days')<=date('now','localtime'))",
                 [],
                 |row| row.get::<_, i64>(0),
             )
@@ -281,34 +281,51 @@ impl DashboardService {
     pub fn attendance_ranking(
         &self,
         period: &str,
+        mode: &str,
         limit: i64,
-    ) -> Result<Vec<AttendanceRankingEntry>, String> {
+    ) -> Result<AttendanceRankingResponse, String> {
         Self::validate(period, None)?;
+        if !["month", "year", "rolling12"].contains(&mode) {
+            return Err("La modalidad debe ser month, year o rolling12".into());
+        }
         if !(1..=100).contains(&limit) {
             return Err("El límite debe estar entre 1 y 100".into());
         }
         let connection = self.connection()?;
+        let (range_start, range_end_exclusive): (String, String) = connection
+            .query_row(
+                "SELECT
+                   CASE ?2
+                     WHEN 'year' THEN substr(?1,1,4) || '-01-01'
+                     WHEN 'rolling12' THEN date(?1 || '-01','-11 months')
+                     ELSE date(?1 || '-01')
+                   END,
+                   date(?1 || '-01','+1 month')",
+                params![period, mode],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
         let mut statement = connection
             .prepare(
                 "WITH unique_sessions AS (
-                   SELECT person_id,date(date) session_date
+                   SELECT person_id,date(date,'+0 days') session_date
                    FROM workout_entries
-                   WHERE date(date) IS NOT NULL
-                     AND date(date)>=date(?1 || '-01')
-                     AND date(date)<date(?1 || '-01','+1 month')
-                     AND (?1<>strftime('%Y-%m','now','localtime') OR date(date)<=date('now','localtime'))
-                   GROUP BY person_id,date(date)
+                   WHERE date(date,'+0 days')=substr(date,1,10)
+                     AND date(date,'+0 days')>=date(?1)
+                     AND date(date,'+0 days')<date(?2)
+                     AND date(date,'+0 days')<=date('now','localtime')
+                   GROUP BY person_id,date(date,'+0 days')
                  )
                  SELECT pe.id,trim(pe.name || ' ' || pe.last_name),COUNT(*) sessions_count
                  FROM unique_sessions sessions
                  JOIN people pe ON pe.id=sessions.person_id
                  GROUP BY pe.id,pe.name,pe.last_name
                  ORDER BY sessions_count DESC,lower(trim(pe.name || ' ' || pe.last_name)),pe.id
-                 LIMIT ?2",
+                 LIMIT ?3",
             )
             .map_err(|e| e.to_string())?;
         let result = statement
-            .query_map(params![period, limit], |row| {
+            .query_map(params![range_start, range_end_exclusive, limit], |row| {
                 Ok(AttendanceRankingEntry {
                     person_id: row.get(0)?,
                     person_name: row.get(1)?,
@@ -318,6 +335,10 @@ impl DashboardService {
             .map_err(|e| e.to_string())?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.to_string())?;
-        Ok(result)
+        Ok(AttendanceRankingResponse {
+            range_start,
+            range_end_exclusive,
+            items: result,
+        })
     }
 }

@@ -100,8 +100,11 @@ fn dashboard_validates_period_and_month_limits() {
     assert!(service.inactive_students(8, 1, 10).is_err());
     assert!(service.inactive_students(7, 0, 10).is_err());
     assert!(service.inactive_students(7, 1, 101).is_err());
-    assert!(service.attendance_ranking("2026-13", 10).is_err());
-    assert!(service.attendance_ranking("2026-10", 0).is_err());
+    assert!(service.attendance_ranking("2026-13", "month", 10).is_err());
+    assert!(service
+        .attendance_ranking("2026-10", "quarter", 10)
+        .is_err());
+    assert!(service.attendance_ranking("2026-10", "month", 0).is_err());
 }
 
 #[test]
@@ -160,20 +163,88 @@ fn attendance_ranking_counts_unique_days_in_period_and_keeps_historical_people()
     }
     drop(connection);
 
-    let ranking = service.attendance_ranking("2026-09", 10).unwrap();
+    let ranking = service.attendance_ranking("2026-09", "month", 10).unwrap();
     assert_eq!(
         ranking
+            .items
             .iter()
             .map(|item| (item.person_name.as_str(), item.sessions_count))
             .collect::<Vec<_>>(),
         vec![("Beto Test", 3), ("Ana Test", 2), ("Caro Test", 2)]
     );
     assert_eq!(service.summary("2026-09").unwrap().registered_sessions, 7);
-    assert_eq!(service.attendance_ranking("2026-09", 2).unwrap().len(), 2);
+    assert_eq!(
+        service
+            .attendance_ranking("2026-09", "month", 2)
+            .unwrap()
+            .items
+            .len(),
+        2
+    );
     assert!(service
-        .attendance_ranking("2027-01", 10)
+        .attendance_ranking("2027-01", "month", 10)
         .unwrap()
+        .items
         .is_empty());
+}
+
+#[test]
+fn attendance_ranking_calculates_year_and_rolling_twelve_month_ranges() {
+    let (_directory, path, service) = fixture();
+    let connection = Connection::open(path).unwrap();
+    connection
+        .execute(
+            "INSERT INTO people(name,last_name,phone) VALUES('Ana','Test','1')",
+            [],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO exercise(name,code,is_active) VALUES('Press','PRESS',1)",
+            [],
+        )
+        .unwrap();
+    for date in [
+        "2025-09-30",
+        "2025-10-01",
+        "2026-01-01",
+        "2026-02-29",
+        "2026-09-30",
+        "2026-10-01",
+    ] {
+        connection
+            .execute(
+                "INSERT INTO workout_entries(person_id,exercise_id,date) VALUES(1,1,?1)",
+                [date],
+            )
+            .unwrap();
+    }
+    drop(connection);
+
+    let year = service.attendance_ranking("2026-09", "year", 10).unwrap();
+    assert_eq!(
+        (year.range_start.as_str(), year.range_end_exclusive.as_str()),
+        ("2026-01-01", "2026-10-01")
+    );
+    assert_eq!(year.items[0].sessions_count, 2); // 29/02/2026 es inválida y no cuenta.
+
+    let rolling = service
+        .attendance_ranking("2026-09", "rolling12", 10)
+        .unwrap();
+    assert_eq!(
+        (
+            rolling.range_start.as_str(),
+            rolling.range_end_exclusive.as_str()
+        ),
+        ("2025-10-01", "2026-10-01")
+    );
+    assert_eq!(rolling.items[0].sessions_count, 3);
+
+    let leap = service.attendance_ranking("2024-02", "month", 10).unwrap();
+    assert_eq!(
+        (leap.range_start.as_str(), leap.range_end_exclusive.as_str()),
+        ("2024-02-01", "2024-03-01")
+    );
 }
 
 #[test]
