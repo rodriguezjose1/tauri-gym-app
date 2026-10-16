@@ -3,6 +3,7 @@ import { ExerciseService, Exercise } from "../../../services";
 import type { DeletedExercise } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
 import { Button, Input, Title, Card, Modal, Pagination, SearchInput } from "../../../shared/components/base";
+import { ManagementPageHeader, ManagementToolbar } from "../../../shared/components/management";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/ExerciseCrud.css";
 import { useToast } from '../../../shared/contexts/ToastContext';
@@ -280,56 +281,42 @@ export default function ExerciseCrud() {
   const displayedExercises = exercises;
 
   return (
-    <div className="exercise-crud-container">
+    <div className="exercise-crud-container management-page-frame">
       <div className="exercise-crud-wrapper">
         {/* Exercises List */}
-        <Card variant="elevated" padding="lg">
+        <Card variant="elevated" padding="md" className="management-page-card">
           <div className="exercise-card-content">
             <div className="exercise-main-content">
-              <div className="exercise-list-header">
-                <div className="exercise-list-title-section">
-                  <Title level={2} variant="default">
-                    Gestión de Ejercicios
-                  </Title>
-                  <p className="exercise-list-description">
-                    Administra los ejercicios disponibles para tus rutinas y entrenamientos en Quality GYM
-                  </p>
-                </div>
-                
-                {/* Tab System */}
-                <div className="exercise-tabs">
+              <div className="management-page-controls management-page-controls--sticky">
+                <ManagementPageHeader
+                  title="Gestión de Ejercicios"
+                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">➕ Nuevo Ejercicio</Button>}
+                />
+                <ManagementToolbar
+                  tabs={<div className="management-tabs">
                   <button
-                    className={`exercise-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'active'}
                     onClick={() => handleTabChange('active')}
                   >
                     Ejercicios Activos ({totalExercises})
                   </button>
                   <button
-                    className={`exercise-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'deleted'}
                     onClick={() => handleTabChange('deleted')}
                   >
                     Ejercicios Eliminados ({deletedExercisesCount})
                   </button>
-                </div>
-                
-                <div className="exercise-list-actions">
-                  <SearchInput
+                  </div>}
+                  search={<SearchInput
                       ariaLabel="Buscar ejercicios"
                       placeholder="Buscar ejercicios..."
                       value={searchTerm}
                       onChange={setSearchTerm}
                       onClear={clearSearch}
-                  />
-                </div>
-                <div className="exercise-list-create-action">
-                  <Button
-                    onClick={handleOpenCreateModal}
-                    variant="primary"
-                    size="md"
-                  >
-                    ➕ Nuevo Ejercicio
-                  </Button>
-                </div>
+                  />}
+                />
               </div>
 
               {loading ? (

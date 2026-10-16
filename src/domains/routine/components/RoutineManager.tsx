@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Pagination, SearchInput, Title } from '../../../shared/components/base';
+import { ManagementPageHeader, ManagementToolbar } from '../../../shared/components/management';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { DeleteConfirmationModal } from "../../../shared/components/modals";
 import { useToast } from '../../../shared/contexts/ToastContext';
@@ -289,58 +290,42 @@ export const RoutineManager: React.FC = () => {
   };
 
   return (
-    <div className="routine-manager-container">
+    <div className="routine-manager-container management-page-frame">
       <div className="routine-manager-wrapper">
         {/* Main Content Card */}
-        <Card variant="elevated" padding="lg" className="routine-manager-content-card">
+        <Card variant="elevated" padding="md" className="routine-manager-content-card management-page-card">
           <div className="routine-manager-card-content">
             <div className="routine-manager-main-content">
-              {/* Header with title, search and create button */}
-              <div className="routine-manager-header">
-                <div className="routine-manager-title-section">
-                  <Title level={2} variant="default">
-                    Gestión de Rutinas
-                  </Title>
-                  <p className="routine-manager-description">
-                    Administra las rutinas de entrenamiento y sus ejercicios
-                  </p>
-                </div>
-                
-                {/* Tab System */}
-                <div className="routine-manager-tabs">
+              <div className="management-page-controls management-page-controls--sticky">
+                <ManagementPageHeader
+                  title="Gestión de Rutinas"
+                  action={<Button onClick={routineUI.openCreateForm} variant="primary" size="md" disabled={routineData.loading}>➕ Nueva Rutina</Button>}
+                />
+                <ManagementToolbar
+                  tabs={<div className="management-tabs">
                   <button
-                    className={`routine-manager-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'active'}
                     onClick={() => handleTabChange('active')}
                   >
                     Rutinas Activas ({routineData.total})
                   </button>
                   <button
-                    className={`routine-manager-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'deleted'}
                     onClick={() => handleTabChange('deleted')}
                   >
                     Rutinas Eliminadas ({deletedRoutinesCount})
                   </button>
-                </div>
-                
-                <div className="routine-manager-actions">
-                  <SearchInput
+                  </div>}
+                  search={<SearchInput
                       ariaLabel="Buscar rutinas"
                       placeholder="Buscar rutinas..."
                       value={searchTerm}
                       onChange={setSearchTerm}
                       onClear={handleClearSearch}
-                  />
-                </div>
-                <div className="routine-manager-create-action">
-                  <Button
-                    onClick={routineUI.openCreateForm}
-                    variant="primary"
-                    size="md"
-                    disabled={routineData.loading}
-                  >
-                    ➕ Nueva Rutina
-                  </Button>
-                </div>
+                  />}
+                />
               </div>
 
               {/* Content Layout */}

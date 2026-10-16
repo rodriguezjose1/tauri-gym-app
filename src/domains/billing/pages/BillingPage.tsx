@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Card, ErrorMessage, Input, Modal, Pagination, SearchInput, Select, Title } from '../../../shared/components/base';
+import { ManagementPageHeader } from '../../../shared/components/management';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { useToast } from '../../../shared/contexts/ToastContext';
 import { PaymentDialog } from '../components/PaymentDialog';
@@ -27,43 +28,13 @@ export default function BillingPage() {
   const personQuery = personSearch.trim() ? debouncedPersonSearch : '';
   const requestId = useRef(0);
   const historyScrollRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const actionRef = useRef<HTMLDivElement>(null);
-  const previousToolbarRects = useRef<DOMRect[]>([]);
   const paginationInProgress = useRef(false);
   const { addNotification } = useToast();
 
   const setHeaderMode = (compact: boolean) => {
     if (compact === compactHeader) return;
-    previousToolbarRects.current = [headingRef.current, summaryRef.current, actionRef.current]
-      .filter((element): element is HTMLDivElement => Boolean(element))
-      .map((element) => element.getBoundingClientRect());
     setCompactHeader(compact);
   };
-
-  useLayoutEffect(() => {
-    const elements = [headingRef.current, summaryRef.current, actionRef.current]
-      .filter((element): element is HTMLDivElement => Boolean(element));
-    const previous = previousToolbarRects.current;
-    if (previous.length !== elements.length || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    elements.forEach((element, index) => {
-      if (typeof element.animate !== 'function') return;
-      const current = element.getBoundingClientRect();
-      const deltaX = previous[index].left - current.left;
-      const deltaY = previous[index].top - current.top;
-      const scaleX = current.width ? previous[index].width / current.width : 1;
-      const scaleY = current.height ? previous[index].height / current.height : 1;
-      element.animate(
-        [
-          { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})` },
-          { transform: 'translate(0, 0) scale(1, 1)' },
-        ],
-        { duration: 520, easing: 'cubic-bezier(.22, 1, .36, 1)' },
-      );
-    });
-    previousToolbarRects.current = [];
-  }, [compactHeader]);
 
   const load = useCallback(async (target: number) => {
     const id = ++requestId.current;
@@ -111,18 +82,17 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="billing-page">
+    <div className="billing-page management-page-frame">
       <div className="billing-page-content">
-        <Card variant="elevated" padding="lg" className={`billing-main-card${compactHeader ? ' is-compact' : ''}`}>
-          <div className="billing-toolbar">
-            <div className="billing-heading" ref={headingRef}><Title level={2}>{billingTexts.page.title}</Title><p className="billing-description">{billingTexts.page.description}</p></div>
-            <div className="billing-summary" ref={summaryRef}>
+        <Card variant="elevated" padding="md" className={`billing-main-card management-page-card${compactHeader ? ' is-compact' : ''}`}>
+          <div className="billing-toolbar management-page-controls">
+            <div className="billing-heading"><ManagementPageHeader title={billingTexts.page.title} action={<div className="billing-register-action"><Button onClick={() => setShowPayment(true)}>{billingTexts.page.register}</Button></div>} /></div>
+            <div className="billing-summary">
             <Select label="Período" value={month} options={periodOptions()} onChange={changeMonth} fullWidth />
             <div className="billing-metric"><span>Recaudado en el mes</span><strong>{loading ? '—' : money.format((data?.collected_cents || 0) / 100)}</strong></div>
             <div className="billing-metric"><span>Pagado del período</span><strong>{loading ? '—' : money.format((data?.period_paid_cents || 0) / 100)}</strong></div>
             <div className="billing-metric"><span>Pagos registrados en el mes</span><strong>{loading ? '—' : data?.payment_count || 0}</strong></div>
             </div>
-            <div className="billing-register-action" ref={actionRef}><Button onClick={() => setShowPayment(true)}>{billingTexts.page.register}</Button></div>
           </div>
           <section className="billing-history">
             <div className="billing-history-header">

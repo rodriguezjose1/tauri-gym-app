@@ -3,9 +3,6 @@
 /* Main Container - Page Mode */
 .routine-manager-container {
   background: var(--bg-primary, #1a1a1a);
-  min-height: 100vh;
-  width: 100%;
-  padding: 24px;
 }
 
 .routine-manager-wrapper {
@@ -33,48 +30,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-/* Header */
-.routine-manager-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
-  gap: 16px;
-  position: sticky;
-  top: 80px; /* Account for navbar height */
-  background-color: var(--bg-primary);
-  z-index: 10;
-  padding-top: 16px;
-  margin-top: -16px;
-}
-
-.routine-manager-title-section {
-  flex: 1;
-  min-width: 0;
-}
-
-.routine-manager-description {
-  color: var(--text-secondary, #b0b0b0);
-  margin: 4px 0 0 0;
-  font-size: 14px;
-}
-
-.routine-manager-actions {
-  flex: 1;
-  max-width: 400px;
-}
-
-.routine-manager-create-action {
-  flex-shrink: 0;
-}
-
-.routine-manager-create-action .ui-button {
-  width: 200px;
-  justify-content: center;
 }
 
 /* Search Form */
@@ -320,24 +275,8 @@
 }
 
 @media (max-width: 768px) {
-  .routine-manager-container {
-    padding: 16px;
-  }
-  
   .routine-manager-wrapper .card {
     min-height: 60vh;
-  }
-  
-  .routine-manager-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-  }
-  
-  .routine-manager-actions {
-    align-self: flex-start;
   }
   
   .routine-manager-content {
@@ -364,42 +303,11 @@
     min-height: 400px;
   }
 
-  .routine-manager-tabs {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .routine-manager-tab {
-    border-radius: 8px;
-  }
-
-  .routine-manager-tab.active::after {
-    display: none;
-  }
-
-  .routine-manager-tab.active {
-    background-color: var(--accent-primary);
-    color: white;
-  }
 }
 
 @media (max-width: 480px) {
-  .routine-manager-container {
-    padding: 8px;
-  }
-  
   .routine-manager-wrapper .card {
     min-height: 50vh;
-  }
-  
-  .routine-manager-header {
-    gap: 12px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-  }
-  
-  .routine-manager-actions {
-    gap: 12px;
   }
   
   .routine-manager-search-form {
@@ -1388,49 +1296,6 @@
     flex-direction: column;
     gap: 2px;
   }
-}
-
-/* Tab System */
-.routine-manager-tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 2px solid var(--border-light);
-  padding-bottom: 8px;
-  margin-bottom: 16px;
-}
-
-.routine-manager-tab {
-  padding: 12px 20px;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 8px 8px 0 0;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.routine-manager-tab:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-hover);
-}
-
-.routine-manager-tab.active {
-  color: var(--accent-primary);
-  background-color: var(--accent-bg);
-  font-weight: 600;
-}
-
-.routine-manager-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--accent-primary);
 }
 
 /* Deleted Routines */

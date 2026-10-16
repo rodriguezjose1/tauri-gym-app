@@ -1,5 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import { Card, Title } from '../../../shared/components/base';
+import { ManagementPageHeader, ManagementToolbar } from '../../../shared/components/management';
 import { PlansManager } from '../../billing/components/PlansManager';
 import { SettingsModal } from '../components';
 import '../../../styles/ConfiguracionesPage.css';
@@ -12,13 +13,15 @@ const ConfiguracionesPage = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   return (
-    <div className="configuraciones-container"><div className="configuraciones-wrapper">
-      <Card variant="elevated" padding="lg" className="configuraciones-card">
-        <div className="configuraciones-header"><div className="configuraciones-header-icon">⚙️</div><div className="configuraciones-header-content"><Title level={2}>Configuraciones</Title><p>Administra las preferencias y opciones de Quality GYM.</p></div></div>
-        <div className="configuraciones-tabs" role="tablist" aria-label="Secciones de configuración">
-          <button role="tab" aria-selected={activeTab === 'general'} className={`configuraciones-tab ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>General</button>
-          <button role="tab" aria-selected={activeTab === 'plans'} className={`configuraciones-tab ${activeTab === 'plans' ? 'active' : ''}`} onClick={() => setActiveTab('plans')}>Planes</button>
-          {BillingDevTools && <button role="tab" aria-selected={activeTab === 'billing-dev'} className={`configuraciones-tab ${activeTab === 'billing-dev' ? 'active' : ''}`} onClick={() => setActiveTab('billing-dev')}>Desarrollo</button>}
+    <div className="configuraciones-container management-page-frame"><div className="configuraciones-wrapper">
+      <Card variant="elevated" padding="md" className="configuraciones-card management-page-card">
+        <div className="management-page-controls">
+          <ManagementPageHeader title="Configuraciones" />
+          <ManagementToolbar tabs={<div className="management-tabs" role="tablist" aria-label="Secciones de configuración">
+            <button role="tab" aria-selected={activeTab === 'general'} className={`management-tab ${activeTab === 'general' ? 'active' : ''}`} onClick={() => setActiveTab('general')}>General</button>
+            <button role="tab" aria-selected={activeTab === 'plans'} className={`management-tab ${activeTab === 'plans' ? 'active' : ''}`} onClick={() => setActiveTab('plans')}>Planes</button>
+            {BillingDevTools && <button role="tab" aria-selected={activeTab === 'billing-dev'} className={`management-tab ${activeTab === 'billing-dev' ? 'active' : ''}`} onClick={() => setActiveTab('billing-dev')}>Desarrollo</button>}
+          </div>} />
         </div>
         <div className="configuraciones-content">
           {activeTab === 'general' ? <section className="configuraciones-tab-panel" role="tabpanel">

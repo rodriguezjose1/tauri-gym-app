@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Card, Title, Button } from '../../../shared/components/base';
+import { Card } from '../../../shared/components/base';
+import { ManagementPageHeader } from '../../../shared/components/management';
 import { WeeklyCalendar } from '../components/WeeklyCalendar';
 import { WorkoutModals } from '../../workout';
 
@@ -21,7 +22,7 @@ export default function DashboardRefactored() {
   // Removed unnecessary exercise loading - ExerciseSearch handles its own paginated loading
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container management-page-frame">
       <div className="dashboard-wrapper">
         {storageWarning && <p role="alert" className="dashboard-persistence-warning">{storageWarning}</p>}
         {data.error && (
@@ -35,13 +36,9 @@ export default function DashboardRefactored() {
           </p>
         )}
         {/* Weekly Calendar Card */}
-        <Card variant="elevated" padding="lg" className="dashboard-calendar-card">
-          <div className="dashboard-calendar-header">
-            <div className="dashboard-calendar-title-section">
-              <Title level={2} variant="default">
-                📅 Calendario Semanal
-              </Title>
-            </div>
+        <Card variant="elevated" padding="md" className="dashboard-calendar-card management-page-card">
+          <div className="management-page-controls">
+            <ManagementPageHeader title="Calendario Semanal" />
           </div>
           
           <WeeklyCalendar

@@ -3,6 +3,7 @@ import { PersonService, Person } from "../../../services";
 import type { DeletedPerson } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
 import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput } from "../../../shared/components/base";
+import { ManagementPageHeader, ManagementToolbar } from "../../../shared/components/management";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import "../../../styles/PersonCrud.css";
 import { BillingService, type PaymentStatus } from '../../billing/services/billingService';
@@ -283,56 +284,42 @@ export default function PersonCrud() {
   const displayedPersons = persons;
 
   return (
-    <div className="person-crud-container">
+    <div className="person-crud-container management-page-frame">
       <div className="person-crud-wrapper">
         {/* Persons List */}
-        <Card variant="elevated" padding="lg">
+        <Card variant="elevated" padding="md" className="management-page-card">
           <div className="person-card-content">
             <div className="person-main-content">
-              <div className="person-list-header">
-                <div className="person-list-title-section">
-                  <Title level={2} variant="default">
-                    Gestión de Personas
-                  </Title>
-                  <p className="person-list-description">
-                    Administra las personas que participan en los entrenamientos de Quality GYM
-                  </p>
-                </div>
-                
-                {/* Tab System */}
-                <div className="person-tabs">
+              <div className="management-page-controls management-page-controls--sticky">
+                <ManagementPageHeader
+                  title="Gestión de Personas"
+                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">➕ Nueva Persona</Button>}
+                />
+                <ManagementToolbar
+                  tabs={<div className="management-tabs">
                   <button
-                    className={`person-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'active' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'active'}
                     onClick={() => handleTabChange('active')}
                   >
                     Personas Activas ({totalPersons})
                   </button>
                   <button
-                    className={`person-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    className={`management-tab ${activeTab === 'deleted' ? 'active' : ''}`}
+                    aria-pressed={activeTab === 'deleted'}
                     onClick={() => handleTabChange('deleted')}
                   >
                     Personas Eliminadas ({deletedPersonsCount})
                   </button>
-                </div>
-                
-                <div className="person-list-actions">
-                  <SearchInput
+                  </div>}
+                  search={<SearchInput
                       ariaLabel="Buscar personas"
                       placeholder="Buscar personas..."
                       value={searchTerm}
                       onChange={setSearchTerm}
                       onClear={clearSearch}
-                  />
-                </div>
-                <div className="person-list-create-action">
-                  <Button
-                    onClick={handleOpenCreateModal}
-                    variant="primary"
-                    size="md"
-                  >
-                    ➕ Nueva Persona
-                  </Button>
-                </div>
+                  />}
+                />
               </div>
 
               {error && (

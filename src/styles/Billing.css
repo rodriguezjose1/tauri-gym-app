@@ -1,9 +1,6 @@
 .billing-page {
-  box-sizing: border-box;
-  width: 100%;
   height: calc(100vh - var(--layout-nav-height, 80px));
   min-height: 540px;
-  padding: 24px;
   overflow: hidden;
   background: #1a1a1a;
 }
@@ -20,26 +17,17 @@
 
 .billing-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "heading action" "summary summary";
-  gap: 20px 24px;
+  gap: 12px;
   flex: 0 0 auto;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light);
   transition: padding .48s cubic-bezier(.22, 1, .36, 1), gap .48s cubic-bezier(.22, 1, .36, 1);
 }
 
-.billing-heading { grid-area: heading; min-width: 0; align-self: center; transform-origin: top left; }
-.billing-register-action { grid-area: action; align-self: start; transform-origin: top left; }
-.billing-description {
-  margin: 8px 0 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-  transition: margin .48s cubic-bezier(.22, 1, .36, 1), font-size .48s cubic-bezier(.22, 1, .36, 1);
-}
+.billing-toolbar.management-page-controls { margin-bottom: 0; }
+
+.billing-heading { min-width: 0; transform-origin: top left; }
+.billing-register-action { transform-origin: top left; }
 
 .billing-summary {
-  grid-area: summary;
   display: grid;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(160px, 1fr));
   gap: 16px;
@@ -84,15 +72,16 @@
 }
 
 .billing-main-card.is-compact .billing-toolbar {
-  grid-template-columns: minmax(165px, .7fr) minmax(600px, 3fr) auto;
-  grid-template-areas: "heading summary action";
-  gap: 16px;
-  padding-bottom: 12px;
+  grid-template-columns: minmax(150px, .55fr) minmax(560px, 3fr) auto;
+  gap: 8px;
+  padding-bottom: 8px;
 }
 
-.billing-main-card.is-compact .billing-heading .ui-title { font-size: 1.25rem; }
-.billing-main-card.is-compact .billing-description { margin-top: 2px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.billing-main-card.is-compact .billing-register-action { align-self: center; }
+.billing-main-card.is-compact .billing-heading,
+.billing-main-card.is-compact .billing-heading .management-page-header { display: contents; }
+.billing-main-card.is-compact .billing-heading .ui-title { grid-column: 1; align-self: center; }
+.billing-main-card.is-compact .billing-heading .management-page-header__action { grid-column: 3; align-self: center; }
+.billing-main-card.is-compact .billing-summary { grid-column: 2; grid-row: 1; }
 .billing-main-card.is-compact .billing-summary { gap: 8px; padding: 0; background: transparent; border-color: transparent; }
 .billing-main-card.is-compact .billing-summary .ui-select-label { font-size: 11px; }
 .billing-main-card.is-compact .billing-summary .ui-select-native { min-height: 38px; padding-top: 6px; padding-bottom: 6px; }
@@ -108,8 +97,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 48px;
-  padding: 20px 16px 12px 0;
+  min-height: 44px;
+  padding: 10px 16px 8px 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
 }
@@ -149,9 +138,9 @@
 .payment-table .reversed { opacity: .6; }
 
 .billing-pagination {
-  margin: 0 -32px -32px;
-  padding-right: 32px;
-  padding-left: 32px;
+  margin: 0 -16px -16px;
+  padding-right: 16px;
+  padding-left: 16px;
 }
 
 .billing-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -161,28 +150,19 @@
 .reversal-dialog p { margin: 0; line-height: 1.5; }
 .reversal-dialog .billing-actions { padding-top: 1rem; border-top: 1px solid var(--border-light); }
 
-@media (max-width: 1200px) {
-  .billing-main-card.is-compact .billing-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "heading action" "summary summary";
-    gap: 8px 16px;
-  }
-}
-
 @media (max-width: 800px) {
-  .billing-page { padding: 16px; }
   .billing-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .billing-toolbar, .billing-main-card.is-compact .billing-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "heading action" "summary summary";
-  }
-  .billing-pagination { margin: 0 -24px -24px; padding: 12px 24px; }
+  .billing-main-card.is-compact .billing-toolbar { grid-template-columns: 1fr; }
+  .billing-main-card.is-compact .billing-heading,
+  .billing-main-card.is-compact .billing-heading .management-page-header { display: block; }
+  .billing-main-card.is-compact .billing-summary,
+  .billing-main-card.is-compact .billing-heading .ui-title,
+  .billing-main-card.is-compact .billing-heading .management-page-header__action { grid-column: auto; grid-row: auto; }
   .payment-table { min-width: 850px; }
 }
 
 @media (max-width: 560px) {
   .billing-page { min-height: 620px; }
-  .billing-toolbar, .billing-main-card.is-compact .billing-toolbar { grid-template-columns: 1fr; grid-template-areas: "heading" "action" "summary"; }
   .billing-register-action > button { width: 100%; }
   .billing-summary { grid-template-columns: 1fr; max-height: 290px; overflow-y: auto; }
   .billing-main-card.is-compact .billing-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
@@ -191,5 +171,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .billing-toolbar, .billing-description, .billing-summary, .billing-metric, .billing-metric span, .billing-metric strong { transition: none; }
+  .billing-toolbar, .billing-summary, .billing-metric, .billing-metric span, .billing-metric strong { transition: none; }
 }
