@@ -292,7 +292,7 @@ export const RoutineManager: React.FC = () => {
               <div className="management-page-controls management-page-controls--sticky">
                 <ManagementPageHeader
                   title="Gestión de Rutinas"
-                  action={<Button onClick={routineUI.openCreateForm} variant="primary" size="md" disabled={routineData.loading}>➕ Nueva Rutina</Button>}
+                  action={<Button onClick={routineUI.openCreateForm} variant="primary" size="md" disabled={routineData.loading}>Nueva Rutina</Button>}
                 />
                 <ManagementToolbar
                   tabs={<div className="management-tabs">

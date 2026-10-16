@@ -368,7 +368,7 @@ export default function PersonCrud() {
               <div className="management-page-controls management-page-controls--sticky">
                 <ManagementPageHeader
                   title="Gestión de Personas"
-                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">➕ Nueva Persona</Button>}
+                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">Nueva Persona</Button>}
                 />
                 <ManagementToolbar
                   tabs={<div className="management-tabs">

@@ -294,7 +294,7 @@ export default function ExerciseCrud() {
               <div className="management-page-controls management-page-controls--sticky">
                 <ManagementPageHeader
                   title="Gestión de Ejercicios"
-                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">➕ Nuevo Ejercicio</Button>}
+                  action={<Button onClick={handleOpenCreateModal} variant="primary" size="md">Nuevo Ejercicio</Button>}
                 />
                 <ManagementToolbar
                   tabs={<div className="management-tabs">
