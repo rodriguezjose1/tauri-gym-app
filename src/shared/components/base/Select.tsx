@@ -19,6 +19,7 @@ interface SelectProps {
   size?: 'sm' | 'md' | 'lg';
   error?: boolean;
   helperText?: string;
+  ariaLabel?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -32,7 +33,8 @@ export const Select: React.FC<SelectProps> = ({
   variant = 'default',
   size = 'md',
   error = false,
-  helperText
+  helperText,
+  ariaLabel
 }) => {
   const selectId = useId();
   const containerClasses = [
@@ -59,6 +61,7 @@ export const Select: React.FC<SelectProps> = ({
       <div className="ui-select-wrapper">
         <select
           id={selectId}
+          aria-label={ariaLabel}
           className={selectClasses}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}

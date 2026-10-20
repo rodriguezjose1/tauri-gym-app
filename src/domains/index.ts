@@ -4,3 +4,4 @@ export * from './exercise';
 export * from './workout';
 export * from './routine';
 export * from './products';
+export * from './sales';

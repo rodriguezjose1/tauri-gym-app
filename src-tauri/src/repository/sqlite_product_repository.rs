@@ -148,6 +148,30 @@ impl ProductRepository for SqliteProductRepository {
         })
     }
 
+    fn list_active(&self) -> Result<Vec<Product>, String> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT p.id,p.name,p.category,p.sale_price_cents,p.is_active,COALESCE(SUM(b.remaining_quantity),0)
+             FROM products p LEFT JOIN stock_batches b ON b.product_id=p.id
+             WHERE p.is_active=1 GROUP BY p.id ORDER BY p.name COLLATE NOCASE,p.id"
+        ).map_err(|e| e.to_string())?;
+        let products = statement
+            .query_map([], |row| {
+                Ok(Product {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    category: row.get(2)?,
+                    sale_price_cents: row.get(3)?,
+                    is_active: row.get::<_, i64>(4)? != 0,
+                    available_stock: row.get(5)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(products)
+    }
+
     fn receive_stock(&self, product_id: i64, receipt: StockReceipt) -> Result<(), String> {
         let mut connection = self.connection()?;
         let tx = connection.transaction().map_err(|e| e.to_string())?;

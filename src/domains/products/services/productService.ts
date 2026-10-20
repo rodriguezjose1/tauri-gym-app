@@ -24,6 +24,7 @@ export interface ProductPage {
 }
 
 export const ProductService = {
+  active: () => invoke<Product[]>('list_active_products'),
   page: (query = '', page = 1, pageSize = 8) =>
     invoke<ProductPage>('get_products_page', { query, page, pageSize }),
   save: (product: Product, initialStock?: StockReceipt) =>

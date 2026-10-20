@@ -12,6 +12,8 @@ interface PersonSearchProps {
   autoFocus?: boolean;
   focusRequest?: number;
   changeShortcutLabel?: string;
+  ariaLabel?: string;
+  clearSelectionLabel?: string;
 }
 
 export const PersonSearch: React.FC<PersonSearchProps> = ({
@@ -22,6 +24,8 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
   autoFocus = false,
   focusRequest = 0,
   changeShortcutLabel,
+  ariaLabel,
+  clearSelectionLabel,
 }) => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -218,6 +222,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
               inputRef={searchInputRef}
               autoFocus={autoFocus}
               label=""
+              aria-label={ariaLabel}
               placeholder={placeholder}
               value={searchTerm}
               onChange={handleSearchChange}
@@ -228,6 +233,7 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
             />
             {selectedPerson && (
               <Button
+                type="button"
                 onClick={handleCancelSearch}
                 variant="secondary"
                 size="sm"
@@ -308,14 +314,22 @@ export const PersonSearch: React.FC<PersonSearchProps> = ({
             </div>
           )}
         </div>
-        <Button
-          onClick={handleChangeUser}
-          title={changeShortcutLabel ? `Atajo: ${changeShortcutLabel}` : undefined}
-          variant="secondary"
-          size="sm"
-        >
-          Cambiar
-        </Button>
+        <div className="person-search-actions">
+          <Button
+            type="button"
+            onClick={handleChangeUser}
+            title={changeShortcutLabel ? `Atajo: ${changeShortcutLabel}` : undefined}
+            variant="secondary"
+            size="sm"
+          >
+            Cambiar
+          </Button>
+          {clearSelectionLabel && (
+            <Button type="button" onClick={handleClearSelection} variant="secondary" size="sm">
+              {clearSelectionLabel}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

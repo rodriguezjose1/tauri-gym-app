@@ -19,6 +19,7 @@ use models::person::Person;
 use models::product::{Product, ProductPage, SaveProductRequest, StockReceipt};
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
+use models::sale::{SaleRequest, SaleResult};
 use models::workout_entry::WorkoutEntry;
 use services::backup_service::BackupService;
 use services::billing_service::BillingService;
@@ -27,6 +28,7 @@ use services::exercise_service::ExerciseService;
 use services::person_service::PersonService;
 use services::product_service::ProductService;
 use services::routine_service::RoutineService;
+use services::sale_service::SaleService;
 use services::updater_service::{self, OperationGuard};
 use services::workout_entry_service::WorkoutEntryService;
 use tauri::{Manager, State};
@@ -59,6 +61,21 @@ fn receive_product_stock(
 ) -> Result<(), String> {
     let _operation = OperationGuard::begin()?;
     service.receive_stock(product_id, receipt)
+}
+
+#[tauri::command]
+fn list_active_products(service: State<'_, ProductService>) -> Result<Vec<Product>, String> {
+    let _operation = OperationGuard::begin()?;
+    service.list_active()
+}
+
+#[tauri::command]
+fn register_sale(
+    service: State<'_, SaleService>,
+    request: SaleRequest,
+) -> Result<SaleResult, String> {
+    let _operation = OperationGuard::begin()?;
+    service.register(request)
 }
 
 // Person commands
@@ -876,6 +893,7 @@ fn main() {
                 billing_service,
                 dashboard_service,
                 product_service,
+                sale_service,
             ) = setup_services().map_err(std::io::Error::other)?;
             let backup_service = BackupService::new();
 
@@ -889,6 +907,7 @@ fn main() {
             app.manage(billing_service);
             app.manage(dashboard_service);
             app.manage(product_service);
+            app.manage(sale_service);
             app.manage(backup_service);
 
             Ok(())
@@ -985,6 +1004,8 @@ fn main() {
             save_product,
             get_products_page,
             receive_product_stock,
+            list_active_products,
+            register_sale,
             get_dashboard_summary,
             get_dashboard_revenue_trend,
             get_dashboard_students_trend,

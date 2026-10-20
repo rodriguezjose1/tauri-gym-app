@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 6;
+pub const CURRENT_SCHEMA_VERSION: i32 = 7;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationOutcome {
@@ -106,12 +106,65 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
         migrate_to_v6(&mut connection)?;
     }
 
+    if previous_version < 7 {
+        migrate_to_v7(&mut connection)?;
+    }
+
     validate_schema(&connection)?;
     Ok(MigrationOutcome {
         previous_version,
         current_version: CURRENT_SCHEMA_VERSION,
         backup_path,
     })
+}
+
+fn migrate_to_v7(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de ventas: {e}"))?;
+    transaction.execute_batch(
+        "CREATE TABLE IF NOT EXISTS sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            buyer_person_id INTEGER NULL REFERENCES people(id),
+            buyer_name TEXT NULL,
+            payment_method TEXT NOT NULL CHECK (payment_method IN ('cash','transfer','other')),
+            total_amount_cents INTEGER NOT NULL CHECK (total_amount_cents > 0),
+            total_cost_cents INTEGER NOT NULL CHECK (total_cost_cents >= 0),
+            sold_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            voided_at TEXT NULL,
+            void_reason TEXT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            CHECK ((voided_at IS NULL AND void_reason IS NULL) OR (voided_at IS NOT NULL AND length(trim(void_reason)) > 0))
+        );
+        CREATE TABLE IF NOT EXISTS sale_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER NOT NULL REFERENCES sales(id),
+            product_id INTEGER NOT NULL REFERENCES products(id),
+            product_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            unit_price_cents INTEGER NOT NULL CHECK (unit_price_cents > 0),
+            line_total_cents INTEGER NOT NULL CHECK (line_total_cents > 0),
+            UNIQUE(sale_id,product_id)
+        );
+        CREATE TABLE IF NOT EXISTS sale_item_allocations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_item_id INTEGER NOT NULL REFERENCES sale_items(id),
+            stock_batch_id INTEGER NOT NULL REFERENCES stock_batches(id),
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            unit_cost_cents INTEGER NOT NULL CHECK (unit_cost_cents >= 0),
+            cost_total_cents INTEGER NOT NULL CHECK (cost_total_cents >= 0),
+            UNIQUE(sale_item_id,stock_batch_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_sold_at ON sales(sold_at,id);
+        CREATE INDEX IF NOT EXISTS idx_sales_buyer ON sales(buyer_person_id,sold_at);
+        CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id,sale_id);
+        CREATE INDEX IF NOT EXISTS idx_sale_allocations_batch ON sale_item_allocations(stock_batch_id);
+        INSERT OR IGNORE INTO migrations(version) VALUES ('007_sales');
+        PRAGMA user_version = 7;"
+    ).map_err(|e| format!("No se pudo crear el esquema de ventas: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de ventas: {e}"))
 }
 
 fn migrate_to_v6(connection: &mut Connection) -> Result<(), String> {
@@ -517,6 +570,9 @@ fn validate_schema(connection: &Connection) -> Result<(), String> {
         "products",
         "stock_batches",
         "product_price_history",
+        "sales",
+        "sale_items",
+        "sale_item_allocations",
     ] {
         let exists: Option<i32> = connection
             .query_row(

@@ -126,6 +126,9 @@ fn fresh_install_creates_the_complete_versioned_schema() {
     assert!(table_exists(&connection, "products"));
     assert!(table_exists(&connection, "stock_batches"));
     assert!(table_exists(&connection, "product_price_history"));
+    assert!(table_exists(&connection, "sales"));
+    assert!(table_exists(&connection, "sale_items"));
+    assert!(table_exists(&connection, "sale_item_allocations"));
 }
 
 #[test]

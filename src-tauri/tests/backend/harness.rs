@@ -28,10 +28,14 @@ pub mod product_repository;
 pub mod person_service;
 #[path = "../../src/models/routine.rs"]
 pub mod routine;
+#[path = "../../src/models/sale.rs"]
+pub mod sale;
 #[path = "../../src/models/routine_exercise.rs"]
 pub mod routine_exercise;
 #[path = "../../src/repository/routine_repository.rs"]
 pub mod routine_repository;
+#[path = "../../src/repository/sale_repository.rs"]
+pub mod sale_repository;
 #[path = "../../src/services/routine_service.rs"]
 pub mod routine_service;
 #[path = "../../src/repository/sqlite_exercise_repository.rs"]
@@ -44,6 +48,10 @@ pub mod sqlite_product_repository;
 pub mod product_service;
 #[path = "../../src/repository/sqlite_routine_repository.rs"]
 pub mod sqlite_routine_repository;
+#[path = "../../src/repository/sqlite_sale_repository.rs"]
+pub mod sqlite_sale_repository;
+#[path = "../../src/services/sale_service.rs"]
+pub mod sale_service;
 #[path = "../../src/repository/sqlite_workout_entry_repository.rs"]
 pub mod sqlite_workout_entry_repository;
 #[path = "../../src/models/workout_entry.rs"]
@@ -60,6 +68,7 @@ pub mod models {
     pub use crate::person;
     pub use crate::product;
     pub use crate::routine;
+    pub use crate::sale;
     pub use crate::routine_exercise;
     pub use crate::workout_entry;
 }
@@ -68,6 +77,7 @@ pub mod repository {
     pub use crate::person_repository;
     pub use crate::product_repository;
     pub use crate::routine_repository;
+    pub use crate::sale_repository;
     pub use crate::workout_entry_repository;
 }
 pub mod services {
@@ -88,3 +98,5 @@ mod people;
 mod products;
 #[cfg(test)]
 mod routines;
+#[cfg(test)]
+mod sales;

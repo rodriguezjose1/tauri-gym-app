@@ -85,6 +85,10 @@ impl ProductService {
         self.repository.page(query.trim(), page, page_size)
     }
 
+    pub fn list_active(&self) -> Result<Vec<Product>, String> {
+        self.repository.list_active()
+    }
+
     pub fn receive_stock(&self, product_id: i64, receipt: StockReceipt) -> Result<(), String> {
         if product_id <= 0 {
             return Err("Producto inválido".into());
