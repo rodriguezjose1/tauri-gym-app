@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
+import { ToastProvider } from '../../../shared/contexts/ToastContext';
 import SalesPage from './SalesPage';
 
 const invoke = vi.hoisted(() => vi.fn());
@@ -10,17 +11,21 @@ const products = [
   { id: 1, name: 'Proteína', category: '', sale_price_cents: 20000, is_active: true, available_stock: 10 },
   { id: 2, name: 'Barra', category: '', sale_price_cents: 5000, is_active: true, available_stock: 3 },
 ];
+const renderPage = () => render(<ToastProvider><SalesPage /></ToastProvider>);
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/ventas');
   invoke.mockReset();
   invoke.mockImplementation((command) => {
     if (command === 'list_active_products') return Promise.resolve(products);
+    if (command === 'get_sales_page') return Promise.resolve({ sales: [], total: 0, page: 1, page_size: 20, total_pages: 0 });
     if (command === 'search_persons_paginated') return Promise.resolve([{
       id: 3, name: 'Ana', last_name: 'Pérez', phone: '3515551234', email: '', dni: '', birth_date: '', gender: '', address: '', emergency_contact: '', medical_conditions: '', notes: '', created_at: '', updated_at: '',
     }]);
     if (command === 'register_sale') return Promise.resolve({
       id: 7, buyer_name: 'Ana Pérez', payment_method: 'transfer', total_amount_cents: 45000,
       total_cost_cents: 25000, sold_at: '2026-10-19 12:00:00',
+      voided_at: null, void_reason: null,
       items: [
         { product_id: 1, product_name: 'Proteína', quantity: 2, unit_price_cents: 20000, line_total_cents: 40000, cost_total_cents: 22000 },
         { product_id: 2, product_name: 'Barra', quantity: 1, unit_price_cents: 5000, line_total_cents: 5000, cost_total_cents: 3000 },
@@ -30,8 +35,17 @@ beforeEach(() => {
   });
 });
 
+test('reutiliza el selector de períodos y conserva el período en la URL', async () => {
+  renderPage();
+  const period = screen.getByLabelText('Período');
+  fireEvent.change(period, { target: { value: '2026-09' } });
+
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('get_sales_page', expect.objectContaining({ month: '2026-09', page: 1 })));
+  expect(window.location.search).toBe('?period=2026-09');
+});
+
 test('registra una venta con varios productos, alumno del gimnasio y medio de pago', async () => {
-  render(<SalesPage />);
+  renderPage();
   fireEvent.click(screen.getByRole('button', { name: 'Registrar venta' }));
   const productSearch = await screen.findByLabelText('Buscar producto');
   expect(screen.getByText('Alumno (opcional)')).toBeInTheDocument();
@@ -52,7 +66,7 @@ test('registra una venta con varios productos, alumno del gimnasio y medio de pa
     payment_method: 'transfer',
     items: [{ product_id: 1, quantity: 2 }, { product_id: 2, quantity: 1 }],
   } }));
-  expect(await screen.findByRole('heading', { name: 'Venta #7 registrada' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Detalle de venta #7' })).toBeInTheDocument();
   expect(screen.getByText('2 × Proteína')).toBeInTheDocument();
 });
 
@@ -60,20 +74,21 @@ test('conserva el formulario y muestra el error cuando el backend rechaza el sto
   invoke.mockImplementation((command) => {
     if (command === 'list_active_products') return Promise.resolve(products);
     if (command === 'register_sale') return Promise.reject(new Error('Stock insuficiente para Proteína'));
+    if (command === 'get_sales_page') return Promise.resolve({ sales: [], total: 0, page: 1, page_size: 20, total_pages: 0 });
     return Promise.resolve([]);
   });
-  render(<SalesPage />);
+  renderPage();
   fireEvent.click(screen.getByRole('button', { name: 'Registrar venta' }));
   const productSearch = await screen.findByLabelText('Buscar producto');
   fireEvent.change(productSearch, { target: { value: 'Proteína' } });
   fireEvent.keyDown(productSearch, { key: 'Enter' });
   fireEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
   expect(await screen.findByText(/Stock insuficiente/)).toBeInTheDocument();
-  expect(screen.getByText('Proteína')).toBeInTheDocument();
+  expect(screen.getByLabelText('Cantidad de Proteína')).toHaveValue(1);
 });
 
 test('permite quitar explícitamente el alumno seleccionado sin enviar el formulario', async () => {
-  render(<SalesPage />);
+  renderPage();
   fireEvent.click(screen.getByRole('button', { name: 'Registrar venta' }));
   fireEvent.change(await screen.findByLabelText('Alumno (opcional)'), { target: { value: 'Ana' } });
   fireEvent.click(await screen.findByText('Ana Pérez'));
@@ -93,8 +108,12 @@ test('filtra un catálogo grande y al repetir un producto incrementa su cantidad
     is_active: true,
     available_stock: 10,
   }));
-  invoke.mockImplementation((command) => command === 'list_active_products' ? Promise.resolve(largeCatalog) : Promise.resolve([]));
-  render(<SalesPage />);
+  invoke.mockImplementation((command) => {
+    if (command === 'list_active_products') return Promise.resolve(largeCatalog);
+    if (command === 'get_sales_page') return Promise.resolve({ sales: [], total: 0, page: 1, page_size: 20, total_pages: 0 });
+    return Promise.resolve([]);
+  });
+  renderPage();
   fireEvent.click(screen.getByRole('button', { name: 'Registrar venta' }));
   const productSearch = await screen.findByLabelText('Buscar producto');
 
@@ -107,4 +126,30 @@ test('filtra un catálogo grande y al repetir un producto incrementa su cantidad
 
   expect(screen.getByLabelText('Cantidad de Producto 50')).toHaveValue(2);
   await waitFor(() => expect(productSearch).toHaveFocus());
+});
+
+test('consulta el historial, abre el detalle y anula con motivo', async () => {
+  const summary = { id: 9, buyer_name: 'Ana Pérez', products: '1 × Proteína', payment_method: 'cash', total_amount_cents: 20000, total_cost_cents: 10000, sold_at: '2026-10-19 12:00:00', voided_at: null, void_reason: null };
+  invoke.mockImplementation((command) => {
+    if (command === 'get_sales_page') return Promise.resolve({ sales: [summary], total: 1, page: 1, page_size: 20, total_pages: 1 });
+    if (command === 'get_sale_detail') return Promise.resolve({ ...summary, items: [{ product_id: 1, product_name: 'Proteína', quantity: 1, unit_price_cents: 20000, line_total_cents: 20000, cost_total_cents: 10000 }] });
+    if (command === 'void_sale') return Promise.resolve();
+    return Promise.resolve([]);
+  });
+  renderPage();
+
+  expect(await screen.findByText('Ana Pérez')).toBeInTheDocument();
+  expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(['Comprador', 'Productos', 'Fecha de venta', 'Medio de pago', 'Importe', 'Estado', 'Acción']);
+  expect(screen.getByText('1 × Proteína')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Ver detalle' }));
+  expect(await screen.findByRole('heading', { name: 'Detalle de venta #9' })).toBeInTheDocument();
+  expect(screen.getByText('19/10/2026, 12:00')).toBeInTheDocument();
+  expect(document.querySelector('.sale-detail-lines-scroll')).toBeInTheDocument();
+  expect(document.querySelector('.sale-detail-footer')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Motivo de anulación')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Anular venta' }));
+  fireEvent.change(screen.getByLabelText('Motivo de anulación'), { target: { value: 'Carga duplicada' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar anulación' }));
+
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('void_sale', { id: 9, reason: 'Carga duplicada' }));
 });

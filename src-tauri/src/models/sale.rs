@@ -31,5 +31,29 @@ pub struct SaleResult {
     pub total_amount_cents: i64,
     pub total_cost_cents: i64,
     pub sold_at: String,
+    pub voided_at: Option<String>,
+    pub void_reason: Option<String>,
     pub items: Vec<SaleItemResult>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SaleSummary {
+    pub id: i64,
+    pub buyer_name: Option<String>,
+    pub products: String,
+    pub payment_method: String,
+    pub total_amount_cents: i64,
+    pub total_cost_cents: i64,
+    pub sold_at: String,
+    pub voided_at: Option<String>,
+    pub void_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SalePage {
+    pub sales: Vec<SaleSummary>,
+    pub total: i64,
+    pub page: i64,
+    pub page_size: i64,
+    pub total_pages: i64,
 }

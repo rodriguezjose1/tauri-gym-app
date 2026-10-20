@@ -58,7 +58,8 @@ fn validates_inputs_and_preserves_stock_when_product_is_edited_or_disabled() {
 fn duplicate_name_rolls_back_initial_stock() {
     let (_directory, path, service) = fixture();
     service.save(SaveProductRequest { product: product("Barra"), initial_stock: None }).unwrap();
-    assert!(service.save(SaveProductRequest { product: product("barra"), initial_stock: Some(StockReceipt { quantity: 2, unit_cost_cents: 100, received_at: None }) }).is_err());
+    let error = service.save(SaveProductRequest { product: product("barra"), initial_stock: Some(StockReceipt { quantity: 2, unit_cost_cents: 100, received_at: None }) }).unwrap_err();
+    assert_eq!(error, "Ya existe un producto con ese nombre");
     let batches: i64 = Connection::open(path).unwrap().query_row("SELECT COUNT(*) FROM stock_batches", [], |row| row.get(0)).unwrap();
     assert_eq!(batches, 0);
 }

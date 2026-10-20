@@ -15,6 +15,7 @@ export function SaleProductSearch({ products, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const refocusWithoutOpening = useRef(false);
   const results = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
     return products
@@ -27,7 +28,11 @@ export function SaleProductSearch({ products, onAdd }: Props) {
     setQuery('');
     setOpen(false);
     setActiveIndex(0);
-    requestAnimationFrame(() => inputRef.current?.focus());
+    requestAnimationFrame(() => {
+      if (document.activeElement === inputRef.current) return;
+      refocusWithoutOpening.current = true;
+      inputRef.current?.focus();
+    });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -56,7 +61,10 @@ export function SaleProductSearch({ products, onAdd }: Props) {
       placeholder="Buscar por nombre…"
       value={query}
       onChange={(event) => { setQuery(event.target.value); setOpen(true); setActiveIndex(0); }}
-      onFocus={() => setOpen(true)}
+      onFocus={() => {
+        if (refocusWithoutOpening.current) { refocusWithoutOpening.current = false; return; }
+        setOpen(true);
+      }}
       onKeyDown={handleKeyDown}
       role="combobox"
       aria-expanded={open}

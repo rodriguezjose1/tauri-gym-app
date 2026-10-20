@@ -75,7 +75,15 @@ impl ProductService {
         if let Some(receipt) = &request.initial_stock {
             Self::validate_receipt(receipt)?;
         }
-        self.repository.save(request.product, request.initial_stock)
+        self.repository
+            .save(request.product, request.initial_stock)
+            .map_err(|error| {
+                if error.contains("UNIQUE constraint failed: products.name") {
+                    "Ya existe un producto con ese nombre".into()
+                } else {
+                    error
+                }
+            })
     }
 
     pub fn page(&self, query: &str, page: i64, page_size: i64) -> Result<ProductPage, String> {

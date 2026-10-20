@@ -1,7 +1,16 @@
 .sales-page { height: calc(100vh - var(--layout-nav-height, 80px)); min-height: 540px; overflow: hidden; background: #1a1a1a; }
 .sales-card { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: hidden; }
-.sales-content { flex: 1; overflow: auto; padding-top: 18px; }
 .sales-state, .sale-empty { padding: 32px; border: 1px dashed var(--border-light); border-radius: 10px; color: var(--text-secondary); text-align: center; }
+.sales-header-actions { display: flex; align-items: center; gap: 12px; }
+.sales-period { width: 230px; }
+.sales-filters { display: grid; flex: 0 0 auto; grid-template-columns: minmax(240px, 1fr) 180px; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+.sales-filters .ui-input, .sales-filters .ui-select-native { min-height: 42px; padding-top: 9px; padding-bottom: 9px; }
+.sales-period .ui-select-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.sales-history-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-gutter: stable; }
+.sales-table { margin-top: 8px; }
+.sales-products-cell { overflow: hidden; max-width: 280px; text-overflow: ellipsis; white-space: nowrap; }
+.sales-error { display: grid; gap: 12px; margin-top: 16px; }
+.sales-pagination { flex: 0 0 auto; margin: 0 -12px -12px; padding-right: 12px; padding-left: 12px; }
 .sale-dialog { display: flex; height: min(82vh, 760px); flex-direction: column; overflow: hidden; }
 .sale-dialog .ui-modal-header { flex: 0 0 auto; }
 .sale-dialog .ui-modal-body { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0; }
@@ -33,9 +42,32 @@
 .sale-receipt { display: grid; gap: 12px; max-width: 680px; margin: 0 auto; }
 .sale-receipt > div { display: flex; justify-content: space-between; gap: 16px; }
 .sale-receipt p { margin: 0; color: var(--text-secondary); }
+.sale-detail-dialog { display: flex; height: min(82vh, 760px); flex-direction: column; overflow: hidden; }
+.sale-detail-dialog .ui-modal-header { flex: 0 0 auto; }
+.sale-detail-dialog .ui-modal-body { display: flex; flex: 1 1 auto; min-height: 0; padding: 0; overflow: hidden; }
+.sale-detail { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; }
+.sale-detail-meta { display: grid; flex: 0 0 auto; grid-template-columns: minmax(150px, 1.2fr) minmax(0, 1fr) minmax(110px, .8fr); align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.sale-detail-meta > span { display: grid; min-width: 0; gap: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sale-detail-meta small { color: var(--text-secondary); font-size: .75rem; }
+.sale-detail-lines-scroll { flex: 1 1 auto; min-height: 0; padding: 12px 20px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.sale-detail-lines { display: grid; gap: 10px; }
+.sale-detail-lines > div, .sale-detail-total { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.sale-detail-lines span { display: grid; gap: 2px; }
+.sale-detail-lines small { color: var(--text-secondary); }
+.sale-detail-footer { flex: 0 0 auto; padding: 12px 20px 14px; border-top: 1px solid var(--border-light); background: var(--bg-primary); }
+.sale-detail-total { padding-bottom: 10px; font-size: 1.1rem; }
+.sale-detail-actions { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--border-light); }
+.sale-void-confirm, .sale-voided-note { display: grid; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); }
+.sale-voided-note { color: var(--error-color); }
 @media (max-width: 700px) {
   .sale-dialog { height: 94vh; }
+  .sale-detail-dialog { height: 94vh; }
+  .sale-detail-meta { grid-template-columns: 1fr; align-items: stretch; gap: 8px; }
+  .sales-header-actions { align-items: stretch; flex-direction: column; width: 100%; }
+  .sales-period, .sales-header-actions > button { width: 100%; }
   .sale-context-row, .sale-line { grid-template-columns: 1fr; }
+  .sales-filters { grid-template-columns: 1fr; }
+  .sales-table { min-width: 760px; }
   .sale-fixed-controls, .sale-lines-scroll { padding-right: 16px; padding-left: 16px; }
   .sale-footer { padding-right: 16px; padding-left: 16px; }
 }

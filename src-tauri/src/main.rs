@@ -19,7 +19,7 @@ use models::person::Person;
 use models::product::{Product, ProductPage, SaveProductRequest, StockReceipt};
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
-use models::sale::{SaleRequest, SaleResult};
+use models::sale::{SalePage, SaleRequest, SaleResult};
 use models::workout_entry::WorkoutEntry;
 use services::backup_service::BackupService;
 use services::billing_service::BillingService;
@@ -76,6 +76,30 @@ fn register_sale(
 ) -> Result<SaleResult, String> {
     let _operation = OperationGuard::begin()?;
     service.register(request)
+}
+
+#[tauri::command]
+fn get_sales_page(
+    service: State<'_, SaleService>,
+    month: String,
+    query: String,
+    status: String,
+    page: i64,
+) -> Result<SalePage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.page(&month, &query, &status, page)
+}
+
+#[tauri::command]
+fn get_sale_detail(service: State<'_, SaleService>, id: i64) -> Result<SaleResult, String> {
+    let _operation = OperationGuard::begin()?;
+    service.get(id)
+}
+
+#[tauri::command]
+fn void_sale(service: State<'_, SaleService>, id: i64, reason: String) -> Result<(), String> {
+    let _operation = OperationGuard::begin()?;
+    service.void(id, &reason)
 }
 
 // Person commands
@@ -1006,6 +1030,9 @@ fn main() {
             receive_product_stock,
             list_active_products,
             register_sale,
+            get_sales_page,
+            get_sale_detail,
+            void_sale,
             get_dashboard_summary,
             get_dashboard_revenue_trend,
             get_dashboard_students_trend,
