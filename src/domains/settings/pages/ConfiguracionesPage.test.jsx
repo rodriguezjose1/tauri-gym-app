@@ -18,6 +18,7 @@ const plans = Array.from({ length: 10 }, (_, index) => ({
 
 beforeEach(() => {
   invoke.mockImplementation((command, args = {}) => {
+    if (command === 'get_products_page') return Promise.resolve({ products: [], total: 0, page: 1, page_size: 8, total_pages: 0 });
     if (command !== 'get_plans_page') return Promise.resolve({});
     const page = args.page ?? 1;
     const pageSize = args.pageSize ?? 8;
@@ -40,12 +41,25 @@ test('muestra solamente planes y permite abrir el diálogo de creación', async 
   expect(await screen.findByRole('heading', { name: 'Planes' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Planes' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByRole('tab', { name: 'Desarrollo' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Productos' })).toBeInTheDocument();
   expect(screen.queryByRole('tab', { name: 'General' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Nuevo plan' }));
   expect(screen.getByRole('heading', { name: 'Nuevo plan' })).toBeInTheDocument();
   expect(screen.getByLabelText('Nombre')).toBeInTheDocument();
   expect(screen.getByLabelText('Modalidad')).toBeInTheDocument();
   expect(screen.getByLabelText('Precio')).toBeInTheDocument();
+});
+
+test('muestra productos como una pestaña de configuración y permite iniciar el alta', async () => {
+  renderPage();
+  await screen.findByRole('heading', { name: 'Planes' });
+  fireEvent.click(screen.getByRole('tab', { name: 'Productos' }));
+  expect(await screen.findByRole('heading', { name: 'Productos' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
+  expect(screen.getByRole('heading', { name: 'Nuevo producto' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Precio de venta')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Categoría')).not.toBeInTheDocument();
+  expect(screen.getByText('Stock inicial (opcional)')).toBeInTheDocument();
 });
 
 test('pagina los planes sin desplazar la página completa', async () => {

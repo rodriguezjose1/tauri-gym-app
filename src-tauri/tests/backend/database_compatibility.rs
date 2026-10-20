@@ -123,6 +123,9 @@ fn fresh_install_creates_the_complete_versioned_schema() {
     assert!(column_exists(&connection, "workout_entries", "group_number"));
     assert!(column_exists(&connection, "routine_exercises", "group_number"));
     assert!(table_exists(&connection, "plan_price_history"));
+    assert!(table_exists(&connection, "products"));
+    assert!(table_exists(&connection, "stock_batches"));
+    assert!(table_exists(&connection, "product_price_history"));
 }
 
 #[test]
@@ -150,6 +153,32 @@ fn version_three_billing_data_is_backfilled_with_its_existing_price() {
         |row| Ok((row.get(0)?, row.get(1)?)),
     ).unwrap();
     assert_eq!(price, (40000, "0000-01".into()));
+}
+
+#[test]
+fn version_five_products_are_backfilled_with_their_existing_price() {
+    let fixture = Fixture::new();
+    migrate_database(&fixture.path).unwrap();
+    let connection = fixture.connection();
+    connection.execute(
+        "INSERT INTO products(name,category,sale_price_cents) VALUES('Proteína','',250000)",
+        [],
+    ).unwrap();
+    connection.execute_batch(
+        "DROP TABLE product_price_history;
+         DELETE FROM migrations WHERE version='006_product_price_history';
+         PRAGMA user_version=5;",
+    ).unwrap();
+    drop(connection);
+
+    let outcome = migrate_database(&fixture.path).unwrap();
+    assert_eq!(outcome.current_version, CURRENT_SCHEMA_VERSION);
+    let history: (i64, i64) = fixture.connection().query_row(
+        "SELECT product_id,price_cents FROM product_price_history",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    ).unwrap();
+    assert_eq!(history, (1, 250000));
 }
 
 #[test]

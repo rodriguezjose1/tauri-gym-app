@@ -22,6 +22,16 @@
 }
 
 .plans-manager { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.products-manager { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.products-header { flex: 0 0 auto; }
+.products-content { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.product-list { display: grid; gap: 10px; padding-right: 4px; }
+.product-row { display: grid; grid-template-columns: minmax(200px, 1fr) auto auto auto; align-items: center; gap: 20px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 10px; }
+.product-stock { display: grid; min-width: 70px; text-align: center; }
+.product-stock small { color: var(--text-secondary); }
+.product-dialog-form { display: grid; gap: 18px; }
+.product-initial-stock { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border-light); border-radius: 10px; background: var(--bg-secondary); }
+.product-initial-stock p { margin: 0; font-weight: 600; }
 .plans-header { flex: 0 0 auto; }
 .plans-content { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .plan-list { display: grid; gap: 10px; padding-right: 4px; }
@@ -60,6 +70,7 @@
 
 @media (max-width: 700px) {
   .plan-row { grid-template-columns: 1fr; gap: 12px; }
+  .product-row { grid-template-columns: 1fr; gap: 12px; }
   .plan-actions { width: 100%; }
   .plan-actions > button { flex: 1; }
   .billing-dev-controls { grid-template-columns: 1fr; }

@@ -16,6 +16,7 @@ use models::dashboard::{
 };
 use models::exercise::Exercise;
 use models::person::Person;
+use models::product::{Product, ProductPage, SaveProductRequest, StockReceipt};
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
 use models::workout_entry::WorkoutEntry;
@@ -24,10 +25,41 @@ use services::billing_service::BillingService;
 use services::dashboard_service::DashboardService;
 use services::exercise_service::ExerciseService;
 use services::person_service::PersonService;
+use services::product_service::ProductService;
 use services::routine_service::RoutineService;
 use services::updater_service::{self, OperationGuard};
 use services::workout_entry_service::WorkoutEntryService;
 use tauri::{Manager, State};
+
+#[tauri::command]
+fn save_product(
+    service: State<'_, ProductService>,
+    request: SaveProductRequest,
+) -> Result<Product, String> {
+    let _operation = OperationGuard::begin()?;
+    service.save(request)
+}
+
+#[tauri::command]
+fn get_products_page(
+    service: State<'_, ProductService>,
+    query: String,
+    page: i64,
+    page_size: i64,
+) -> Result<ProductPage, String> {
+    let _operation = OperationGuard::begin()?;
+    service.page(&query, page, page_size)
+}
+
+#[tauri::command]
+fn receive_product_stock(
+    service: State<'_, ProductService>,
+    product_id: i64,
+    receipt: StockReceipt,
+) -> Result<(), String> {
+    let _operation = OperationGuard::begin()?;
+    service.receive_stock(product_id, receipt)
+}
 
 // Person commands
 #[tauri::command]
@@ -843,6 +875,7 @@ fn main() {
                 routine_service,
                 billing_service,
                 dashboard_service,
+                product_service,
             ) = setup_services().map_err(std::io::Error::other)?;
             let backup_service = BackupService::new();
 
@@ -855,6 +888,7 @@ fn main() {
             }
             app.manage(billing_service);
             app.manage(dashboard_service);
+            app.manage(product_service);
             app.manage(backup_service);
 
             Ok(())
@@ -948,6 +982,9 @@ fn main() {
             get_payment_status_counts,
             get_person_payment_history,
             set_payment_period_excluded,
+            save_product,
+            get_products_page,
+            receive_product_stock,
             get_dashboard_summary,
             get_dashboard_revenue_trend,
             get_dashboard_students_trend,

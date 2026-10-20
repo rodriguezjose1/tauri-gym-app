@@ -1,12 +1,14 @@
 use crate::config::database_migrations::migrate_database;
 use crate::repository::sqlite_exercise_repository::SqliteExerciseRepository;
 use crate::repository::sqlite_person_repository::SqlitePersonRepository;
+use crate::repository::sqlite_product_repository::SqliteProductRepository;
 use crate::repository::sqlite_routine_repository::SqliteRoutineRepository;
 use crate::repository::sqlite_workout_entry_repository::SqliteWorkoutEntryRepository;
 use crate::services::billing_service::BillingService;
 use crate::services::dashboard_service::DashboardService;
 use crate::services::exercise_service::ExerciseService;
 use crate::services::person_service::PersonService;
+use crate::services::product_service::ProductService;
 use crate::services::routine_service::RoutineService;
 use crate::services::workout_entry_service::WorkoutEntryService;
 use std::env;
@@ -21,6 +23,7 @@ pub fn setup_services() -> Result<
         RoutineService,
         BillingService,
         DashboardService,
+        ProductService,
     ),
     String,
 > {
@@ -41,6 +44,7 @@ pub fn setup_services() -> Result<
     let exercise_repository = Arc::new(SqliteExerciseRepository::new_safe(db_path_str)?);
     let workout_entry_repository = Arc::new(SqliteWorkoutEntryRepository::new_safe(db_path_str)?);
     let routine_repository = Arc::new(SqliteRoutineRepository::new_safe(db_path_str)?);
+    let product_repository = Arc::new(SqliteProductRepository::new_safe(db_path_str)?);
 
     // Create services
     let person_service = PersonService::new(person_repository);
@@ -49,6 +53,7 @@ pub fn setup_services() -> Result<
     let routine_service = RoutineService::new(routine_repository);
     let billing_service = BillingService::new(db_path_str);
     let dashboard_service = DashboardService::new(db_path_str);
+    let product_service = ProductService::new(product_repository);
 
     Ok((
         person_service,
@@ -57,6 +62,7 @@ pub fn setup_services() -> Result<
         routine_service,
         billing_service,
         dashboard_service,
+        product_service,
     ))
 }
 
