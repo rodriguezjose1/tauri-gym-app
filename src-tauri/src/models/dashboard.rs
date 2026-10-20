@@ -5,6 +5,8 @@ pub struct DashboardSummary {
     pub period: String,
     pub active_students: i64,
     pub collected_cents: i64,
+    pub payments_collected_cents: i64,
+    pub sales_collected_cents: i64,
     pub pending_payments: i64,
     pub overdue_payments: i64,
     pub registered_sessions: i64,

@@ -53,6 +53,63 @@ fn dashboard_uses_effective_payment_date_and_fills_empty_months() {
 }
 
 #[test]
+fn dashboard_combines_payments_and_active_sales_and_exposes_the_breakdown() {
+    let (_directory, path, service) = fixture();
+    let connection = Connection::open(path).unwrap();
+    connection.execute("INSERT INTO people(name,last_name,phone) VALUES('Ana','Test','1')", []).unwrap();
+    connection.execute("INSERT INTO plans(name,modality,price_cents,is_active) VALUES('Pase','particular',70000,1)", []).unwrap();
+    connection.execute("INSERT INTO payments(person_id,plan_id,plan_name,modality,amount_cents,paid_at) VALUES(1,1,'Pase','particular',70000,'2026-10-03 10:00:00')", []).unwrap();
+    connection.execute("INSERT INTO sales(payment_method,total_amount_cents,total_cost_cents,sold_at) VALUES('cash',25000,10000,'2026-10-04 10:00:00')", []).unwrap();
+    connection.execute("INSERT INTO sales(payment_method,total_amount_cents,total_cost_cents,sold_at,voided_at,void_reason) VALUES('cash',90000,30000,'2026-10-05 10:00:00','2026-11-01 10:00:00','Duplicada')", []).unwrap();
+    connection.execute("INSERT INTO sales(payment_method,total_amount_cents,total_cost_cents,sold_at) VALUES('cash',15000,5000,'2026-09-04 10:00:00')", []).unwrap();
+    drop(connection);
+
+    let summary = service.summary("2026-10").unwrap();
+    assert_eq!(summary.payments_collected_cents, 70000);
+    assert_eq!(summary.sales_collected_cents, 25000);
+    assert_eq!(summary.collected_cents, 95000);
+
+    let trend = service.revenue_trend("2026-10", 2).unwrap();
+    assert_eq!(
+        trend
+            .iter()
+            .map(|point| (point.period.as_str(), point.amount_cents))
+            .collect::<Vec<_>>(),
+        vec![("2026-09", 15000), ("2026-10", 95000)]
+    );
+}
+
+#[test]
+fn dashboard_returns_zero_for_every_revenue_source_in_an_empty_month() {
+    let (_directory, _path, service) = fixture();
+
+    let summary = service.summary("2026-10").unwrap();
+    assert_eq!(summary.payments_collected_cents, 0);
+    assert_eq!(summary.sales_collected_cents, 0);
+    assert_eq!(summary.collected_cents, 0);
+    assert_eq!(
+        service.revenue_trend("2026-10", 1).unwrap()[0].amount_cents,
+        0
+    );
+}
+
+#[test]
+fn dashboard_rejects_a_combined_revenue_that_exceeds_the_integer_limit() {
+    let (_directory, path, service) = fixture();
+    let connection = Connection::open(path).unwrap();
+    connection.execute("INSERT INTO people(name,last_name,phone) VALUES('Ana','Test','1')", []).unwrap();
+    connection.execute("INSERT INTO plans(name,modality,price_cents,is_active) VALUES('Pase','particular',1,1)", []).unwrap();
+    connection.execute("INSERT INTO payments(person_id,plan_id,plan_name,modality,amount_cents,paid_at) VALUES(1,1,'Pase','particular',5000000000000000000,'2026-10-03 10:00:00')", []).unwrap();
+    connection.execute("INSERT INTO sales(payment_method,total_amount_cents,total_cost_cents,sold_at) VALUES('cash',5000000000000000000,1,'2026-10-04 10:00:00')", []).unwrap();
+    drop(connection);
+
+    assert_eq!(
+        service.summary("2026-10").unwrap_err(),
+        "La recaudación mensual es demasiado grande"
+    );
+}
+
+#[test]
 fn dashboard_counts_activity_pending_and_current_plan_without_duplicates() {
     let (_directory, path, service) = fixture();
     let connection = Connection::open(path).unwrap();

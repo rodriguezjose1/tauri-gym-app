@@ -4,6 +4,8 @@ export interface DashboardSummary {
   period: string;
   active_students: number;
   collected_cents: number;
+  payments_collected_cents: number;
+  sales_collected_cents: number;
   pending_payments: number;
   overdue_payments: number;
   registered_sessions: number;
