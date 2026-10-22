@@ -15,7 +15,7 @@ use models::dashboard::{
     RevenuePoint, StudentsTrend,
 };
 use models::exercise::Exercise;
-use models::person::Person;
+use models::person::{CreatePersonOutcome, Person};
 use models::product::{Product, ProductPage, SaveProductRequest, StockReceipt};
 use models::routine::Routine;
 use models::routine_exercise::RoutineExercise;
@@ -104,9 +104,13 @@ fn void_sale(service: State<'_, SaleService>, id: i64, reason: String) -> Result
 
 // Person commands
 #[tauri::command]
-fn create_person(service: State<'_, PersonService>, person: Person) -> Result<(), String> {
+fn create_person_checked(
+    service: State<'_, PersonService>,
+    person: Person,
+    allow_duplicate: bool,
+) -> Result<CreatePersonOutcome, String> {
     let _operation = OperationGuard::begin()?;
-    service.create_person(person)
+    service.create_person_checked(person, allow_duplicate)
 }
 
 #[tauri::command]
@@ -938,7 +942,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             // Person commands
-            create_person,
+            create_person_checked,
             get_person_by_id,
             get_persons,
             get_persons_paginated,

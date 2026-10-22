@@ -49,12 +49,12 @@ describe('contrato frontend con comandos Tauri', () => {
     vi.mocked(invoke).mockResolvedValue(undefined)
     const person = { name: 'Ana', last_name: 'Pérez', phone: '123' }
     const exercise = { name: 'Sentadilla', code: 'SQ' }
-    await PersonService.createPerson(person)
+    await PersonService.createPersonChecked(person, false)
     await ExerciseService.createExercise(exercise)
     await RoutineService.addExerciseToRoutine(5, 2, 0, 4, 8, 60, 'pesado', 1)
     await WorkoutService.replaceWorkoutSessionGranular([10], [{ person_id: 1, exercise_id: 2, date: '2026-10-04' }])
 
-    expect(invoke).toHaveBeenNthCalledWith(1, 'create_person', { person })
+    expect(invoke).toHaveBeenNthCalledWith(1, 'create_person_checked', { person, allowDuplicate: false })
     expect(invoke).toHaveBeenNthCalledWith(2, 'create_exercise', { exercise })
     expect(invoke).toHaveBeenNthCalledWith(3, 'add_exercise_to_routine', {
       routineId: 5,

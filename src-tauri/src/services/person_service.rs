@@ -1,5 +1,6 @@
 use crate::models::person::{
-    DeletedPerson, PaginatedDeletedPersonResponse, PaginatedPersonResponse, Person,
+    CreatePersonOutcome, DeletedPerson, PaginatedDeletedPersonResponse, PaginatedPersonResponse,
+    Person,
 };
 use crate::repository::person_repository::PersonRepository;
 use std::sync::Arc;
@@ -15,9 +16,30 @@ impl PersonService {
         Self { repository }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn create_person(&self, person: Person) -> Result<(), String> {
         Self::validate_person(&person, false)?;
         self.repository.create(person)
+    }
+
+    pub fn create_person_checked(
+        &self,
+        person: Person,
+        allow_duplicate: bool,
+    ) -> Result<CreatePersonOutcome, String> {
+        Self::validate_person(&person, false)?;
+        let duplicates = self.repository.find_duplicates(&person, None)?;
+        if !duplicates.is_empty() && !allow_duplicate {
+            return Ok(CreatePersonOutcome {
+                created: false,
+                duplicates,
+            });
+        }
+        self.repository.create(person)?;
+        Ok(CreatePersonOutcome {
+            created: true,
+            duplicates,
+        })
     }
 
     fn validate_person(person: &Person, require_id: bool) -> Result<(), String> {

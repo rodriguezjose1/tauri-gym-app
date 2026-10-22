@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PersonService, Person } from "../../../services";
-import type { DeletedPerson } from "../../../shared/types/dashboard";
+import type { DeletedPerson, PersonDuplicateCandidate } from "../../../shared/types/dashboard";
 import { formatDateTimeForDisplay } from "../../../shared/utils/dateUtils";
 import { Button, Input, Title, Card, Modal, ErrorMessage, Pagination, SearchInput, Select } from "../../../shared/components/base";
 import { ManagementPageHeader, ManagementToolbar } from "../../../shared/components/management";
@@ -35,6 +35,10 @@ export default function PersonCrud() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPersons, setTotalPersons] = useState(0);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [duplicateReview, setDuplicateReview] = useState<{
+    person: Person;
+    candidates: PersonDuplicateCandidate[];
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
@@ -253,7 +257,11 @@ export default function PersonCrud() {
           phone: form.phone.trim() || "0"
         };
         
-        await PersonService.createPerson(newPerson);
+        const outcome = await PersonService.createPersonChecked(newPerson);
+        if (!outcome.created) {
+          setDuplicateReview({ person: newPerson, candidates: outcome.duplicates });
+          return;
+        }
       }
       await loadPersons(editingPerson ? currentPage : 1, searchQuery);
       
@@ -272,6 +280,56 @@ export default function PersonCrud() {
     }
   };
 
+  const finishPersonCreation = async () => {
+    await loadPersons(1, searchQuery);
+    setForm({ name: "", last_name: "", phone: "" });
+    setDuplicateReview(null);
+    setShowFormModal(false);
+    await loadStatusCounts();
+  };
+
+  const createDuplicateAnyway = async () => {
+    if (!duplicateReview || loading) return;
+    try {
+      setLoading(true);
+      setError(null);
+      await PersonService.createPersonChecked(duplicateReview.person, true);
+      await finishPersonCreation();
+    } catch (createError) {
+      console.error("Error creating confirmed duplicate:", createError);
+      setError("No se pudo crear la persona.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reuseDuplicate = async (candidate: PersonDuplicateCandidate) => {
+    const personId = candidate.person.id;
+    if (!personId || loading) return;
+    try {
+      setLoading(true);
+      setError(null);
+      if (candidate.is_deleted) await PersonService.restorePerson(personId);
+      setDuplicateReview(null);
+      setShowFormModal(false);
+      setForm({ name: "", last_name: "", phone: "" });
+      setActiveTab('active');
+      setSearchTerm("");
+      const nextParams = new URLSearchParams();
+      nextParams.set('personId', String(personId));
+      setSearchParams(nextParams, { replace: true });
+      await loadDeletedPersonsCount();
+      await loadStatusCounts();
+    } catch (reuseError) {
+      console.error("Error reusing duplicate person:", reuseError);
+      setError(candidate.is_deleted
+        ? "No se pudo restaurar la persona existente."
+        : "No se pudo abrir la persona existente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (person: Person) => {
     setEditingPerson(person);
     setForm({
@@ -283,6 +341,7 @@ export default function PersonCrud() {
   };
 
   const handleCancelEdit = () => {
+    setDuplicateReview(null);
     setEditingPerson(null);
     setForm({ name: "", last_name: "", phone: "" });
     setShowFormModal(false);
@@ -638,6 +697,63 @@ export default function PersonCrud() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(duplicateReview)}
+        onClose={() => !loading && setDuplicateReview(null)}
+        title="Posible persona duplicada"
+        size="md"
+        closeOnOverlayClick={!loading}
+        closeOnEscape={!loading}
+        className="person-duplicate-dialog"
+      >
+        {duplicateReview && (
+          <div className="person-duplicate-review">
+            <p>
+              Encontramos {duplicateReview.candidates.length === 1 ? 'una persona con datos similares' : 'personas con datos similares'}.
+              Revisá las coincidencias antes de crear un registro nuevo.
+            </p>
+            <div className="person-duplicate-list">
+              {duplicateReview.candidates.map((candidate) => (
+                <div className="person-duplicate-item" key={candidate.person.id}>
+                  <div>
+                    <strong>{candidate.person.name} {candidate.person.last_name}</strong>
+                    {candidate.person.phone && candidate.person.phone !== '0' && <span>Tel: {candidate.person.phone}</span>}
+                    <small>
+                      {candidate.is_deleted ? 'Persona eliminada' : 'Persona activa'}
+                      {' · '}
+                      {candidate.same_name && candidate.same_phone
+                        ? 'coinciden nombre y teléfono'
+                        : candidate.same_phone
+                          ? 'coincide el teléfono'
+                          : candidate.same_name
+                            ? 'coincide el nombre completo'
+                            : 'nombre y apellido similares'}
+                    </small>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={candidate.is_deleted ? 'success' : 'primary'}
+                    size="sm"
+                    disabled={loading}
+                    onClick={() => void reuseDuplicate(candidate)}
+                  >
+                    {candidate.is_deleted ? 'Restaurar y usar' : 'Usar existente'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="person-duplicate-actions">
+              <Button type="button" variant="secondary" disabled={loading} onClick={() => setDuplicateReview(null)}>
+                Volver
+              </Button>
+              <Button type="button" variant="danger" disabled={loading} onClick={() => void createDuplicateAnyway()}>
+                {loading ? 'Creando…' : 'Crear de todas formas'}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}

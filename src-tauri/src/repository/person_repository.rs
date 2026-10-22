@@ -1,7 +1,12 @@
-use crate::models::person::{DeletedPerson, Person};
+use crate::models::person::{DeletedPerson, Person, PersonDuplicateCandidate};
 
 pub trait PersonRepository: Send + Sync {
     fn create(&self, person: Person) -> Result<(), String>;
+    fn find_duplicates(
+        &self,
+        person: &Person,
+        exclude_id: Option<i32>,
+    ) -> Result<Vec<PersonDuplicateCandidate>, String>;
     fn get_by_id(&self, id: i32) -> Result<Option<Person>, String>;
     fn update(&self, person: Person) -> Result<(), String>;
     fn delete(&self, id: i32) -> Result<(), String>;

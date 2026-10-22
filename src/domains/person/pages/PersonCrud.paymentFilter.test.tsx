@@ -18,6 +18,13 @@ beforeEach(() => {
     if (command === 'get_deleted_people_paginated') return { persons: [], total: 2, page: 1, page_size: 10, total_pages: 1 };
     if (command === 'get_person_by_id') return person;
     if (command === 'get_person_payment_statuses') return [{ person_id: 1, status: 'overdue' }];
+    if (command === 'create_person_checked') {
+      if (args?.allowDuplicate) return { created: true, duplicates: [] };
+      return {
+        created: false,
+        duplicates: [{ person, is_deleted: false, same_name: true, same_phone: true, similar_name: false }],
+      };
+    }
     throw new Error(`Comando no previsto: ${command}`);
   });
 });
@@ -72,4 +79,26 @@ test('inicializa un filtro válido desde navegación y descarta uno inválido', 
 
   render(<MemoryRouter initialEntries={['/personas?paymentStatus=invalid']}><PersonCrud /></MemoryRouter>);
   expect(await screen.findByRole('combobox')).toHaveValue('all');
+});
+
+test('advierte un posible duplicado y permite reutilizar la persona existente', async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PersonCrud /></MemoryRouter>);
+
+  await user.click(await screen.findByRole('button', { name: 'Nueva Persona' }));
+  await user.type(screen.getByLabelText('Nombre'), 'ana');
+  await user.type(screen.getByLabelText('Apellido'), 'test');
+  await user.type(screen.getByLabelText('Teléfono'), '1');
+  await user.click(screen.getByRole('button', { name: 'Crear Persona' }));
+
+  expect(await screen.findByRole('heading', { name: 'Posible persona duplicada' })).toBeInTheDocument();
+  expect(screen.getByText('coinciden nombre y teléfono', { exact: false })).toBeInTheDocument();
+  expect(invoke).toHaveBeenCalledWith('create_person_checked', {
+    person: { name: 'ana', last_name: 'test', phone: '1' },
+    allowDuplicate: false,
+  });
+
+  await user.click(screen.getByRole('button', { name: 'Usar existente' }));
+  await waitFor(() => expect(invoke).toHaveBeenCalledWith('get_person_by_id', { id: 1 }));
+  expect(screen.queryByRole('heading', { name: 'Posible persona duplicada' })).not.toBeInTheDocument();
 });

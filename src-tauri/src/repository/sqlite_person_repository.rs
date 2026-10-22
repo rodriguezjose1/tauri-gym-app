@@ -1,5 +1,7 @@
-use crate::config::search::{normalize_search_text, register_search_normalization};
-use crate::models::person::{DeletedPerson, Person};
+use crate::config::search::{
+    normalize_phone, normalize_search_text, person_name_is_similar, register_search_normalization,
+};
+use crate::models::person::{DeletedPerson, Person, PersonDuplicateCandidate};
 use crate::repository::person_repository::PersonRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
 
@@ -124,6 +126,65 @@ impl PersonRepository for SqlitePersonRepository {
         ).map_err(|e| e.to_string())?;
         transaction.commit().map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    fn find_duplicates(
+        &self,
+        person: &Person,
+        exclude_id: Option<i32>,
+    ) -> Result<Vec<PersonDuplicateCandidate>, String> {
+        if self.is_dummy {
+            return Ok(Vec::new());
+        }
+        let connection = self.get_connection().map_err(|error| error.to_string())?;
+        let normalized_name = normalize_search_text(&person.name);
+        let normalized_last_name = normalize_search_text(&person.last_name);
+        let normalized_phone = normalize_phone(&person.phone);
+        let mut statement = connection
+            .prepare(
+                "SELECT id,name,last_name,phone,
+                        CASE WHEN deleted_at IS NOT NULL AND deleted_at != '' THEN 1 ELSE 0 END
+                 FROM people
+                 WHERE (?1 IS NULL OR id != ?1)
+                 ORDER BY CASE WHEN deleted_at IS NULL OR deleted_at='' THEN 0 ELSE 1 END,id",
+            )
+            .map_err(|error| error.to_string())?;
+        let candidates = statement
+            .query_map(params![exclude_id], |row| {
+                let candidate = Person {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    last_name: row.get(2)?,
+                    phone: row.get(3)?,
+                };
+                let same_name = normalize_search_text(&candidate.name) == normalized_name
+                    && normalize_search_text(&candidate.last_name) == normalized_last_name;
+                let same_phone = !normalized_phone.is_empty()
+                    && normalize_phone(&candidate.phone) == normalized_phone;
+                let similar_name = !same_name
+                    && person_name_is_similar(
+                        &candidate.name,
+                        &candidate.last_name,
+                        &person.name,
+                        &person.last_name,
+                    );
+                Ok(PersonDuplicateCandidate {
+                    same_name,
+                    same_phone,
+                    similar_name,
+                    person: candidate,
+                    is_deleted: row.get::<_, i64>(4)? != 0,
+                })
+            })
+            .map_err(|error| error.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        Ok(candidates
+            .into_iter()
+            .filter(|candidate| {
+                candidate.same_name || candidate.same_phone || candidate.similar_name
+            })
+            .collect())
     }
 
     fn get_by_id(&self, id: i32) -> Result<Option<Person>, String> {

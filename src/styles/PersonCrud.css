@@ -50,6 +50,21 @@
   border-top: 1px solid #404040;
 }
 
+.person-duplicate-review { display: grid; gap: 18px; }
+.person-duplicate-review > p { margin: 0; color: var(--text-secondary); }
+.person-duplicate-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
+.person-duplicate-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; border: 1px solid var(--border-light); border-radius: 10px; background: var(--bg-secondary); }
+.person-duplicate-item > div { display: grid; min-width: 0; gap: 3px; }
+.person-duplicate-item span, .person-duplicate-item small { color: var(--text-secondary); }
+.person-duplicate-item small { font-size: .8rem; }
+.person-duplicate-actions { display: flex; justify-content: space-between; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+
+@media (max-width: 600px) {
+  .person-duplicate-item { align-items: stretch; flex-direction: column; }
+  .person-duplicate-actions { flex-direction: column-reverse; }
+  .person-duplicate-actions .ui-button { width: 100%; }
+}
+
 /* Search */
 .person-search-container {
   margin-bottom: 0px;
