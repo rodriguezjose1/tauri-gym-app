@@ -17,6 +17,10 @@ pub struct BackupService {
 }
 
 impl BackupService {
+    const fn email_delivery_enabled() -> bool {
+        !cfg!(debug_assertions)
+    }
+
     pub fn new() -> Self {
         // Use the same path logic as the database
         let db_path = get_database_path();
@@ -150,16 +154,14 @@ impl BackupService {
         backup_data: Vec<u8>,
         metadata: BackupMetadata,
     ) -> Result<(), String> {
+        // Defense in depth: even a direct/internal call must never deliver email
+        // from a development build.
+        if !Self::email_delivery_enabled() {
+            return Err("Backup email delivery is disabled outside production".to_string());
+        }
+
         // Use the embedded API key
         let api_key = RESEND_API_KEY;
-        println!(
-            "🔑 Using API key: {}",
-            if api_key.len() > 10 {
-                &api_key[0..10]
-            } else {
-                "SHORT_KEY"
-            }
-        );
 
         let recipient = "rodriguezjosee8@gmail.com";
         // Use a development-friendly sender email
@@ -309,6 +311,11 @@ impl BackupService {
 
     // Main backup execution function - runs automatically on startup
     pub async fn execute_backup(&self) -> Result<(), String> {
+        if !Self::email_delivery_enabled() {
+            println!("Automatic email backup skipped: non-production build");
+            return Ok(());
+        }
+
         println!("🔍 Starting backup check...");
         let mut status = self.load_status();
         println!("📊 Current status: {:?}", status);
@@ -393,4 +400,17 @@ struct BackupMetadata {
     database_size_bytes: u64,
     total_records: u32,
     checksum: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BackupService;
+
+    #[test]
+    fn development_build_disables_email_delivery() {
+        assert_eq!(
+            BackupService::email_delivery_enabled(),
+            !cfg!(debug_assertions)
+        );
+    }
 }

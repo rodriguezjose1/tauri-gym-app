@@ -94,6 +94,11 @@ function Navigation() {
 
 function App() {
   useEffect(() => {
+    if (!import.meta.env.PROD) {
+      console.info('Automatic email backup is disabled outside production');
+      return;
+    }
+
     const backup = async () => {
       try {
         console.log('Attempting to execute backup...');
