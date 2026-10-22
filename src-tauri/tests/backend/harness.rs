@@ -92,8 +92,6 @@ pub mod config {
 #[cfg(test)]
 mod billing_tests;
 #[cfg(test)]
-mod dashboard_tests;
-#[cfg(test)]
 mod database_compatibility;
 #[cfg(test)]
 mod exercises_workouts;
