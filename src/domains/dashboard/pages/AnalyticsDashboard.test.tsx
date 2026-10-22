@@ -8,7 +8,7 @@ function Location() { return <div data-testid="location">{useLocation().pathname
 
 beforeEach(() => {
   global.mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
-    if (command === 'get_dashboard_summary') return Promise.resolve({ period: '2026-10', active_students: 12, collected_cents: 12500000, pending_payments: 3, overdue_payments: 2, registered_sessions: 7 });
+    if (command === 'get_dashboard_summary') return Promise.resolve({ period: '2026-10', active_students: 12, collected_cents: 12500000, payments_collected_cents: 10000000, sales_collected_cents: 2500000, pending_payments: 3, overdue_payments: 2, registered_sessions: 7 });
     if (command === 'get_dashboard_revenue_trend') return Promise.resolve([{ period: '2026-09', amount_cents: 0 }, { period: '2026-10', amount_cents: 12500000 }]);
     if (command === 'get_dashboard_students_trend') return Promise.resolve({ available: true, points: [{ period: '2026-09', count: 10 }, { period: '2026-10', count: 12 }] });
     if (command === 'get_dashboard_plan_distribution') return Promise.resolve([{ plan_id: 1, plan_name: 'Tres días', count: 8 }, { plan_id: null, plan_name: 'Sin plan asignado', count: 4 }]);
@@ -73,12 +73,33 @@ test('cambia el umbral sin depender del período y abre la ficha del alumno', as
   await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/personas?personId=4'));
 });
 
-test('navega a pagos conservando el período seleccionado', async () => {
+test('diferencia cuotas y ventas y cada importe navega a su origen conservando el período', async () => {
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/dashboard']}><Routes><Route path="*" element={<><AnalyticsDashboard /><Location /></>} /></Routes></MemoryRouter>);
   await screen.findByText('12');
-  await user.click(screen.getByRole('button', { name: /Recaudación mensual/ }));
+  expect(screen.getByText('Recaudación mensual')).toBeInTheDocument();
+  const payments = screen.getByRole('button', { name: /Ver pagos de/ });
+  const sales = screen.getByRole('button', { name: /Ver ventas de/ });
+  expect(payments).toHaveTextContent(/Cuotas.*100\.000/);
+  expect(sales).toHaveTextContent(/Ventas.*25\.000/);
+  await user.click(payments);
   await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/pagos\?period=/));
+  await user.click(sales);
+  await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/ventas\?period=/));
+});
+
+test('muestra importes largos completos sin perder las etiquetas de origen', async () => {
+  global.mockInvoke.mockImplementationOnce(() => Promise.resolve({
+    period: '2026-10', active_students: 12, collected_cents: 99999999900,
+    payments_collected_cents: 88888888800, sales_collected_cents: 11111111100,
+    pending_payments: 3, overdue_payments: 2, registered_sessions: 7,
+  }));
+  render(<MemoryRouter><AnalyticsDashboard /></MemoryRouter>);
+
+  expect(await screen.findByText('Recaudación mensual')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Ver pagos de/ })).toHaveTextContent(/Cuotas.*888\.888\.888/);
+  expect(screen.getByRole('button', { name: /Ver ventas de/ })).toHaveTextContent(/Ventas.*111\.111\.111/);
+  expect(screen.getByText(/999\.999\.999/)).toBeInTheDocument();
 });
 
 test('navega a Personas con filtro real de vencidos y período', async () => {
@@ -91,7 +112,7 @@ test('navega a Personas con filtro real de vencidos y período', async () => {
 
 test('un error de un gráfico no oculta los demás indicadores', async () => {
   global.mockInvoke.mockImplementation((command: string) => {
-    if (command === 'get_dashboard_summary') return Promise.resolve({ period: '2026-10', active_students: 12, collected_cents: 0, pending_payments: 0, overdue_payments: 0, registered_sessions: 0 });
+    if (command === 'get_dashboard_summary') return Promise.resolve({ period: '2026-10', active_students: 12, collected_cents: 0, payments_collected_cents: 0, sales_collected_cents: 0, pending_payments: 0, overdue_payments: 0, registered_sessions: 0 });
     if (command === 'get_dashboard_revenue_trend') return Promise.reject(new Error('falló tendencia'));
     if (command === 'get_dashboard_students_trend') return Promise.resolve({ available: false, points: [] });
     if (command === 'get_dashboard_inactive_students') return Promise.resolve({ inactive_students_count: 0, max_days_inactive: null, has_session_data: false, items: [], page: 1, page_size: 10, total_pages: 0 });

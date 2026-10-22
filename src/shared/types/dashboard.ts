@@ -9,6 +9,19 @@ export interface DeletedPerson extends Person {
   deleted_at: string;
 }
 
+export interface PersonDuplicateCandidate {
+  person: Person;
+  is_deleted: boolean;
+  same_name: boolean;
+  same_phone: boolean;
+  similar_name: boolean;
+}
+
+export interface CreatePersonOutcome {
+  created: boolean;
+  duplicates: PersonDuplicateCandidate[];
+}
+
 export interface Exercise {
   id?: number;
   name: string;

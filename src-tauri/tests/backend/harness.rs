@@ -10,6 +10,8 @@ pub mod dashboard;
 pub mod dashboard_service;
 #[path = "../../src/config/database_migrations.rs"]
 pub mod database_migrations;
+#[path = "../../src/config/search.rs"]
+pub mod search;
 #[path = "../../src/models/exercise.rs"]
 pub mod exercise;
 #[path = "../../src/repository/exercise_repository.rs"]
@@ -18,24 +20,40 @@ pub mod exercise_repository;
 pub mod exercise_service;
 #[path = "../../src/models/person.rs"]
 pub mod person;
+#[path = "../../src/models/product.rs"]
+pub mod product;
 #[path = "../../src/repository/person_repository.rs"]
 pub mod person_repository;
+#[path = "../../src/repository/product_repository.rs"]
+pub mod product_repository;
 #[path = "../../src/services/person_service.rs"]
 pub mod person_service;
 #[path = "../../src/models/routine.rs"]
 pub mod routine;
+#[path = "../../src/models/sale.rs"]
+pub mod sale;
 #[path = "../../src/models/routine_exercise.rs"]
 pub mod routine_exercise;
 #[path = "../../src/repository/routine_repository.rs"]
 pub mod routine_repository;
+#[path = "../../src/repository/sale_repository.rs"]
+pub mod sale_repository;
 #[path = "../../src/services/routine_service.rs"]
 pub mod routine_service;
 #[path = "../../src/repository/sqlite_exercise_repository.rs"]
 pub mod sqlite_exercise_repository;
 #[path = "../../src/repository/sqlite_person_repository.rs"]
 pub mod sqlite_person_repository;
+#[path = "../../src/repository/sqlite_product_repository.rs"]
+pub mod sqlite_product_repository;
+#[path = "../../src/services/product_service.rs"]
+pub mod product_service;
 #[path = "../../src/repository/sqlite_routine_repository.rs"]
 pub mod sqlite_routine_repository;
+#[path = "../../src/repository/sqlite_sale_repository.rs"]
+pub mod sqlite_sale_repository;
+#[path = "../../src/services/sale_service.rs"]
+pub mod sale_service;
 #[path = "../../src/repository/sqlite_workout_entry_repository.rs"]
 pub mod sqlite_workout_entry_repository;
 #[path = "../../src/models/workout_entry.rs"]
@@ -50,18 +68,25 @@ pub mod models {
     pub use crate::dashboard;
     pub use crate::exercise;
     pub use crate::person;
+    pub use crate::product;
     pub use crate::routine;
+    pub use crate::sale;
     pub use crate::routine_exercise;
     pub use crate::workout_entry;
 }
 pub mod repository {
     pub use crate::exercise_repository;
     pub use crate::person_repository;
+    pub use crate::product_repository;
     pub use crate::routine_repository;
+    pub use crate::sale_repository;
     pub use crate::workout_entry_repository;
 }
 pub mod services {
     pub use crate::billing_service;
+}
+pub mod config {
+    pub use crate::search;
 }
 
 #[cfg(test)]
@@ -75,4 +100,8 @@ mod exercises_workouts;
 #[cfg(test)]
 mod people;
 #[cfg(test)]
+mod products;
+#[cfg(test)]
 mod routines;
+#[cfg(test)]
+mod sales;

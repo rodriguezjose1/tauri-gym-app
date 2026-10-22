@@ -458,6 +458,9 @@ fn payment_search_filters_people_before_paginating_and_keeps_monthly_summary() {
     assert_eq!(filtered.payments.len(), 1);
     assert_eq!(filtered.payments[0].person_name, "Ana Test");
     assert_eq!((filtered.payment_count, filtered.collected_cents), (3, 3000));
+    let accent_insensitive = service.payments_page("2026-10", "gomez", 1, 20).unwrap();
+    assert_eq!(accent_insensitive.total, 1);
+    assert_eq!(accent_insensitive.payments[0].person_name, "Bruno Gómez");
 
     let cleared = service.payments_page("2026-10", "", 1, 20).unwrap();
     assert_eq!(cleared.total, 3);

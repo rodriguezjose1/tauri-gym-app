@@ -91,6 +91,100 @@ mod contracts {
     use super::*;
 
     #[test]
+    fn searches_names_without_requiring_matching_accents_or_case() {
+        let f = Fixture::new();
+        f.create("José", "Muñoz");
+
+        for query in ["jose", "JOSÉ", "munoz", "Muñoz", "jose munoz"] {
+            let result = f
+                .service
+                .search_people_paginated_response(query, 1, 10)
+                .unwrap();
+            assert_eq!(result.total, 1, "query {query:?} should match");
+            assert_eq!(result.persons[0].name, "José");
+        }
+    }
+
+    #[test]
+    fn warns_before_creating_a_normalized_duplicate_and_allows_explicit_confirmation() {
+        let f = Fixture::new();
+        let existing = f.create("José", "Rodríguez");
+        let candidate = Person {
+            id: None,
+            name: "JOSE".into(),
+            last_name: "rodriguez".into(),
+            phone: existing.phone.clone(),
+        };
+
+        let warning = f
+            .service
+            .create_person_checked(candidate.clone(), false)
+            .unwrap();
+        assert!(!warning.created);
+        assert_eq!(warning.duplicates.len(), 1);
+        assert!(warning.duplicates[0].same_name);
+        assert!(warning.duplicates[0].same_phone);
+        assert!(!warning.duplicates[0].similar_name);
+        assert!(!warning.duplicates[0].is_deleted);
+        assert_eq!(f.repository.count_all().unwrap(), 1);
+
+        let confirmed = f.service.create_person_checked(candidate, true).unwrap();
+        assert!(confirmed.created);
+        assert_eq!(f.repository.count_all().unwrap(), 2);
+    }
+
+    #[test]
+    fn warns_for_likely_name_typos_and_incomplete_surnames() {
+        let f = Fixture::new();
+        f.create("Candy", "Ferreira");
+
+        for mut candidate in [person("candi", "Ferreira"), person("candy", "Ferrei")] {
+            candidate.phone = "3519999999".into();
+            let warning = f
+                .service
+                .create_person_checked(candidate, false)
+                .unwrap();
+            assert!(!warning.created);
+            assert_eq!(warning.duplicates.len(), 1);
+            assert!(warning.duplicates[0].similar_name);
+            assert!(!warning.duplicates[0].same_name);
+        }
+        assert_eq!(f.repository.count_all().unwrap(), 1);
+    }
+
+    #[test]
+    fn does_not_warn_for_weak_short_name_similarities() {
+        let f = Fixture::new();
+        f.create("Ana", "Pérez");
+        let mut candidate = person("Anabel", "Pérez");
+        candidate.phone = "3519999999".into();
+
+        let outcome = f
+            .service
+            .create_person_checked(candidate, false)
+            .unwrap();
+
+        assert!(outcome.created);
+        assert!(outcome.duplicates.is_empty());
+        assert_eq!(f.repository.count_all().unwrap(), 2);
+    }
+
+    #[test]
+    fn duplicate_check_includes_deleted_people() {
+        let f = Fixture::new();
+        let existing = f.create("Ana", "Pérez");
+        f.service.delete_person(existing.id.unwrap()).unwrap();
+
+        let warning = f
+            .service
+            .create_person_checked(person("ana", "perez"), false)
+            .unwrap();
+        assert!(!warning.created);
+        assert_eq!(warning.duplicates.len(), 1);
+        assert!(warning.duplicates[0].is_deleted);
+    }
+
+    #[test]
     fn creates_and_reads_person_with_generated_id() {
         let f = Fixture::new();
         let saved = f.create("Ana", "Perez");

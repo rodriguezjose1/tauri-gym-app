@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import { DeletedPerson, PaginatedDeletedPersonResponse, Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
+import { CreatePersonOutcome, DeletedPerson, PaginatedDeletedPersonResponse, Person, PaginatedPersonResponse } from "../../../shared/types/dashboard";
 
 const requestNames = {
-  createPerson: "create_person",
+  createPersonChecked: "create_person_checked",
   getPersons: "get_persons",
   getPersonById: "get_person_by_id",
   getPersonsPaginated: "get_persons_paginated",
@@ -29,14 +29,11 @@ export class PersonService {
     }
   }
 
-  /**
-   * Crea una nueva persona
-   */
-  static async createPerson(person: Person): Promise<void> {
+  static async createPersonChecked(person: Person, allowDuplicate = false): Promise<CreatePersonOutcome> {
     try {
-      await invoke(requestNames.createPerson, { person });
+      return await invoke(requestNames.createPersonChecked, { person, allowDuplicate }) as CreatePersonOutcome;
     } catch (error) {
-      console.error("Error creating person:", error);
+      console.error("Error creating person with duplicate check:", error);
       throw new Error(`Error al crear la persona: ${error}`);
     }
   }

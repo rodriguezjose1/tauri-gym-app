@@ -9,6 +9,21 @@ pub struct Person {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonDuplicateCandidate {
+    pub person: Person,
+    pub is_deleted: bool,
+    pub same_name: bool,
+    pub same_phone: bool,
+    pub similar_name: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreatePersonOutcome {
+    pub created: bool,
+    pub duplicates: Vec<PersonDuplicateCandidate>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeletedPerson {
     pub id: Option<i32>,
     pub name: String,

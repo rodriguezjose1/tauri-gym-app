@@ -59,9 +59,15 @@ impl DashboardService {
                THEN (SELECT COUNT(*) FROM people WHERE (deleted_at IS NULL OR deleted_at='') AND (is_active=1 OR is_active IS NULL))
                ELSE (SELECT COUNT(DISTINCT person_id) FROM person_activity_periods WHERE active_from<=?1 AND (inactive_from IS NULL OR inactive_from>?1)) END",
             [period], |row| row.get(0)).map_err(|e| e.to_string())?;
-        let collected_cents = connection.query_row(
+        let payments_collected_cents: i64 = connection.query_row(
             "SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE reversed_at IS NULL AND substr(paid_at,1,7)=?1",
             [period], |row| row.get(0)).map_err(|e| e.to_string())?;
+        let sales_collected_cents: i64 = connection.query_row(
+            "SELECT COALESCE(SUM(total_amount_cents),0) FROM sales WHERE voided_at IS NULL AND substr(sold_at,1,7)=?1",
+            [period], |row| row.get(0)).map_err(|e| e.to_string())?;
+        let collected_cents = payments_collected_cents
+            .checked_add(sales_collected_cents)
+            .ok_or("La recaudación mensual es demasiado grande")?;
         let overdue = BillingService::obligation_overdue_predicate("o");
         let outstanding_sql = |overdue_only: bool| {
             format!(
@@ -92,6 +98,8 @@ impl DashboardService {
             period: period.into(),
             active_students,
             collected_cents,
+            payments_collected_cents,
+            sales_collected_cents,
             pending_payments,
             overdue_payments,
             registered_sessions,
@@ -102,9 +110,17 @@ impl DashboardService {
         Self::validate(period, Some(months))?;
         let start = Self::offset_period(period, 1 - months);
         let connection = self.connection()?;
-        let mut statement = connection.prepare(
-            "SELECT substr(paid_at,1,7),SUM(amount_cents) FROM payments WHERE reversed_at IS NULL AND substr(paid_at,1,7) BETWEEN ?1 AND ?2 GROUP BY substr(paid_at,1,7)"
-        ).map_err(|e| e.to_string())?;
+        let mut statement = connection
+            .prepare(
+                "SELECT period,SUM(amount_cents) FROM (
+               SELECT substr(paid_at,1,7) AS period,amount_cents FROM payments
+               WHERE reversed_at IS NULL AND substr(paid_at,1,7) BETWEEN ?1 AND ?2
+               UNION ALL
+               SELECT substr(sold_at,1,7) AS period,total_amount_cents FROM sales
+               WHERE voided_at IS NULL AND substr(sold_at,1,7) BETWEEN ?1 AND ?2
+             ) GROUP BY period",
+            )
+            .map_err(|e| e.to_string())?;
         let values = statement
             .query_map(params![start, period], |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))

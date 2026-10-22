@@ -1,8 +1,12 @@
 pub mod exercise_repository;
 pub mod person_repository;
+pub mod product_repository;
 pub mod routine_repository;
+pub mod sale_repository;
 pub mod sqlite_exercise_repository;
 pub mod sqlite_person_repository;
+pub mod sqlite_product_repository;
 pub mod sqlite_routine_repository;
+pub mod sqlite_sale_repository;
 pub mod sqlite_workout_entry_repository;
 pub mod workout_entry_repository;

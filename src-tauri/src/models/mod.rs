@@ -2,6 +2,8 @@ pub mod billing;
 pub mod dashboard;
 pub mod exercise;
 pub mod person;
+pub mod product;
 pub mod routine;
 pub mod routine_exercise;
+pub mod sale;
 pub mod workout_entry;

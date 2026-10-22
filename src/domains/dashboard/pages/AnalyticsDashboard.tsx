@@ -34,6 +34,22 @@ function StatCard({ label, value, hint, onClick, attention = false }: { label: s
     : <div className={className}>{content}</div>;
 }
 
+function RevenueStat({ summary, loading, period, onNavigate }: { summary: DashboardSummary | null; loading: boolean; period: string; onNavigate: (path: string) => void }) {
+  const periodName = monthYearLabel(period);
+  return <div className="analytics-stat analytics-revenue-stat">
+    <span>Recaudación mensual</span>
+    <strong>{loading ? '—' : money.format((summary?.collected_cents ?? 0) / 100)}</strong>
+    <div className="analytics-revenue-breakdown" aria-label="Detalle de recaudación">
+      <button type="button" onClick={() => onNavigate(`/pagos?period=${period}`)} aria-label={`Ver pagos de ${periodName}`}>
+        <span>Cuotas</span><b>{loading ? '—' : money.format((summary?.payments_collected_cents ?? 0) / 100)}</b><i aria-hidden="true">›</i>
+      </button>
+      <button type="button" onClick={() => onNavigate(`/ventas?period=${period}`)} aria-label={`Ver ventas de ${periodName}`}>
+        <span>Ventas</span><b>{loading ? '—' : money.format((summary?.sales_collected_cents ?? 0) / 100)}</b><i aria-hidden="true">›</i>
+      </button>
+    </div>
+  </div>;
+}
+
 function ChartCard({ title, error, loading, children }: React.PropsWithChildren<{ title: string; error?: string; loading: boolean }>) {
   return <Card variant="default" padding="md" className="analytics-chart-card"><Title level={3}>{title}</Title>{loading ? <div className="analytics-state">Cargando…</div> : error ? <ErrorMessage message={error} /> : children}</Card>;
 }
@@ -114,7 +130,7 @@ export default function AnalyticsDashboard() {
     <div className="analytics-header"><ManagementPageHeader title="Dashboard" /><PeriodSelect value={period} onChange={value => setPeriod(String(value))} /></div>
     {errors.summary ? <ErrorMessage message={errors.summary} /> : <div className="analytics-stats">
       <StatCard label="Alumnos activos" value={loading.summary ? '—' : number.format(summary?.active_students ?? 0)} onClick={() => navigate('/personas')} hint="Ver alumnos activos" />
-      <StatCard label="Recaudación mensual" value={loading.summary ? '—' : money.format((summary?.collected_cents ?? 0) / 100)} onClick={() => navigate(`/pagos?period=${period}`)} hint="Ver pagos" />
+      <RevenueStat summary={summary} loading={loading.summary} period={period} onNavigate={navigate} />
       <StatCard label="Pagos pendientes" value={loading.summary ? '—' : number.format(summary?.pending_payments ?? 0)} onClick={() => navigate(`/personas?paymentStatus=pending&period=${period}`)} hint="Ver pendientes" />
       <StatCard label="Pagos vencidos" value={loading.summary ? '—' : number.format(summary?.overdue_payments ?? 0)} onClick={() => navigate(`/personas?paymentStatus=overdue&period=${period}`)} hint="Ver vencidos" attention={!loading.summary && (summary?.overdue_payments ?? 0) > 0} />
       <StatCard label="Sesiones registradas" value={loading.summary ? '—' : number.format(summary?.registered_sessions ?? 0)} />

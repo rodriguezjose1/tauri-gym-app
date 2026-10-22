@@ -10,6 +10,14 @@
 .analytics-stat span { color: var(--text-secondary); font-size: 13px; }
 .analytics-stat strong { font-size: clamp(21px, 2vw, 29px); overflow-wrap: anywhere; }
 .analytics-stat small { color: var(--accent-primary); margin-top: auto; }
+.analytics-revenue-stat { gap: 4px; padding-top: 12px; padding-bottom: 10px; }
+.analytics-revenue-breakdown { display: grid; grid-template-columns: 1fr; margin: auto -7px -5px; padding-top: 4px; border-top: 1px solid var(--border-light); }
+.analytics-revenue-breakdown button { display: grid; grid-template-columns: minmax(0, 1fr) auto 10px; align-items: center; gap: 6px; min-width: 0; min-height: 25px; padding: 3px 7px; border: 0; border-radius: 6px; background: transparent; color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; }
+.analytics-revenue-breakdown button:hover { background: var(--bg-primary); }
+.analytics-revenue-breakdown button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+.analytics-revenue-breakdown button span { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.analytics-revenue-breakdown button b { font-size: 12px; white-space: nowrap; }
+.analytics-revenue-breakdown button i { color: var(--accent-primary); font-size: 19px; font-style: normal; line-height: 1; }
 .analytics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .analytics-chart-card { min-height: 285px; display: flex; flex-direction: column; gap: 18px; }
 .analytics-chart-card:last-child { grid-column: 1 / -1; }

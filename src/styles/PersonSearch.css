@@ -103,6 +103,12 @@
   flex-shrink: 0;
 }
 
+.person-search-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 .person-search-dropdown {
   position: absolute;
   top: 100%;
@@ -258,4 +264,4 @@
   .person-search-item-phone {
     font-size: 10px;
   }
-} 
+}

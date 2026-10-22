@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const CURRENT_SCHEMA_VERSION: i32 = 4;
+pub const CURRENT_SCHEMA_VERSION: i32 = 7;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MigrationOutcome {
@@ -98,12 +98,137 @@ pub fn migrate_database(db_path: &Path) -> Result<MigrationOutcome, String> {
         migrate_to_v4(&mut connection)?;
     }
 
+    if previous_version < 5 {
+        migrate_to_v5(&mut connection)?;
+    }
+
+    if previous_version < 6 {
+        migrate_to_v6(&mut connection)?;
+    }
+
+    if previous_version < 7 {
+        migrate_to_v7(&mut connection)?;
+    }
+
     validate_schema(&connection)?;
     Ok(MigrationOutcome {
         previous_version,
         current_version: CURRENT_SCHEMA_VERSION,
         backup_path,
     })
+}
+
+fn migrate_to_v7(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de ventas: {e}"))?;
+    transaction.execute_batch(
+        "CREATE TABLE IF NOT EXISTS sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            buyer_person_id INTEGER NULL REFERENCES people(id),
+            buyer_name TEXT NULL,
+            payment_method TEXT NOT NULL CHECK (payment_method IN ('cash','transfer','other')),
+            total_amount_cents INTEGER NOT NULL CHECK (total_amount_cents > 0),
+            total_cost_cents INTEGER NOT NULL CHECK (total_cost_cents >= 0),
+            sold_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            voided_at TEXT NULL,
+            void_reason TEXT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            CHECK ((voided_at IS NULL AND void_reason IS NULL) OR (voided_at IS NOT NULL AND length(trim(void_reason)) > 0))
+        );
+        CREATE TABLE IF NOT EXISTS sale_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER NOT NULL REFERENCES sales(id),
+            product_id INTEGER NOT NULL REFERENCES products(id),
+            product_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            unit_price_cents INTEGER NOT NULL CHECK (unit_price_cents > 0),
+            line_total_cents INTEGER NOT NULL CHECK (line_total_cents > 0),
+            UNIQUE(sale_id,product_id)
+        );
+        CREATE TABLE IF NOT EXISTS sale_item_allocations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_item_id INTEGER NOT NULL REFERENCES sale_items(id),
+            stock_batch_id INTEGER NOT NULL REFERENCES stock_batches(id),
+            quantity INTEGER NOT NULL CHECK (quantity > 0),
+            unit_cost_cents INTEGER NOT NULL CHECK (unit_cost_cents >= 0),
+            cost_total_cents INTEGER NOT NULL CHECK (cost_total_cents >= 0),
+            UNIQUE(sale_item_id,stock_batch_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_sold_at ON sales(sold_at,id);
+        CREATE INDEX IF NOT EXISTS idx_sales_buyer ON sales(buyer_person_id,sold_at);
+        CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id,sale_id);
+        CREATE INDEX IF NOT EXISTS idx_sale_allocations_batch ON sale_item_allocations(stock_batch_id);
+        INSERT OR IGNORE INTO migrations(version) VALUES ('007_sales');
+        PRAGMA user_version = 7;"
+    ).map_err(|e| format!("No se pudo crear el esquema de ventas: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de ventas: {e}"))
+}
+
+fn migrate_to_v6(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de precios de productos: {e}"))?;
+    transaction
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS product_price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL REFERENCES products(id),
+            price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+            effective_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_product_price_history_effective
+            ON product_price_history(product_id,effective_at,id);
+        INSERT INTO product_price_history(product_id,price_cents,effective_at)
+        SELECT id,sale_price_cents,created_at FROM products
+        WHERE NOT EXISTS (
+            SELECT 1 FROM product_price_history history WHERE history.product_id=products.id
+        );
+        INSERT OR IGNORE INTO migrations(version) VALUES ('006_product_price_history');
+        PRAGMA user_version = 6;",
+        )
+        .map_err(|e| format!("No se pudo crear el historial de precios de productos: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de precios de productos: {e}"))
+}
+
+fn migrate_to_v5(connection: &mut Connection) -> Result<(), String> {
+    let transaction = connection
+        .transaction()
+        .map_err(|e| format!("No se pudo iniciar la migración de productos: {e}"))?;
+    transaction.execute_batch(
+        "CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            category TEXT NOT NULL,
+            sale_price_cents INTEGER NOT NULL CHECK (sale_price_cents > 0),
+            is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0,1)),
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS stock_batches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL REFERENCES products(id),
+            received_quantity INTEGER NOT NULL CHECK (received_quantity > 0),
+            remaining_quantity INTEGER NOT NULL CHECK (remaining_quantity >= 0),
+            unit_cost_cents INTEGER NOT NULL CHECK (unit_cost_cents >= 0),
+            received_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            CHECK (remaining_quantity <= received_quantity)
+        );
+        CREATE INDEX IF NOT EXISTS idx_products_status_name ON products(is_active,name);
+        CREATE INDEX IF NOT EXISTS idx_stock_batches_fifo ON stock_batches(product_id,received_at,id)
+            WHERE remaining_quantity > 0;
+        INSERT OR IGNORE INTO migrations(version) VALUES ('005_products_stock');
+        PRAGMA user_version = 5;"
+    ).map_err(|e| format!("No se pudo crear el esquema de productos: {e}"))?;
+    transaction
+        .commit()
+        .map_err(|e| format!("No se pudo confirmar la migración de productos: {e}"))
 }
 
 fn migrate_to_v4(connection: &mut Connection) -> Result<(), String> {
@@ -442,6 +567,12 @@ fn validate_schema(connection: &Connection) -> Result<(), String> {
         "obligations",
         "payments",
         "person_activity_periods",
+        "products",
+        "stock_batches",
+        "product_price_history",
+        "sales",
+        "sale_items",
+        "sale_item_allocations",
     ] {
         let exists: Option<i32> = connection
             .query_row(

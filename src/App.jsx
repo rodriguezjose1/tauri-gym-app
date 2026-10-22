@@ -8,6 +8,7 @@ import ExerciseCrud from './domains/exercise/pages/ExerciseCrud';
 import { RoutineManager } from './domains/routine';
 import ConfiguracionesPage from './domains/settings/pages/ConfiguracionesPage';
 import BillingPage from './domains/billing/pages/BillingPage';
+import SalesPage from './domains/sales/pages/SalesPage';
 import { ConfigProvider } from './shared/contexts';
 import { ToastProvider } from './shared/contexts/ToastContext';
 import Updater from './components/Updater';
@@ -39,6 +40,7 @@ function Navigation() {
               Pagos
             </Link>
           </li>
+          <li><Link to="/ventas" className={`nav-link ${location.pathname === '/ventas' ? 'active payments' : ''}`}><span className="nav-link-icon">🛒</span>Ventas</Link></li>
           <li>
             <Link
               to="/"
@@ -92,6 +94,11 @@ function Navigation() {
 
 function App() {
   useEffect(() => {
+    if (!import.meta.env.PROD) {
+      console.info('Automatic email backup is disabled outside production');
+      return;
+    }
+
     const backup = async () => {
       try {
         console.log('Attempting to execute backup...');
@@ -135,6 +142,7 @@ function App() {
                 <Route path="/exercises" element={<ExerciseCrud />} />
                 <Route path="/routines" element={<RoutineManager />} />
                 <Route path="/pagos" element={<BillingPage />} />
+                <Route path="/ventas" element={<SalesPage />} />
                 <Route path="/configuraciones" element={<ConfiguracionesPage />} />
               </Routes>
             </main>

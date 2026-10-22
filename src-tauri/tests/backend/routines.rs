@@ -103,6 +103,16 @@ mod contracts {
     use super::*;
 
     #[test]
+    fn routine_search_ignores_accents_and_case() {
+        let f = Fixture::new();
+        f.service
+            .create_routine("Fuerza máxima".into(), "MAX".into())
+            .unwrap();
+
+        assert_eq!(f.service.search_routines("MAXIMA".into()).unwrap().len(), 1);
+    }
+
+    #[test]
     fn creates_normalizes_searches_and_updates_routine() {
         let f = Fixture::new();
         let id = f

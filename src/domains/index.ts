@@ -2,4 +2,6 @@
 export * from './person';
 export * from './exercise';
 export * from './workout';
-export * from './routine'; 
+export * from './routine';
+export * from './products';
+export * from './sales';
