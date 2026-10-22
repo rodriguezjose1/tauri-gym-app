@@ -119,7 +119,7 @@ fn lists_details_filters_and_voids_restoring_original_batches_once() {
     connection.execute("UPDATE sales SET sold_at='2026-10-10 12:00:00' WHERE id=?1", [sale.id]).unwrap();
     drop(connection);
 
-    let page = sales.page("2026-10", "aislada", "active", 1).unwrap();
+    let page = sales.page("2026-10", "proteina aislada", "active", 1).unwrap();
     assert_eq!(page.total, 1);
     assert_eq!(page.sales[0].id, sale.id);
     assert_eq!(sales.page("2026-10", "", "all", 99).unwrap().page, 1);

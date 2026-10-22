@@ -41,6 +41,20 @@ fn replenishments_create_independent_batches_and_stock_is_aggregated() {
 }
 
 #[test]
+fn product_search_ignores_accents_and_case() {
+    let (_directory, _path, service) = fixture();
+    service
+        .save(SaveProductRequest {
+            product: product("Proteína"),
+            initial_stock: None,
+        })
+        .unwrap();
+
+    assert_eq!(service.page("proteina", 1, 8).unwrap().total, 1);
+    assert_eq!(service.page("PROTEÍNA", 1, 8).unwrap().total, 1);
+}
+
+#[test]
 fn validates_inputs_and_preserves_stock_when_product_is_edited_or_disabled() {
     let (_directory, _path, service) = fixture();
     assert!(service.save(SaveProductRequest { product: product("  "), initial_stock: None }).is_err());

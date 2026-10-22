@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::exercise::{DeletedExercise, Exercise};
 use crate::repository::exercise_repository::ExerciseRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
@@ -64,7 +65,9 @@ impl SqliteExerciseRepository {
         if self.is_dummy {
             return Err("Exercise repository unavailable".into());
         }
-        Connection::open(&self.db_path).map_err(|e| e.to_string())
+        let connection = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
+        register_search_normalization(&connection).map_err(|e| e.to_string())?;
+        Ok(connection)
     }
 
     fn map_exercise(row: &rusqlite::Row<'_>) -> rusqlite::Result<Exercise> {
@@ -196,10 +199,10 @@ impl ExerciseRepository for SqliteExerciseRepository {
         let offset = (page - 1)
             .checked_mul(page_size)
             .ok_or("Pagination overflow")?;
-        let pattern = format!("%{query}%");
+        let pattern = format!("%{}%", normalize_search_text(query));
         self.query_list(
             "SELECT id, name, code FROM exercise
-             WHERE (name LIKE ?1 OR code LIKE ?1)
+             WHERE (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name LIMIT ?2 OFFSET ?3",
             &[&pattern, &page_size, &offset],
@@ -207,10 +210,10 @@ impl ExerciseRepository for SqliteExerciseRepository {
     }
 
     fn search_count(&self, query: &str) -> Result<i32, String> {
-        let pattern = format!("%{query}%");
+        let pattern = format!("%{}%", normalize_search_text(query));
         self.connection()?
             .query_row(
-                "SELECT COUNT(*) FROM exercise WHERE (name LIKE ?1 OR code LIKE ?1)
+                "SELECT COUNT(*) FROM exercise WHERE (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
                 [pattern],
                 |row| row.get(0),
@@ -244,24 +247,24 @@ impl ExerciseRepository for SqliteExerciseRepository {
         page: i32,
         page_size: i32,
     ) -> Result<Vec<DeletedExercise>, String> {
-        let pattern = format!("%{query}%");
+        let pattern = format!("%{}%", normalize_search_text(query));
         let offset = (page - 1)
             .checked_mul(page_size)
             .ok_or("Pagination overflow")?;
         self.query_deleted_list(
             "SELECT id,name,code,deleted_at FROM exercise
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             AND (name LIKE ?1 OR code LIKE ?1)
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              ORDER BY name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
             &[&pattern, &page_size, &offset],
         )
     }
 
     fn search_deleted_count(&self, query: &str) -> Result<i32, String> {
-        let pattern = format!("%{query}%");
+        let pattern = format!("%{}%", normalize_search_text(query));
         self.connection()?.query_row(
             "SELECT COUNT(*) FROM exercise WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             AND (name LIKE ?1 OR code LIKE ?1)", [pattern], |row| row.get(0),
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)", [pattern], |row| row.get(0),
         ).map_err(|e| e.to_string())
     }
 

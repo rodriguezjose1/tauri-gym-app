@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::person::{DeletedPerson, Person};
 use crate::repository::person_repository::PersonRepository;
 use rusqlite::{params, Connection, Result as SqliteResult};
@@ -95,7 +96,9 @@ impl SqlitePersonRepository {
         if self.is_dummy {
             return Err(rusqlite::Error::InvalidQuery);
         }
-        Connection::open(&self.db_path)
+        let connection = Connection::open(&self.db_path)?;
+        register_search_normalization(&connection)?;
+        Ok(connection)
     }
 }
 
@@ -179,12 +182,12 @@ impl PersonRepository for SqlitePersonRepository {
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        let search_pattern = format!("%{}%", normalize_search_text(query));
 
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
+             WHERE (search_normalize(name) LIKE ?1 OR search_normalize(last_name) LIKE ?1 OR search_normalize(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name",
             )
@@ -259,13 +262,13 @@ impl PersonRepository for SqlitePersonRepository {
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        let search_pattern = format!("%{}%", normalize_search_text(query));
         let offset = (page - 1) * page_size;
 
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, last_name, phone FROM people
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
+             WHERE (search_normalize(name) LIKE ?1 OR search_normalize(last_name) LIKE ?1 OR search_normalize(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
              ORDER BY name, last_name
              LIMIT ?2 OFFSET ?3",
@@ -338,11 +341,11 @@ impl PersonRepository for SqlitePersonRepository {
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        let search_pattern = format!("%{}%", normalize_search_text(query));
 
         conn.query_row(
             "SELECT COUNT(*) FROM people 
-             WHERE (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1)
+             WHERE (search_normalize(name) LIKE ?1 OR search_normalize(last_name) LIKE ?1 OR search_normalize(name || ' ' || last_name) LIKE ?1)
              AND (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)",
             params![search_pattern],
             |row| row.get(0),
@@ -446,12 +449,12 @@ impl PersonRepository for SqlitePersonRepository {
             return Ok(Vec::new());
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        let pattern = format!("%{}%", query.to_lowercase());
+        let pattern = format!("%{}%", normalize_search_text(query));
         let offset = (page - 1) * page_size;
         let mut stmt = conn.prepare(
             "SELECT id,name,last_name,phone,deleted_at FROM people
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(last_name) LIKE ?1 OR search_normalize(name || ' ' || last_name) LIKE ?1)
              ORDER BY name COLLATE NOCASE,last_name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
         ).map_err(|e| e.to_string())?;
         let result = stmt
@@ -474,10 +477,10 @@ impl PersonRepository for SqlitePersonRepository {
         if self.is_dummy {
             return Ok(0);
         }
-        let pattern = format!("%{}%", query.to_lowercase());
+        let pattern = format!("%{}%", normalize_search_text(query));
         self.get_connection().map_err(|e| e.to_string())?.query_row(
             "SELECT COUNT(*) FROM people WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             AND (LOWER(name) LIKE ?1 OR LOWER(last_name) LIKE ?1 OR LOWER(name || ' ' || last_name) LIKE ?1)",
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(last_name) LIKE ?1 OR search_normalize(name || ' ' || last_name) LIKE ?1)",
             params![pattern], |row| row.get(0),
         ).map_err(|e| e.to_string())
     }

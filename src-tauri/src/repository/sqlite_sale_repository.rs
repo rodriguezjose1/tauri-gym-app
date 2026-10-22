@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::sale::{SaleItemResult, SalePage, SaleRequest, SaleResult, SaleSummary};
 use crate::repository::sale_repository::SaleRepository;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
@@ -32,6 +33,7 @@ impl SqliteSaleRepository {
 
     fn connection(&self) -> Result<Connection, String> {
         let connection = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
+        register_search_normalization(&connection).map_err(|e| e.to_string())?;
         connection
             .execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")
             .map_err(|e| e.to_string())?;
@@ -206,9 +208,10 @@ impl SaleRepository for SqliteSaleRepository {
         page_size: i64,
     ) -> Result<SalePage, String> {
         let connection = self.connection()?;
+        let normalized_query = normalize_search_text(query);
         let pattern = format!(
             "%{}%",
-            query
+            normalized_query
                 .replace('\\', "\\\\")
                 .replace('%', "\\%")
                 .replace('_', "\\_")
@@ -218,11 +221,11 @@ impl SaleRepository for SqliteSaleRepository {
             "voided" => "AND s.voided_at IS NOT NULL",
             _ => "",
         };
-        let where_sql = format!("WHERE substr(s.sold_at,1,7)=?1 AND (?2='' OR COALESCE(s.buyer_name,'') LIKE ?3 ESCAPE '\\' COLLATE NOCASE OR EXISTS(SELECT 1 FROM sale_items si WHERE si.sale_id=s.id AND si.product_name LIKE ?3 ESCAPE '\\' COLLATE NOCASE)) {status_filter}");
+        let where_sql = format!("WHERE substr(s.sold_at,1,7)=?1 AND (?2='' OR search_normalize(COALESCE(s.buyer_name,'')) LIKE ?3 ESCAPE '\\' OR EXISTS(SELECT 1 FROM sale_items si WHERE si.sale_id=s.id AND search_normalize(si.product_name) LIKE ?3 ESCAPE '\\')) {status_filter}");
         let total = connection
             .query_row(
                 &format!("SELECT COUNT(*) FROM sales s {where_sql}"),
-                params![month, query, pattern],
+                params![month, normalized_query, pattern],
                 |row| row.get::<_, i64>(0),
             )
             .map_err(|e| e.to_string())?;
@@ -241,7 +244,7 @@ impl SaleRepository for SqliteSaleRepository {
             .query_map(
                 params![
                     month,
-                    query,
+                    normalized_query,
                     pattern,
                     page_size,
                     (effective_page - 1) * page_size

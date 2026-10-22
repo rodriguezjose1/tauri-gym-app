@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::routine::{Routine, RoutineWithExercises};
 use crate::models::routine_exercise::{RoutineExercise, RoutineExerciseWithDetails};
 use crate::repository::routine_repository::RoutineRepository;
@@ -169,7 +170,9 @@ impl SqliteRoutineRepository {
         if self.is_dummy {
             return Err(rusqlite::Error::InvalidQuery);
         }
-        Connection::open(&self.db_path)
+        let connection = Connection::open(&self.db_path)?;
+        register_search_normalization(&connection)?;
+        Ok(connection)
     }
 }
 
@@ -357,14 +360,14 @@ impl RoutineRepository for SqliteRoutineRepository {
     }
 
     fn search_count(&self, query: &str, deleted: bool) -> Result<i32, String> {
-        let pattern = format!("%{}%", query.to_lowercase());
+        let pattern = format!("%{}%", normalize_search_text(query));
         let condition = if deleted {
             "deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0"
         } else {
             "(deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)"
         };
         self.get_connection().map_err(|e| e.to_string())?.query_row(
-            &format!("SELECT COUNT(*) FROM routines WHERE {condition} AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)"),
+            &format!("SELECT COUNT(*) FROM routines WHERE {condition} AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)"),
             params![pattern], |row| row.get(0),
         ).map_err(|e| e.to_string())
     }
@@ -375,13 +378,13 @@ impl RoutineRepository for SqliteRoutineRepository {
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
-        let search_pattern = format!("%{}%", query);
+        let search_pattern = format!("%{}%", normalize_search_text(query));
 
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             AND (name LIKE ?1 OR code LIKE ?1) 
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              ORDER BY name",
             )
             .map_err(|e| e.to_string())?;
@@ -414,13 +417,13 @@ impl RoutineRepository for SqliteRoutineRepository {
         let conn = self.get_connection().map_err(|e| e.to_string())?;
 
         let offset = (page - 1) * page_size;
-        let search_pattern = format!("%{}%", query);
+        let search_pattern = format!("%{}%", normalize_search_text(query));
 
         let mut stmt = conn
             .prepare(
                 "SELECT id, name, code, created_at, updated_at FROM routines 
              WHERE (deleted_at IS NULL OR deleted_at = '') AND (is_active = 1 OR is_active IS NULL)
-             AND (name LIKE ?1 OR code LIKE ?1) 
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              ORDER BY name LIMIT ?2 OFFSET ?3",
             )
             .map_err(|e| e.to_string())?;
@@ -806,13 +809,13 @@ impl RoutineRepository for SqliteRoutineRepository {
             return Err("Routine repository unavailable".into());
         }
         let conn = self.get_connection().map_err(|e| e.to_string())?;
-        let pattern = format!("%{}%", query.to_lowercase());
+        let pattern = format!("%{}%", normalize_search_text(query));
         let offset = (page - 1) * page_size;
         let mut stmt = conn
             .prepare(
                 "SELECT id,name,code,created_at,updated_at FROM routines
              WHERE deleted_at IS NOT NULL AND deleted_at != '' AND is_active = 0
-             AND (LOWER(name) LIKE ?1 OR LOWER(code) LIKE ?1)
+             AND (search_normalize(name) LIKE ?1 OR search_normalize(code) LIKE ?1)
              ORDER BY name COLLATE NOCASE,id LIMIT ?2 OFFSET ?3",
             )
             .map_err(|e| e.to_string())?;

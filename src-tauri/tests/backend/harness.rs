@@ -10,6 +10,8 @@ pub mod dashboard;
 pub mod dashboard_service;
 #[path = "../../src/config/database_migrations.rs"]
 pub mod database_migrations;
+#[path = "../../src/config/search.rs"]
+pub mod search;
 #[path = "../../src/models/exercise.rs"]
 pub mod exercise;
 #[path = "../../src/repository/exercise_repository.rs"]
@@ -82,6 +84,9 @@ pub mod repository {
 }
 pub mod services {
     pub use crate::billing_service;
+}
+pub mod config {
+    pub use crate::search;
 }
 
 #[cfg(test)]

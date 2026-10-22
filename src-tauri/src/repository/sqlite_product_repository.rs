@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::product::{Product, ProductPage, StockReceipt};
 use crate::repository::product_repository::ProductRepository;
 use rusqlite::{params, Connection};
@@ -17,6 +18,7 @@ impl SqliteProductRepository {
 
     fn connection(&self) -> Result<Connection, String> {
         let connection = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
+        register_search_normalization(&connection).map_err(|e| e.to_string())?;
         connection
             .execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")
             .map_err(|e| e.to_string())?;
@@ -93,11 +95,12 @@ impl ProductRepository for SqliteProductRepository {
 
     fn page(&self, query: &str, page: i64, page_size: i64) -> Result<ProductPage, String> {
         let connection = self.connection()?;
-        let pattern = format!("%{}%", query.trim());
+        let normalized_query = normalize_search_text(query);
+        let pattern = format!("%{normalized_query}%");
         let total: i64 = connection
             .query_row(
-                "SELECT COUNT(*) FROM products WHERE ?1='' OR name LIKE ?2",
-                params![query.trim(), pattern],
+                "SELECT COUNT(*) FROM products WHERE ?1='' OR search_normalize(name) LIKE ?2",
+                params![normalized_query, pattern],
                 |row| row.get(0),
             )
             .map_err(|e| e.to_string())?;
@@ -114,13 +117,13 @@ impl ProductRepository for SqliteProductRepository {
         let mut statement = connection.prepare(
             "SELECT p.id,p.name,p.category,p.sale_price_cents,p.is_active,COALESCE(SUM(b.remaining_quantity),0)
              FROM products p LEFT JOIN stock_batches b ON b.product_id=p.id
-             WHERE ?1='' OR p.name LIKE ?2
+             WHERE ?1='' OR search_normalize(p.name) LIKE ?2
              GROUP BY p.id ORDER BY p.name COLLATE NOCASE,p.id LIMIT ?3 OFFSET ?4"
         ).map_err(|e| e.to_string())?;
         let products = statement
             .query_map(
                 params![
-                    query.trim(),
+                    normalized_query,
                     pattern,
                     page_size,
                     (effective_page - 1) * page_size

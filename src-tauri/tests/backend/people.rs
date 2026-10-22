@@ -91,6 +91,21 @@ mod contracts {
     use super::*;
 
     #[test]
+    fn searches_names_without_requiring_matching_accents_or_case() {
+        let f = Fixture::new();
+        f.create("José", "Muñoz");
+
+        for query in ["jose", "JOSÉ", "munoz", "Muñoz", "jose munoz"] {
+            let result = f
+                .service
+                .search_people_paginated_response(query, 1, 10)
+                .unwrap();
+            assert_eq!(result.total, 1, "query {query:?} should match");
+            assert_eq!(result.persons[0].name, "José");
+        }
+    }
+
+    #[test]
     fn creates_and_reads_person_with_generated_id() {
         let f = Fixture::new();
         let saved = f.create("Ana", "Perez");

@@ -152,6 +152,15 @@ mod contracts {
             ),
             ["PB"]
         );
+        f.create_exercise("Extensión de piernas", "EXT");
+        assert_eq!(
+            exercise_codes(
+                &f.exercise_service
+                    .search_exercises_paginated("extension", 1, 10)
+                    .unwrap()
+            ),
+            ["EXT"]
+        );
 
         f.exercise_service
             .update_exercise(Exercise {

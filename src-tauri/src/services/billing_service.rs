@@ -1,3 +1,4 @@
+use crate::config::search::{normalize_search_text, register_search_normalization};
 use crate::models::billing::{
     DevGeneratedObligation, DevGenerationResult, Obligation, Payment, PaymentPage, PaymentQuote,
     PaymentRequest, PaymentStatusCounts, PersonPaymentHistoryItem, PersonPaymentHistoryPage,
@@ -19,6 +20,7 @@ impl BillingService {
 
     fn connection(&self) -> Result<Connection, String> {
         let connection = Connection::open(&self.db_path).map_err(|e| e.to_string())?;
+        register_search_normalization(&connection).map_err(|e| e.to_string())?;
         connection
             .execute_batch("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;")
             .map_err(|e| e.to_string())?;
@@ -587,7 +589,7 @@ impl BillingService {
             return Err("Parámetros de consulta de personas inválidos".into());
         }
         let connection = self.connection()?;
-        let normalized_query = query.trim().to_lowercase();
+        let normalized_query = normalize_search_text(query);
         let escaped_query = normalized_query
             .replace('\\', "\\\\")
             .replace('%', "\\%")
@@ -605,7 +607,7 @@ impl BillingService {
         } else {
             format!("SELECT pe.id,pe.name,pe.last_name,pe.phone,{PERSON_PAYMENT_STATUS_SQL} AS payment_status FROM people pe WHERE (pe.deleted_at IS NULL OR pe.deleted_at='') AND (pe.is_active=1 OR pe.is_active IS NULL) AND ?4 IS NULL")
         };
-        let total_sql = format!("WITH classified AS ({classified}) SELECT COUNT(*) FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\')");
+        let total_sql = format!("WITH classified AS ({classified}) SELECT COUNT(*) FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR search_normalize(name) LIKE ?3 ESCAPE '\\' OR search_normalize(last_name) LIKE ?3 ESCAPE '\\' OR search_normalize(name||' '||last_name) LIKE ?3 ESCAPE '\\')");
         let total: i64 = connection
             .query_row(
                 &total_sql,
@@ -623,7 +625,7 @@ impl BillingService {
         } else {
             1
         };
-        let page_sql = format!("WITH classified AS ({classified}) SELECT id,name,last_name,phone,payment_status FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR lower(name) LIKE ?3 ESCAPE '\\' OR lower(last_name) LIKE ?3 ESCAPE '\\' OR lower(name||' '||last_name) LIKE ?3 ESCAPE '\\') ORDER BY name,last_name LIMIT ?5 OFFSET ?6");
+        let page_sql = format!("WITH classified AS ({classified}) SELECT id,name,last_name,phone,payment_status FROM classified WHERE (?1='all' OR payment_status=?1) AND (?2='' OR search_normalize(name) LIKE ?3 ESCAPE '\\' OR search_normalize(last_name) LIKE ?3 ESCAPE '\\' OR search_normalize(name||' '||last_name) LIKE ?3 ESCAPE '\\') ORDER BY name,last_name LIMIT ?5 OFFSET ?6");
         let mut statement = connection.prepare(&page_sql).map_err(|e| e.to_string())?;
         let persons = statement
             .query_map(
@@ -832,7 +834,7 @@ impl BillingService {
             [month],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         ).map_err(|e| e.to_string())?;
-        let normalized_query = person_query.trim();
+        let normalized_query = normalize_search_text(person_query);
         let escaped_query = normalized_query
             .replace('\\', "\\\\")
             .replace('%', "\\%")
@@ -842,7 +844,7 @@ impl BillingService {
             .query_row(
                 "SELECT COUNT(*) FROM payments p JOIN people pe ON pe.id=p.person_id
              WHERE substr(p.paid_at,1,7)=?1
-               AND (?2='' OR trim(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\' COLLATE NOCASE)",
+               AND (?2='' OR search_normalize(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\')",
                 params![month, normalized_query, search_pattern],
                 |row| row.get(0),
             )
@@ -857,7 +859,7 @@ impl BillingService {
         } else {
             1
         };
-        let mut statement = connection.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 AND (?2='' OR trim(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\' COLLATE NOCASE) ORDER BY p.paid_at DESC,p.id DESC LIMIT ?4 OFFSET ?5").map_err(|e| e.to_string())?;
+        let mut statement = connection.prepare("SELECT p.id,p.person_id,p.obligation_id,p.plan_id,p.plan_name,p.modality,p.period,p.amount_cents,p.paid_at,p.reversed_at,p.reversal_reason,pe.name||' '||pe.last_name FROM payments p JOIN people pe ON pe.id=p.person_id WHERE substr(p.paid_at,1,7)=?1 AND (?2='' OR search_normalize(pe.name||' '||pe.last_name) LIKE ?3 ESCAPE '\\') ORDER BY p.paid_at DESC,p.id DESC LIMIT ?4 OFFSET ?5").map_err(|e| e.to_string())?;
         let payments = statement
             .query_map(
                 params![
