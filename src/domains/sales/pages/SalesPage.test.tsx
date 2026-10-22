@@ -66,8 +66,9 @@ test('registra una venta con varios productos, alumno del gimnasio y medio de pa
     payment_method: 'transfer',
     items: [{ product_id: 1, quantity: 2 }, { product_id: 2, quantity: 1 }],
   } }));
-  expect(await screen.findByRole('heading', { name: 'Detalle de venta #7' })).toBeInTheDocument();
-  expect(screen.getByText('2 × Proteína')).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Registrar venta' })).not.toBeInTheDocument());
+  expect(screen.queryByRole('heading', { name: 'Detalle de venta #7' })).not.toBeInTheDocument();
+  expect(invoke.mock.calls.filter(([command]) => command === 'get_sales_page')).toHaveLength(2);
 });
 
 test('conserva el formulario y muestra el error cuando el backend rechaza el stock', async () => {

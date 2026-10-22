@@ -72,8 +72,8 @@ export default function SalesPage() {
     } catch (voidError) { setError(String(voidError)); addNotification('No se pudo anular la venta', 'error'); }
     finally { setMutating(false); }
   };
-  const saleSaved = async (sale: SaleResult) => {
-    setDialogOpen(false); setDetail(sale); await load(1);
+  const saleSaved = async () => {
+    setDialogOpen(false); await load(1);
     addNotification('Venta registrada correctamente', 'success');
   };
 
